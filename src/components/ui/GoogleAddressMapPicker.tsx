@@ -7,6 +7,7 @@ interface GoogleAddressMapPickerProps {
   onAddressSelect: (data: {
     address: string;
     city: string;
+    district?: string;
     state: string;
     country: string;
     lat?: number;
@@ -65,10 +66,11 @@ export default function GoogleAddressMapPicker({
   }, []);
 
   // Sync typed address to parent form whenever input changes or loses focus
-  const notifyParent = (text: string, lat?: number, lng?: number, city?: string, state?: string) => {
+  const notifyParent = (text: string, lat?: number, lng?: number, city?: string, district?: string, state?: string) => {
     onAddressSelect({
       address: text,
       city: city || initialCity || '',
+      district: district || '',
       state: state || initialState || '',
       country: 'India',
       lat,
@@ -135,12 +137,14 @@ export default function GoogleAddressMapPicker({
       addrObj.suburb ||
       initialCity ||
       '';
+    const district = addrObj.county || '';
     const state = addrObj.state || initialState || '';
     const country = addrObj.country || 'India';
 
     onAddressSelect({
       address: fullAddr,
       city,
+      district,
       state,
       country,
       lat,

@@ -19,6 +19,7 @@ export async function cleanDatabase() {
     Payment,
     Notification,
     State,
+    District,
     City,
   } = await import('../models');
 
@@ -46,6 +47,7 @@ export async function cleanDatabase() {
     await Hospital.destroy({ where: {}, truncate: true });
     await LeadPackage.destroy({ where: {}, truncate: true });
     await City.destroy({ where: {}, truncate: true });
+    await District.destroy({ where: {}, truncate: true });
     await State.destroy({ where: {}, truncate: true });
     await Service.destroy({ where: {}, truncate: true });
 

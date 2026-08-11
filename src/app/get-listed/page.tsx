@@ -19,11 +19,13 @@ export default function GetListedPage() {
   const [website, setWebsite] = useState('');
   const [address, setAddress] = useState('');
 
-  // Dynamic State & City Cascading Selection
+  // Dynamic State, District & City Cascading Selection
   const [statesList, setStatesList] = useState<any[]>([]);
-  const [state, setState] = useState('Maharashtra');
+  const [state, setState] = useState('Punjab');
+  const [districtOptions, setDistrictOptions] = useState<string[]>([]);
+  const [district, setDistrict] = useState('Ludhiana');
   const [cityOptions, setCityOptions] = useState<string[]>([]);
-  const [city, setCity] = useState('Mumbai');
+  const [city, setCity] = useState('Ludhiana City');
 
   const [description, setDescription] = useState('');
   const [contactPersonName, setContactPersonName] = useState('');
@@ -44,7 +46,7 @@ export default function GetListedPage() {
       })
       .catch(() => {});
 
-    // Fetch Dynamic States & Cities
+    // Fetch Dynamic States, Districts & Cities
     fetch('/api/locations')
       .then((res) => res.json())
       .then((data) => {
@@ -52,7 +54,19 @@ export default function GetListedPage() {
           setStatesList(data.states);
           const defaultSt = data.states.find((s: any) => s.name === 'Punjab') || data.states[0];
           setState(defaultSt.name);
-          if (defaultSt.cities && defaultSt.cities.length > 0) {
+
+          if (defaultSt.districts && defaultSt.districts.length > 0) {
+            const dists = defaultSt.districts.map((d: any) => d.name);
+            setDistrictOptions(dists);
+            const firstDistObj = defaultSt.districts[0];
+            setDistrict(firstDistObj.name);
+
+            if (firstDistObj.cities && firstDistObj.cities.length > 0) {
+              const cities = firstDistObj.cities.map((c: any) => c.name);
+              setCityOptions(cities);
+              setCity(cities[0]);
+            }
+          } else if (defaultSt.cities && defaultSt.cities.length > 0) {
             const cities = defaultSt.cities.map((c: any) => c.name);
             setCityOptions(cities);
             setCity(cities[0]);
@@ -65,19 +79,64 @@ export default function GetListedPage() {
   const handleStateChange = (newStateName: string) => {
     setState(newStateName);
     const selectedStateObj = statesList.find((s: any) => s.name === newStateName);
-    if (selectedStateObj && selectedStateObj.cities && selectedStateObj.cities.length > 0) {
+    if (selectedStateObj && selectedStateObj.districts && selectedStateObj.districts.length > 0) {
+      const dists = selectedStateObj.districts.map((d: any) => d.name);
+      setDistrictOptions(dists);
+      const firstDist = selectedStateObj.districts[0];
+      setDistrict(firstDist.name);
+
+      if (firstDist.cities && firstDist.cities.length > 0) {
+        const cities = firstDist.cities.map((c: any) => c.name);
+        setCityOptions(cities);
+        setCity(cities[0]);
+      } else if (selectedStateObj.cities && selectedStateObj.cities.length > 0) {
+        const cities = selectedStateObj.cities.map((c: any) => c.name);
+        setCityOptions(cities);
+        setCity(cities[0]);
+      } else {
+        setCityOptions([]);
+        setCity('');
+      }
+    } else if (selectedStateObj && selectedStateObj.cities && selectedStateObj.cities.length > 0) {
+      setDistrictOptions([]);
+      setDistrict('');
       const cities = selectedStateObj.cities.map((c: any) => c.name);
       setCityOptions(cities);
       setCity(cities[0]);
     } else {
+      setDistrictOptions([]);
+      setDistrict('');
       setCityOptions([]);
       setCity('');
+    }
+  };
+
+  const handleDistrictChange = (newDistName: string) => {
+    setDistrict(newDistName);
+    const selectedStateObj = statesList.find((s: any) => s.name === state);
+    const selectedDistObj = selectedStateObj?.districts?.find((d: any) => d.name === newDistName);
+    if (selectedDistObj && selectedDistObj.cities && selectedDistObj.cities.length > 0) {
+      const cities = selectedDistObj.cities.map((c: any) => c.name);
+      setCityOptions(cities);
+      setCity(cities[0]);
+    } else {
+      fetch(`/api/locations?district=${encodeURIComponent(newDistName)}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.cities && Array.isArray(d.cities)) {
+            const cNames = d.cities.map((c: any) => c.name);
+            setCityOptions(cNames);
+            if (cNames.length > 0) setCity(cNames[0]);
+          }
+        })
+        .catch(() => {});
     }
   };
 
   const handleGoogleAddressSelected = (data: {
     address: string;
     city: string;
+    district?: string;
     state: string;
     country: string;
   }) => {
@@ -91,6 +150,10 @@ export default function GetListedPage() {
       if (matchedState) {
         handleStateChange(matchedState.name);
       }
+    }
+    if (data.district) {
+      setDistrictOptions((prev) => (!prev.includes(data.district!) ? [data.district!, ...prev] : prev));
+      setDistrict(data.district);
     }
     if (data.city) {
       setCityOptions((prev) => {
@@ -126,6 +189,7 @@ export default function GetListedPage() {
           website,
           address,
           city,
+          district,
           state,
           description,
           contactPersonName,
@@ -398,7 +462,7 @@ export default function GetListedPage() {
                       />
                     </div>
 
-                    <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="lg:col-span-12 grid grid-cols-1 sm:grid-cols-3 gap-5">
                       {/* State Dropdown */}
                       <div>
                         <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
@@ -418,10 +482,29 @@ export default function GetListedPage() {
                         </select>
                       </div>
 
-                      {/* City Dropdown (State-wise Dynamic Options) */}
+                      {/* District Dropdown (State-wise Dynamic Options) */}
                       <div>
                         <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                          City *
+                          District *
+                        </label>
+                        <select
+                          required
+                          value={district}
+                          onChange={(e) => handleDistrictChange(e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#fd1d74] focus:bg-white transition-colors cursor-pointer"
+                        >
+                          {districtOptions.map((dName: string) => (
+                            <option key={dName} value={dName}>
+                              {dName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* City Dropdown (District-wise Dynamic Options) */}
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                          City / Town *
                         </label>
                         <select
                           required

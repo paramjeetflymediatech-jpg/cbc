@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
-import { State, City, initAssociations } from '@/models';
+import { State, District, City, initAssociations } from '@/models';
 
 export async function GET(req: Request) {
   try {
@@ -9,36 +9,81 @@ export async function GET(req: Request) {
 
     // Ensure tables exist before querying
     await State.sync({ alter: true });
+    await District.sync({ alter: true });
     await City.sync({ alter: true });
 
     const { searchParams } = new URL(req.url);
     const stateId = searchParams.get('stateId');
     const stateName = searchParams.get('state');
+    const districtId = searchParams.get('districtId');
+    const districtName = searchParams.get('district');
 
-    if (stateId) {
+    if (districtId) {
       const cities = await City.findAll({
-        where: { stateId: Number(stateId), status: 'ACTIVE' },
+        where: { districtId: Number(districtId), status: 'ACTIVE' },
         order: [['name', 'ASC']],
       });
       return NextResponse.json({ cities });
     }
 
+    if (districtName) {
+      const distObj = await District.findOne({ where: { name: districtName } });
+      if (!distObj) {
+        return NextResponse.json({ cities: [] });
+      }
+      const cities = await City.findAll({
+        where: { districtId: distObj.id, status: 'ACTIVE' },
+        order: [['name', 'ASC']],
+      });
+      return NextResponse.json({ district: distObj, cities });
+    }
+
+    if (stateId) {
+      const districts = await District.findAll({
+        where: { stateId: Number(stateId), status: 'ACTIVE' },
+        order: [['name', 'ASC']],
+      });
+      const cities = await City.findAll({
+        where: { stateId: Number(stateId), status: 'ACTIVE' },
+        order: [['name', 'ASC']],
+      });
+      return NextResponse.json({ districts, cities });
+    }
+
     if (stateName) {
       const stateObj = await State.findOne({ where: { name: stateName } });
       if (!stateObj) {
-        return NextResponse.json({ cities: [] });
+        return NextResponse.json({ districts: [], cities: [] });
       }
+      const districts = await District.findAll({
+        where: { stateId: stateObj.id, status: 'ACTIVE' },
+        order: [['name', 'ASC']],
+      });
       const cities = await City.findAll({
         where: { stateId: stateObj.id, status: 'ACTIVE' },
         order: [['name', 'ASC']],
       });
-      return NextResponse.json({ state: stateObj, cities });
+      return NextResponse.json({ state: stateObj, districts, cities });
     }
 
-    // Fetch all states with associated active cities
+    // Fetch all states with associated active districts & cities
     const states = await State.findAll({
       where: { status: 'ACTIVE' },
       include: [
+        {
+          model: District,
+          as: 'districts',
+          where: { status: 'ACTIVE' },
+          required: false,
+          include: [
+            {
+              model: City,
+              as: 'cities',
+              where: { status: 'ACTIVE' },
+              required: false,
+            },
+          ],
+        },
         {
           model: City,
           as: 'cities',
@@ -48,6 +93,7 @@ export async function GET(req: Request) {
       ],
       order: [
         ['name', 'ASC'],
+        [{ model: District, as: 'districts' }, 'name', 'ASC'],
         [{ model: City, as: 'cities' }, 'name', 'ASC'],
       ],
     });

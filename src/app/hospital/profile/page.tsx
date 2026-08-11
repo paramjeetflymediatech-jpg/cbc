@@ -17,6 +17,7 @@ export default function HospitalProfilePage() {
   const [website, setWebsite] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
+  const [district, setDistrict] = useState('');
   const [state, setState] = useState('');
   const [description, setDescription] = useState('');
   const [logo, setLogo] = useState('');
@@ -47,6 +48,7 @@ export default function HospitalProfilePage() {
           setWebsite(h.website || '');
           setAddress(h.address || '');
           setCity(h.city || '');
+          setDistrict(h.district || '');
           setState(h.state || '');
           setDescription(h.description || '');
           setLogo(h.logo || '');
@@ -134,6 +136,7 @@ export default function HospitalProfilePage() {
           website,
           address,
           city,
+          district,
           state,
           description,
           logo,
@@ -395,13 +398,23 @@ export default function HospitalProfilePage() {
               className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#fd1d74]"
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">City</label>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">City / Town</label>
               <input
                 type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#fd1d74]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">District</label>
+              <input
+                type="text"
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                placeholder="e.g. Ludhiana"
                 className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#fd1d74]"
               />
             </div>

@@ -1,270 +1,379 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load environment variables prior to importing models & DB
+// Environment variables are loaded first before dynamically importing DB & Models
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-// Environment variables are loaded first before dynamically importing DB & Models
-
-export const indianStatesAndCities = [
+export const indianStatesDistrictsCitiesData = [
   {
-    name: 'Andhra Pradesh',
-    code: 'AP',
-    cities: [
-      'Visakhapatnam', 'Vijayawada', 'Guntur', 'Nellore', 'Kurnool', 'Kakinada', 'Tirupati',
-      'Rajamahendravaram', 'Kadapa', 'Anantapur', 'Eluru', 'Vizianagaram', 'Machilipatnam',
-      'Tenali', 'Ongole', 'Chittoor', 'Srikakulam'
-    ],
-  },
-  {
-    name: 'Arunachal Pradesh',
-    code: 'AR',
-    cities: ['Itanagar', 'Naharlagun', 'Pasighat', 'Tawang', 'Ziro', 'Tezu', 'Namsai', 'Bomdila'],
-  },
-  {
-    name: 'Assam',
-    code: 'AS',
-    cities: [
-      'Guwahati', 'Silchar', 'Dibrugarh', 'Jorhat', 'Nagaon', 'Tinsukia', 'Tezpur',
-      'Bongaigaon', 'Dhubri', 'Diphu', 'North Lakhimpur', 'Karimganj', 'Sivasagar', 'Goalpara'
-    ],
-  },
-  {
-    name: 'Bihar',
-    code: 'BR',
-    cities: [
-      'Patna', 'Gaya', 'Bhagalpur', 'Muzaffarpur', 'Purnia', 'Darbhanga', 'Bihar Sharif',
-      'Arrah', 'Begusarai', 'Katihar', 'Munger', 'Chhapra', 'Bettiah', 'Saharsa', 'Sasaram',
-      'Hajipur', 'Dehri', 'Siwan', 'Motihari', 'Nawada'
-    ],
-  },
-  {
-    name: 'Chhattisgarh',
-    code: 'CG',
-    cities: [
-      'Raipur', 'Bhilai', 'Bilaspur', 'Korba', 'Rajnandgaon', 'Raigarh', 'Jagdalpur',
-      'Ambikapur', 'Dhamtari', 'Mahasamund'
-    ],
-  },
-  {
-    name: 'Goa',
-    code: 'GA',
-    cities: ['Panaji', 'Margao', 'Vasco da Gama', 'Mapusa', 'Ponda', 'Bicholim', 'Curchorem'],
-  },
-  {
-    name: 'Gujarat',
-    code: 'GJ',
-    cities: [
-      'Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar', 'Junagadh',
-      'Gandhinagar', 'Anand', 'Navsari', 'Morbi', 'Nadiad', 'Bharuch', 'Mehsana', 'Bhuj',
-      'Porbandar', 'Valsad', 'Vapi'
-    ],
-  },
-  {
-    name: 'Haryana',
-    code: 'HR',
-    cities: [
-      'Gurgaon', 'Faridabad', 'Panipat', 'Ambala', 'Yamunanagar', 'Rohtak', 'Hisar',
-      'Karnal', 'Sonipat', 'Panchkula', 'Bhiwani', 'Sirsa', 'Bahadurgarh', 'Jind', 'Thanesar',
-      'Rewari', 'Kaithal', 'Palwal'
-    ],
-  },
-  {
-    name: 'Himachal Pradesh',
-    code: 'HP',
-    cities: [
-      'Shimla', 'Dharamshala', 'Solan', 'Mandi', 'Baddi', 'Bilaspur', 'Hamirpur', 'Una',
-      'Kullu', 'Chamba', 'Palampur', 'Paonta Sahib'
-    ],
-  },
-  {
-    name: 'Jharkhand',
-    code: 'JH',
-    cities: [
-      'Ranchi', 'Jamshedpur', 'Dhanbad', 'Bokaro Steel City', 'Deoghar', 'Hazaribagh',
-      'Giridih', 'Ramgarh', 'Medininagar', 'Chirkunda', 'Phusro'
-    ],
-  },
-  {
-    name: 'Karnataka',
-    code: 'KA',
-    cities: [
-      'Bengaluru', 'Mysore', 'Hubballi-Dharwad', 'Mangaluru', 'Belagavi', 'Davanagere',
-      'Ballari', 'Kalaburagi', 'Shimoga', 'Tumakuru', 'Raichur', 'Bidar', 'Udupi', 'Hassan',
-      'Hospet', 'Gadag'
-    ],
-  },
-  {
-    name: 'Kerala',
-    code: 'KL',
-    cities: [
-      'Thiruvananthapuram', 'Kochi', 'Kozhikode', 'Thrissur', 'Kollam', 'Palakkad',
-      'Alappuzha', 'Kannur', 'Kottayam', 'Manjeri', 'Thalassery', 'Ponnani', 'Vatakara',
-      'Kanhangad', 'Payyanur'
-    ],
-  },
-  {
-    name: 'Madhya Pradesh',
-    code: 'MP',
-    cities: [
-      'Indore', 'Bhopal', 'Jabalpur', 'Gwalior', 'Ujjain', 'Sagar', 'Dewas', 'Satna',
-      'Ratlam', 'Rewa', 'Katni', 'Singrauli', 'Burhanpur', 'Khandwa', 'Morena', 'Bhind',
-      'Chhindwara', 'Guna'
+    name: 'Punjab',
+    code: 'PB',
+    districts: [
+      { name: 'Ludhiana', cities: ['Ludhiana City', 'Khanna', 'Jagraon', 'Samrala', 'Raikot', 'Doraha', 'Payal'] },
+      { name: 'Amritsar', cities: ['Amritsar City', 'Majitha', 'Jandiala Guru', 'Baba Bakala', 'Ajnala', 'Ramdass'] },
+      { name: 'Jalandhar', cities: ['Jalandhar City', 'Nakodar', 'Phillaur', 'Shahkot', 'Goraya', 'Kartarpur', 'Adampur'] },
+      { name: 'SAS Nagar (Mohali)', cities: ['Mohali (SAS Nagar)', 'Zirakpur', 'Derabassi', 'Kharar', 'Kurali'] },
+      { name: 'Patiala', cities: ['Patiala City', 'Rajpura', 'Samana', 'Nabha', 'Patran'] },
+      { name: 'Bathinda', cities: ['Bathinda City', 'Maur', 'Rampura Phul', 'Talwandi Sabo', 'Goniana'] },
+      { name: 'Hoshiarpur', cities: ['Hoshiarpur City', 'Dasuya', 'Mukerian', 'Garhshankar', 'Tanda'] },
+      { name: 'Gurdaspur', cities: ['Gurdaspur City', 'Batala', 'Dera Baba Nanak', 'Dinanagar', 'Qadian'] },
+      { name: 'Pathankot', cities: ['Pathankot City', 'Sujanpur', 'Dhar Kalan'] },
+      { name: 'Moga', cities: ['Moga City', 'Baghapurana', 'Nihal Singh Wala', 'Dharamkot'] },
+      { name: 'Faridkot', cities: ['Faridkot City', 'Kotkapura', 'Jaitu'] },
+      { name: 'Sri Muktsar Sahib', cities: ['Muktsar', 'Malout', 'Gidderbaha'] },
+      { name: 'Fazilka', cities: ['Fazilka City', 'Abohar', 'Jalalabad'] },
+      { name: 'Firozpur', cities: ['Firozpur City', 'Zira', 'Guru Har Sahai'] },
+      { name: 'Kapurthala', cities: ['Kapurthala City', 'Phagwara', 'Sultanpur Lodhi', 'Bholath'] },
+      { name: 'Sangrur', cities: ['Sangrur City', 'Sunam', 'Dhuri', 'Dirba', 'Moonak'] },
+      { name: 'Malerkotla', cities: ['Malerkotla City', 'Ahmedgarh', 'Amargarh'] },
+      { name: 'Barnala', cities: ['Barnala City', 'Tapa', 'Bhadaur'] },
+      { name: 'Mansa', cities: ['Mansa City', 'Budhlada', 'Sardulgarh'] },
+      { name: 'Rupnagar (Ropar)', cities: ['Rupnagar (Ropar)', 'Anandpur Sahib', 'Chamkaur Sahib', 'Nangal'] },
+      { name: 'Fatehgarh Sahib', cities: ['Sirhind-Fatehgarh Sahib', 'Mandi Gobindgarh', 'Amloh', 'Bassi Pathana'] },
+      { name: 'Shaheed Bhagat Singh Nagar', cities: ['Nawanshahr', 'Banga', 'Balachaur'] },
+      { name: 'Tarn Taran', cities: ['Tarn Taran Sahib', 'Patti', 'Khadoor Sahib', 'Bhikhiwind'] },
     ],
   },
   {
     name: 'Maharashtra',
     code: 'MH',
-    cities: [
-      'Mumbai', 'Pune', 'Nagpur', 'Thane', 'Navi Mumbai', 'Nashik', 'Chhatrapati Sambhajinagar',
-      'Solapur', 'Kalyan-Dombivli', 'Vasai-Virar', 'Pimpri-Chinchwad', 'Kolhapur', 'Amravati',
-      'Nanded', 'Sangli', 'Jalgaon', 'Akola', 'Latur', 'Dhule', 'Ahmednagar', 'Chandrapur',
-      'Parbhani', 'Ichalkaranji', 'Jalna', 'Panvel', 'Satara'
+    districts: [
+      { name: 'Mumbai City', cities: ['Mumbai', 'Colaba', 'Dadar', 'Fort', 'Malabar Hill'] },
+      { name: 'Mumbai Suburban', cities: ['Andheri', 'Borivali', 'Kurla', 'Ghatkopar', 'Malad', 'Juhu', 'Powai', 'Goregaon', 'Chembur'] },
+      { name: 'Thane', cities: ['Thane City', 'Kalyan', 'Dombivli', 'Mira-Bhayandar', 'Bhiwandi', 'Ulhasnagar', 'Badlapur', 'Ambernath'] },
+      { name: 'Palghar', cities: ['Vasai', 'Virar', 'Palghar', 'Dahanu', 'Nalasopara'] },
+      { name: 'Raigad', cities: ['Navi Mumbai (South)', 'Panvel', 'Alibag', 'Karjat', 'Khopoli', 'Mahad', 'Roha'] },
+      { name: 'Pune', cities: ['Pune City', 'Pimpri-Chinchwad', 'Baramati', 'Lonavala', 'Talegaon Dabhade', 'Daund', 'Shirur', 'Chakan'] },
+      { name: 'Nagpur', cities: ['Nagpur City', 'Kamptee', 'Umred', 'Ramtek', 'Katol'] },
+      { name: 'Nashik', cities: ['Nashik City', 'Malegaon', 'Sinnar', 'Deolali', 'Igatpuri', 'Niphad'] },
+      { name: 'Chhatrapati Sambhajinagar', cities: ['Chhatrapati Sambhajinagar', 'Paithan', 'Sillod', 'Gangapur', 'Vaijapur'] },
+      { name: 'Kolhapur', cities: ['Kolhapur City', 'Ichalkaranji', 'Kagal', 'Jaysingpur', 'Gadhinglaj'] },
+      { name: 'Solapur', cities: ['Solapur City', 'Pandharpur', 'Barshi', 'Sangole', 'Akkalkot'] },
+      { name: 'Amravati', cities: ['Amravati City', 'Achalpur', 'Anjangaon', 'Warud'] },
+      { name: 'Nanded', cities: ['Nanded City', 'Degloor', 'Kinwat', 'Mukhed'] },
+      { name: 'Sangli', cities: ['Sangli City', 'Miraj', 'Vita', 'Islampur', 'Tasgaon'] },
+      { name: 'Jalgaon', cities: ['Jalgaon City', 'Bhusawal', 'Chalisgaon', 'Amalner'] },
+      { name: 'Akola', cities: ['Akola City', 'Akot', 'Murtizapur'] },
+      { name: 'Latur', cities: ['Latur City', 'Udgir', 'Ahmedpur'] },
+      { name: 'Dhule', cities: ['Dhule City', 'Shirpur', 'Dondaicha'] },
+      { name: 'Ahilyanagar', cities: ['Ahilyanagar (Ahmednagar)', 'Shirdi', 'Sangamner', 'Kopargaon', 'Rahuri', 'Shrigonda'] },
+      { name: 'Satara', cities: ['Satara City', 'Karad', 'Mahabaleshwar', 'Wai', 'Phaltan'] },
     ],
   },
   {
-    name: 'Manipur',
-    code: 'MN',
-    cities: ['Imphal', 'Churachandpur', 'Thoubal', 'Bishnupur', 'Ukhrul', 'Senapati', 'Kakching'],
-  },
-  {
-    name: 'Meghalaya',
-    code: 'ML',
-    cities: ['Shillong', 'Tura', 'Jowai', 'Nongstoin', 'Williamnagar', 'Baghmara'],
-  },
-  {
-    name: 'Mizoram',
-    code: 'MZ',
-    cities: ['Aizawl', 'Lunglei', 'Saiha', 'Champhai', 'Kolasib', 'Serchhip', 'Lawngtlai'],
-  },
-  {
-    name: 'Nagaland',
-    code: 'NL',
-    cities: ['Kohima', 'Dimapur', 'Mokokchung', 'Tuensang', 'Wokha', 'Zunheboto', 'Mon'],
-  },
-  {
-    name: 'Odisha',
-    code: 'OD',
-    cities: [
-      'Bhubaneswar', 'Cuttack', 'Rourkela', 'Berhampur', 'Sambalpur', 'Puri', 'Balasore',
-      'Bhadrak', 'Baripada', 'Jharsuguda', 'Bargarh', 'Jeypore', 'Angul'
+    name: 'Delhi NCR',
+    code: 'DL',
+    districts: [
+      { name: 'Central Delhi', cities: ['Connaught Place', 'Karol Bagh', 'Paharganj', 'Daryaganj'] },
+      { name: 'New Delhi', cities: ['Chanakyapuri', 'Vasant Vihar', 'RK Puram'] },
+      { name: 'South Delhi', cities: ['Saket', 'Hauz Khas', 'Greater Kailash', 'Lajpat Nagar', 'Defence Colony'] },
+      { name: 'South West Delhi', cities: ['Dwarka', 'Vasant Kunj', 'Janakpuri'] },
+      { name: 'West Delhi', cities: ['Rajouri Garden', 'Punjabi Bagh', 'Tilak Nagar', 'Patel Nagar'] },
+      { name: 'North West Delhi', cities: ['Rohini', 'Pitampura', 'Shalimar Bagh', 'Model Town'] },
+      { name: 'North Delhi', cities: ['Civil Lines', 'Sadar Bazar', 'Chandni Chowk'] },
+      { name: 'East Delhi', cities: ['Mayur Vihar', 'Laxmi Nagar', 'Preet Vihar', 'Anand Vihar'] },
+      { name: 'North East Delhi', cities: ['Shahdara', 'Seelampur', 'Dilshad Garden'] },
+      { name: 'Gurugram', cities: ['Gurgaon City', 'DLF Cyber City', 'Sohna', 'Manesar'] },
+      { name: 'Gautam Buddha Nagar', cities: ['Noida', 'Greater Noida', 'Dadri'] },
+      { name: 'Ghaziabad', cities: ['Ghaziabad City', 'Indirapuram', 'Vaishali', 'Vasundhara', 'Sahibabad', 'Loni'] },
+      { name: 'Faridabad', cities: ['Faridabad City', 'Ballabhgarh', 'NIT Faridabad'] },
     ],
   },
   {
-    name: 'Punjab',
-    code: 'PB',
-    cities: [
-      'Ludhiana', 'Amritsar', 'Jalandhar', 'Patiala', 'Bathinda', 'Mohali', 'Pathankot',
-      'Hoshiarpur', 'Batala', 'Moga', 'Abohar', 'Malerkotla', 'Khanna', 'Phagwara',
-      'Muktsar', 'Barnala', 'Rajpura', 'Firozpur', 'Kapurthala', 'Sangrur', 'Fazilka',
-      'Mansa', 'Gurdaspur', 'Rupnagar', 'Fatehgarh Sahib', 'Nawanshahr', 'Zirakpur',
-      'Derabassi', 'Nakodar', 'Jagraon', 'Tarn Taran', 'Sunam', 'Samana', 'Kotkapura',
-      'Faridkot', 'Chandigarh'
+    name: 'Karnataka',
+    code: 'KA',
+    districts: [
+      { name: 'Bengaluru Urban', cities: ['Bengaluru (Bangalore)', 'Koramangala', 'Indiranagar', 'Whitefield', 'HSR Layout', 'Electronic City', 'Jayanagar', 'Malleshwaram', 'Yelahanka'] },
+      { name: 'Mysuru', cities: ['Mysuru (Mysore)', 'Nanjangud', 'Hunsur'] },
+      { name: 'Dharwad', cities: ['Hubballi', 'Dharwad'] },
+      { name: 'Dakshina Kannada', cities: ['Mangaluru (Mangalore)', 'Puttur', 'Bantwal'] },
+      { name: 'Belagavi', cities: ['Belagavi (Belgaum)', 'Gokak', 'Chikkodi'] },
+      { name: 'Davanagere', cities: ['Davanagere', 'Harihar'] },
+      { name: 'Ballari', cities: ['Ballari (Bellary)', 'Hospet (Vijayanagara)'] },
+      { name: 'Kalaburagi', cities: ['Kalaburagi (Gulbarga)', 'Sedam'] },
+      { name: 'Shivamogga', cities: ['Shivamogga (Shimoga)', 'Bhadravati'] },
+      { name: 'Tumakuru', cities: ['Tumakuru (Tumkur)', 'Tiptur'] },
+      { name: 'Udupi', cities: ['Udupi', 'Manipal', 'Kundapura'] },
     ],
-  },
-  {
-    name: 'Rajasthan',
-    code: 'RJ',
-    cities: [
-      'Jaipur', 'Jodhpur', 'Kota', 'Bikaner', 'Ajmer', 'Udaipur', 'Bhilwara', 'Alwar',
-      'Bharatpur', 'Sikar', 'Pali', 'Sri Ganganagar', 'Jhunjhunu', 'Hanumangarh', 'Beawar',
-      'Kishangarh', 'Tonk', 'Sawai Madhopur'
-    ],
-  },
-  {
-    name: 'Sikkim',
-    code: 'SK',
-    cities: ['Gangtok', 'Namchi', 'Geyzing', 'Mangan', 'Jorethang', 'Rangpo'],
   },
   {
     name: 'Tamil Nadu',
     code: 'TN',
-    cities: [
-      'Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Tiruppur', 'Erode',
-      'Vellore', 'Tirunelveli', 'Thoothukudi', 'Nagercoil', 'Thanjavur', 'Dindigul',
-      'Kanchipuram', 'Karur', 'Cuddalore', 'Kumbakonam', 'Hosur', 'Ambur'
+    districts: [
+      { name: 'Chennai', cities: ['Chennai', 'T. Nagar', 'Adyar', 'Anna Nagar', 'Velachery', 'Mylapore', 'Tambaram', 'Chromepet'] },
+      { name: 'Coimbatore', cities: ['Coimbatore', 'Pollachi', 'Mettupalayam'] },
+      { name: 'Madurai', cities: ['Madurai', 'Melur', 'Thirumangalam'] },
+      { name: 'Tiruchirappalli', cities: ['Tiruchirappalli (Trichy)', 'Srirangam', 'Manapparai'] },
+      { name: 'Salem', cities: ['Salem', 'Mettur', 'Attur'] },
+      { name: 'Tiruppur', cities: ['Tiruppur', 'Avinashi', 'Udumalaipettai'] },
+      { name: 'Erode', cities: ['Erode', 'Gobichettipalayam', 'Perundurai'] },
+      { name: 'Vellore', cities: ['Vellore', 'Katpadi', 'Gudiyatham'] },
+      { name: 'Tirunelveli', cities: ['Tirunelveli', 'Ambasamudram'] },
     ],
   },
   {
     name: 'Telangana',
     code: 'TS',
-    cities: [
-      'Hyderabad', 'Warangal', 'Nizamabad', 'Khammam', 'Karimnagar', 'Ramagundam',
-      'Mahbubnagar', 'Nalgonda', 'Adilabad', 'Suryapet', 'Miryalaguda', 'Siddipet'
+    districts: [
+      { name: 'Hyderabad', cities: ['Hyderabad', 'Banjara Hills', 'Jubilee Hills', 'Gachibowli', 'HITECH City', 'Madhapur', 'Secunderabad', 'Begumpet'] },
+      { name: 'Medchal-Malkajgiri', cities: ['Malkajgiri', 'Uppal', 'Quthbullapur', 'Kukatpally', 'Medchal'] },
+      { name: 'Rangareddy', cities: ['LB Nagar', 'Rajendranagar', 'Serilingampally', 'Shamshabad'] },
+      { name: 'Hanamkonda', cities: ['Warangal', 'Hanamkonda', 'Kazipet'] },
+      { name: 'Nizamabad', cities: ['Nizamabad', 'Bodhan', 'Armoor'] },
+      { name: 'Khammam', cities: ['Khammam', 'Sathupally'] },
+      { name: 'Karimnagar', cities: ['Karimnagar', 'Huzurabad'] },
     ],
   },
   {
-    name: 'Tripura',
-    code: 'TR',
-    cities: ['Agartala', 'Udaipur', 'Dharmanagar', 'Kailashahar', 'Belonia', 'Ambassa', 'Khowai'],
+    name: 'Gujarat',
+    code: 'GJ',
+    districts: [
+      { name: 'Ahmedabad', cities: ['Ahmedabad City', 'SG Highway', 'Satellite', 'Bodakdev', 'Maninagar', 'Sanand'] },
+      { name: 'Surat', cities: ['Surat City', 'Varachha', 'Adajan', 'Rander', 'Bardoli'] },
+      { name: 'Vadodara', cities: ['Vadodara (Baroda)', 'Alkapuri', 'Gotri', 'Dabhoi'] },
+      { name: 'Rajkot', cities: ['Rajkot City', 'Gondal', 'Jetpur'] },
+      { name: 'Bhavnagar', cities: ['Bhavnagar', 'Palitana'] },
+      { name: 'Jamnagar', cities: ['Jamnagar', 'Dwarka'] },
+      { name: 'Gandhinagar', cities: ['Gandhinagar', 'Kalol'] },
+    ],
+  },
+  {
+    name: 'Kerala',
+    code: 'KL',
+    districts: [
+      { name: 'Ernakulam', cities: ['Kochi (Cochin)', 'Ernakulam', 'Aluva', 'Angamaly', 'Perumbavoor', 'Muvattupuzha'] },
+      { name: 'Thiruvananthapuram', cities: ['Thiruvananthapuram (Trivandrum)', 'Neyyattinkara', 'Attingal', 'Varkala'] },
+      { name: 'Kozhikode', cities: ['Kozhikode (Calicut)', 'Vatakara', 'Koyilandy'] },
+      { name: 'Thrissur', cities: ['Thrissur', 'Chalakudy', 'Kodungallur', 'Guruvayur'] },
+      { name: 'Kollam', cities: ['Kollam (Quilon)', 'Punalur', 'Karunagappalli'] },
+      { name: 'Palakkad', cities: ['Palakkad', 'Ottapalam', 'Shornur'] },
+      { name: 'Kannur', cities: ['Kannur', 'Thalassery', 'Payyanur'] },
+    ],
   },
   {
     name: 'Uttar Pradesh',
     code: 'UP',
-    cities: [
-      'Lucknow', 'Kanpur', 'Ghaziabad', 'Agra', 'Varanasi', 'Meerut', 'Prayagraj',
-      'Bareilly', 'Aligarh', 'Moradabad', 'Saharanpur', 'Gorakhpur', 'Noida', 'Greater Noida',
-      'Firozabad', 'Jhansi', 'Muzaffarnagar', 'Mathura', 'Rampur', 'Shahjahanpur',
-      'Farrukhabad', 'Mau', 'Hapur', 'Ayodhya', 'Etawah', 'Sambhal', 'Sultanpur'
-    ],
-  },
-  {
-    name: 'Uttarakhand',
-    code: 'UK',
-    cities: [
-      'Dehradun', 'Haridwar', 'Roorkee', 'Haldwani', 'Rudrapur', 'Kashipur', 'Rishikesh',
-      'Nainital', 'Almora', 'Pithoragarh', 'Mussoorie'
+    districts: [
+      { name: 'Lucknow', cities: ['Lucknow', 'Gomti Nagar', 'Hazratganj', 'Alambagh', 'Indira Nagar'] },
+      { name: 'Kanpur Nagar', cities: ['Kanpur', 'Civil Lines', 'Swaroop Nagar', 'Kidwai Nagar'] },
+      { name: 'Varanasi', cities: ['Varanasi', 'Lanka', 'Sigra', 'Shivpur'] },
+      { name: 'Agra', cities: ['Agra', 'Tajganj', 'Sanjay Place'] },
+      { name: 'Prayagraj', cities: ['Prayagraj (Allahabad)', 'Civil Lines', 'Katra', 'Naini'] },
+      { name: 'Meerut', cities: ['Meerut', 'Shastri Nagar', 'Mawana'] },
+      { name: 'Gorakhpur', cities: ['Gorakhpur', 'Golghar', 'Shahpur'] },
+      { name: 'Bareilly', cities: ['Bareilly', 'Civil Lines', 'Izatnagar'] },
     ],
   },
   {
     name: 'West Bengal',
     code: 'WB',
-    cities: [
-      'Kolkata', 'Howrah', 'Asansol', 'Siliguri', 'Durgapur', 'Bardhaman', 'Malda',
-      'Baharampur', 'Habra', 'Kharagpur', 'Shantipur', 'Dankuni', 'Dhulian', 'Ranaghat',
-      'Haldia', 'Raiganj', 'Jalpaiguri', 'Balurghat'
+    districts: [
+      { name: 'Kolkata', cities: ['Kolkata', 'Park Street', 'Salt Lake', 'New Town', 'Bhowanipore', 'Alipore'] },
+      { name: 'Howrah', cities: ['Howrah', 'Bally', 'Uluberia'] },
+      { name: 'North 24 Parganas', cities: ['Rajarhat', 'Dum Dum', 'Barasat', 'Barrackpore'] },
+      { name: 'Paschim Bardhaman', cities: ['Asansol', 'Durgapur'] },
+      { name: 'Darjeeling', cities: ['Siliguri', 'Darjeeling', 'Kurseong'] },
+    ],
+  },
+  {
+    name: 'Andhra Pradesh',
+    code: 'AP',
+    districts: [
+      { name: 'Visakhapatnam', cities: ['Visakhapatnam', 'Gajuwaka', 'Anakapalle'] },
+      { name: 'NTR (Vijayawada)', cities: ['Vijayawada', 'Jaggaiahpeta'] },
+      { name: 'Guntur', cities: ['Guntur', 'Tenali', 'Narasaraopet'] },
+      { name: 'Tirupati', cities: ['Tirupati', 'Srikalahasti'] },
+    ],
+  },
+  {
+    name: 'Arunachal Pradesh',
+    code: 'AR',
+    districts: [
+      { name: 'Papum Pare', cities: ['Itanagar', 'Naharlagun'] },
+      { name: 'East Siang', cities: ['Pasighat'] },
+    ],
+  },
+  {
+    name: 'Assam',
+    code: 'AS',
+    districts: [
+      { name: 'Kamrup Metropolitan', cities: ['Guwahati', 'Dispur'] },
+      { name: 'Cachar', cities: ['Silchar'] },
+      { name: 'Dibrugarh', cities: ['Dibrugarh', 'Tinsukia'] },
+    ],
+  },
+  {
+    name: 'Bihar',
+    code: 'BR',
+    districts: [
+      { name: 'Patna', cities: ['Patna', 'Danapur', 'Patna Sahib'] },
+      { name: 'Gaya', cities: ['Gaya', 'Bodh Gaya'] },
+      { name: 'Bhagalpur', cities: ['Bhagalpur'] },
+      { name: 'Muzaffarpur', cities: ['Muzaffarpur'] },
+    ],
+  },
+  {
+    name: 'Chhattisgarh',
+    code: 'CG',
+    districts: [
+      { name: 'Raipur', cities: ['Raipur', 'Naya Raipur'] },
+      { name: 'Durg', cities: ['Bhilai', 'Durg'] },
+      { name: 'Bilaspur', cities: ['Bilaspur'] },
+    ],
+  },
+  {
+    name: 'Goa',
+    code: 'GA',
+    districts: [
+      { name: 'North Goa', cities: ['Panaji', 'Mapusa', 'Bicholim'] },
+      { name: 'South Goa', cities: ['Margao', 'Vasco da Gama', 'Ponda'] },
+    ],
+  },
+  {
+    name: 'Haryana',
+    code: 'HR',
+    districts: [
+      { name: 'Gurugram', cities: ['Gurgaon', 'Manesar', 'Sohna'] },
+      { name: 'Faridabad', cities: ['Faridabad', 'Ballabhgarh'] },
+      { name: 'Ambala', cities: ['Ambala City', 'Ambala Cantt'] },
+      { name: 'Panipat', cities: ['Panipat'] },
+      { name: 'Karnal', cities: ['Karnal'] },
+      { name: 'Rohtak', cities: ['Rohtak'] },
+      { name: 'Panchkula', cities: ['Panchkula'] },
+    ],
+  },
+  {
+    name: 'Himachal Pradesh',
+    code: 'HP',
+    districts: [
+      { name: 'Shimla', cities: ['Shimla'] },
+      { name: 'Kangra', cities: ['Dharamshala', 'Palampur'] },
+      { name: 'Solan', cities: ['Solan', 'Baddi'] },
+    ],
+  },
+  {
+    name: 'Jharkhand',
+    code: 'JH',
+    districts: [
+      { name: 'Ranchi', cities: ['Ranchi'] },
+      { name: 'East Singhbhum', cities: ['Jamshedpur'] },
+      { name: 'Dhanbad', cities: ['Dhanbad'] },
+    ],
+  },
+  {
+    name: 'Madhya Pradesh',
+    code: 'MP',
+    districts: [
+      { name: 'Indore', cities: ['Indore'] },
+      { name: 'Bhopal', cities: ['Bhopal'] },
+      { name: 'Jabalpur', cities: ['Jabalpur'] },
+      { name: 'Gwalior', cities: ['Gwalior'] },
+      { name: 'Ujjain', cities: ['Ujjain'] },
+    ],
+  },
+  {
+    name: 'Manipur',
+    code: 'MN',
+    districts: [{ name: 'Imphal East', cities: ['Imphal'] }],
+  },
+  {
+    name: 'Meghalaya',
+    code: 'ML',
+    districts: [{ name: 'East Khasi Hills', cities: ['Shillong'] }],
+  },
+  {
+    name: 'Mizoram',
+    code: 'MZ',
+    districts: [{ name: 'Aizawl', cities: ['Aizawl'] }],
+  },
+  {
+    name: 'Nagaland',
+    code: 'NL',
+    districts: [
+      { name: 'Kohima', cities: ['Kohima'] },
+      { name: 'Dimapur', cities: ['Dimapur'] },
+    ],
+  },
+  {
+    name: 'Odisha',
+    code: 'OD',
+    districts: [
+      { name: 'Khurda', cities: ['Bhubaneswar'] },
+      { name: 'Cuttack', cities: ['Cuttack'] },
+      { name: 'Sundargarh', cities: ['Rourkela'] },
+    ],
+  },
+  {
+    name: 'Rajasthan',
+    code: 'RJ',
+    districts: [
+      { name: 'Jaipur', cities: ['Jaipur'] },
+      { name: 'Jodhpur', cities: ['Jodhpur'] },
+      { name: 'Kota', cities: ['Kota'] },
+      { name: 'Udaipur', cities: ['Udaipur'] },
+    ],
+  },
+  {
+    name: 'Sikkim',
+    code: 'SK',
+    districts: [{ name: 'Gangtok', cities: ['Gangtok'] }],
+  },
+  {
+    name: 'Tripura',
+    code: 'TR',
+    districts: [{ name: 'West Tripura', cities: ['Agartala'] }],
+  },
+  {
+    name: 'Uttarakhand',
+    code: 'UK',
+    districts: [
+      { name: 'Dehradun', cities: ['Dehradun', 'Rishikesh', 'Mussoorie'] },
+      { name: 'Haridwar', cities: ['Haridwar', 'Roorkee'] },
+      { name: 'Nainital', cities: ['Haldwani', 'Nainital'] },
     ],
   },
   {
     name: 'Andaman and Nicobar Islands',
     code: 'AN',
-    cities: ['Port Blair', 'Car Nicobar', 'Diglipur', 'Mayabunder'],
+    districts: [{ name: 'South Andaman', cities: ['Port Blair'] }],
   },
   {
     name: 'Chandigarh',
     code: 'CH',
-    cities: ['Chandigarh'],
+    districts: [{ name: 'Chandigarh', cities: ['Chandigarh'] }],
   },
   {
     name: 'Dadra and Nagar Haveli and Daman and Diu',
     code: 'DN',
-    cities: ['Daman', 'Diu', 'Silvassa'],
-  },
-  {
-    name: 'Delhi NCR',
-    code: 'DL',
-    cities: ['New Delhi', 'North Delhi', 'South Delhi', 'East Delhi', 'West Delhi', 'Central Delhi', 'Gurgaon', 'Noida', 'Greater Noida', 'Ghaziabad', 'Faridabad'],
+    districts: [
+      { name: 'Daman', cities: ['Daman'] },
+      { name: 'Diu', cities: ['Diu'] },
+      { name: 'Silvassa', cities: ['Silvassa'] },
+    ],
   },
   {
     name: 'Jammu and Kashmir',
     code: 'JK',
-    cities: ['Srinagar', 'Jammu', 'Anantnag', 'Baramulla', 'Udhampur', 'Kathua', 'Sopore', 'Rajouri', 'Punch'],
+    districts: [
+      { name: 'Srinagar', cities: ['Srinagar'] },
+      { name: 'Jammu', cities: ['Jammu'] },
+    ],
   },
   {
     name: 'Ladakh',
     code: 'LA',
-    cities: ['Leh', 'Kargil'],
+    districts: [{ name: 'Leh', cities: ['Leh', 'Kargil'] }],
   },
   {
     name: 'Lakshadweep',
     code: 'LD',
-    cities: ['Kavaratti', 'Agatti', 'Amini', 'Andrott'],
+    districts: [{ name: 'Lakshadweep', cities: ['Kavaratti'] }],
   },
   {
     name: 'Puducherry',
     code: 'PY',
-    cities: ['Puducherry', 'Karaikal', 'Mahe', 'Yanam'],
+    districts: [{ name: 'Puducherry', cities: ['Puducherry', 'Karaikal', 'Mahe'] }],
   },
 ];
 
@@ -543,21 +652,23 @@ export const services27List = [
 
 export async function seedIndiaStatesCitiesAndServices() {
   const { connectDB } = await import('../lib/db');
-  const { State, City, Service } = await import('../models');
+  const { State, District, City, Service } = await import('../models');
 
   console.log(' Connecting to database...');
   await connectDB();
 
-  console.log(' Syncing State, City, and Service tables...');
+  console.log(' Syncing State, District, City, and Service tables...');
   await State.sync({ alter: true });
+  await District.sync({ alter: true });
   await City.sync({ alter: true });
   await Service.sync({ alter: true });
 
-  console.log(` Starting seeding for ${indianStatesAndCities.length} Indian States & Union Territories...`);
+  console.log(` Starting seeding for ${indianStatesDistrictsCitiesData.length} Indian States & Union Territories...`);
   let stateCount = 0;
+  let distCount = 0;
   let cityCount = 0;
 
-  for (const stateData of indianStatesAndCities) {
+  for (const stateData of indianStatesDistrictsCitiesData) {
     let [stateObj] = await State.findOrCreate({
       where: { name: stateData.name },
       defaults: {
@@ -572,23 +683,37 @@ export async function seedIndiaStatesCitiesAndServices() {
     }
     stateCount++;
 
-    for (const cityName of stateData.cities) {
-      const [cityObj, created] = await City.findOrCreate({
-        where: { stateId: stateObj.id, name: cityName },
+    for (const distData of stateData.districts) {
+      let [districtObj, distCreated] = await District.findOrCreate({
+        where: { stateId: stateObj.id, name: distData.name },
         defaults: {
           stateId: stateObj.id,
-          name: cityName,
-          isPopular: true,
+          name: distData.name,
           status: 'ACTIVE',
         },
       });
-      if (created) {
-        cityCount++;
+      if (distCreated) distCount++;
+
+      for (const cityName of distData.cities) {
+        const [cityObj, cityCreated] = await City.findOrCreate({
+          where: { stateId: stateObj.id, name: cityName },
+          defaults: {
+            stateId: stateObj.id,
+            districtId: districtObj.id,
+            name: cityName,
+            isPopular: true,
+            status: 'ACTIVE',
+          },
+        });
+        if (cityObj.districtId !== districtObj.id) {
+          await cityObj.update({ districtId: districtObj.id });
+        }
+        if (cityCreated) cityCount++;
       }
     }
   }
 
-  console.log(` Successfully processed ${stateCount} States/UTs and ${cityCount} new Cities!`);
+  console.log(` Successfully processed ${stateCount} States, ${distCount} Districts, and ${cityCount} Cities!`);
 
   console.log(` Starting seeding for ${services27List.length} Medical Services/Specialties...`);
   let serviceCount = 0;
@@ -609,7 +734,7 @@ export async function seedIndiaStatesCitiesAndServices() {
 async function main() {
   try {
     console.log('----------------------------------------------------');
-    console.log(' Clinic By Choice - Indian States, Cities & Services Seeder');
+    console.log(' Clinic By Choice - Indian States, Districts, Cities & Services Seeder');
     console.log('----------------------------------------------------');
     console.log('• MYSQL_HOST:', process.env.MYSQL_HOST || '127.0.0.1');
     console.log('• MYSQL_USER:', process.env.MYSQL_USER || 'root');
@@ -618,7 +743,7 @@ async function main() {
 
     await seedIndiaStatesCitiesAndServices();
 
-    console.log(' Complete! All States, Cities & 27 Services added successfully to the database.');
+    console.log(' Complete! All States, Districts, Cities & 27 Services added successfully.');
     process.exit(0);
   } catch (error) {
     console.error(' Seeder script failed:', error);

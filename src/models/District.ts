@@ -1,31 +1,27 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '@/lib/db';
 
-export interface CityAttributes {
+export interface DistrictAttributes {
   id: number;
   stateId: number;
-  districtId?: number | null;
   name: string;
-  isPopular?: boolean;
   status: 'ACTIVE' | 'INACTIVE';
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-export type CityCreationAttributes = Optional<CityAttributes, 'id' | 'districtId' | 'isPopular' | 'status'>;
+export type DistrictCreationAttributes = Optional<DistrictAttributes, 'id' | 'status'>;
 
-export class City extends Model<CityAttributes, CityCreationAttributes> implements CityAttributes {
+export class District extends Model<DistrictAttributes, DistrictCreationAttributes> implements DistrictAttributes {
   declare id: number;
   declare stateId: number;
-  declare districtId: number | null;
   declare name: string;
-  declare isPopular: boolean;
   declare status: 'ACTIVE' | 'INACTIVE';
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
 
-City.init(
+District.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -41,23 +37,9 @@ City.init(
       },
       onDelete: 'CASCADE',
     },
-    districtId: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: 'districts',
-        key: 'id',
-      },
-      onDelete: 'SET NULL',
-    },
     name: {
       type: DataTypes.STRING(255),
       allowNull: false,
-    },
-    isPopular: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
     },
     status: {
       type: DataTypes.ENUM('ACTIVE', 'INACTIVE'),
@@ -67,7 +49,7 @@ City.init(
   },
   {
     sequelize,
-    tableName: 'cities',
+    tableName: 'districts',
     timestamps: true,
   }
 );

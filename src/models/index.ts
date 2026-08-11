@@ -9,6 +9,7 @@ import { LeadTransaction } from './LeadTransaction';
 import { Payment } from './Payment';
 import { Notification } from './Notification';
 import { State } from './State';
+import { District } from './District';
 import { City } from './City';
 
 let isInitialized = false;
@@ -83,7 +84,19 @@ export function initAssociations() {
       Payment.belongsTo(LeadPackage, { foreignKey: 'packageId', as: 'package' });
     }
 
-    // State & City
+    // State, District & City
+    if (!State.associations.districts) {
+      State.hasMany(District, { foreignKey: 'stateId', as: 'districts' });
+    }
+    if (!District.associations.state) {
+      District.belongsTo(State, { foreignKey: 'stateId', as: 'state' });
+    }
+    if (!District.associations.cities) {
+      District.hasMany(City, { foreignKey: 'districtId', as: 'cities' });
+    }
+    if (!City.associations.district) {
+      City.belongsTo(District, { foreignKey: 'districtId', as: 'district' });
+    }
     if (!State.associations.cities) {
       State.hasMany(City, { foreignKey: 'stateId', as: 'cities' });
     }
@@ -110,5 +123,6 @@ export {
   Payment,
   Notification,
   State,
+  District,
   City,
 };

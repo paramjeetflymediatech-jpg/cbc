@@ -23,6 +23,7 @@ export interface HospitalAttributes {
   website?: string | null;
   address: string;
   city: string;
+  district?: string | null;
   state?: string | null;
   country?: string | null;
   description: string;
@@ -72,6 +73,7 @@ export class Hospital extends Model<HospitalAttributes, HospitalCreationAttribut
   declare website: string | null;
   declare address: string;
   declare city: string;
+  declare district: string | null;
   declare state: string | null;
   declare country: string | null;
   declare description: string;
@@ -131,6 +133,10 @@ Hospital.init(
     city: {
       type: DataTypes.STRING(100),
       allowNull: false,
+    },
+    district: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
     },
     state: {
       type: DataTypes.STRING(100),

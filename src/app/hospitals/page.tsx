@@ -7,37 +7,13 @@ import { connectDB } from '@/lib/db';
 import { Hospital, Service, HospitalService } from '@/models';
 import { Op } from 'sequelize';
 
+import { getLocationsData } from '@/lib/locations';
+
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
-  searchParams: Promise<{ state?: string; city?: string; search?: string; service?: string }>;
+  searchParams: Promise<{ state?: string; district?: string; city?: string; search?: string; service?: string }>;
 }
-
-const INDIAN_STATES = [
-  'Maharashtra',
-  'Delhi NCR',
-  'Karnataka',
-  'Tamil Nadu',
-  'Telangana',
-  'Gujarat',
-  'Kerala',
-  'West Bengal',
-  'Punjab',
-];
-
-const INDIAN_CITIES = [
-  'Mumbai',
-  'Delhi',
-  'Gurgaon',
-  'Noida',
-  'Bangalore',
-  'Chennai',
-  'Hyderabad',
-  'Ahmedabad',
-  'Kochi',
-  'Kolkata',
-  'Mohali',
-];
 
 export const metadata = {
   title: 'Approved Hospitals Directory - Clinic By Choice',
@@ -45,8 +21,9 @@ export const metadata = {
 };
 
 export default async function HospitalsPage({ searchParams }: PageProps) {
-  const { state, city, search, service: serviceSlug } = await searchParams;
+  const { state, district, city, search, service: serviceSlug } = await searchParams;
   const db = await connectDB();
+  const { states, districts, cities, locationsMap, stateDistrictMap, districtCityMap } = await getLocationsData();
 
   let parsedHospitals: any[] = [];
   let allServices: any[] = [];
@@ -62,6 +39,13 @@ export default async function HospitalsPage({ searchParams }: PageProps) {
 
     if (state && state.trim() !== '') {
       whereCondition.state = { [Op.like]: `%${state.trim()}%` };
+    }
+
+    if (district && district.trim() !== '') {
+      whereCondition[Op.or] = [
+        { district: { [Op.like]: `%${district.trim()}%` } },
+        { city: { [Op.like]: `%${district.trim()}%` } },
+      ];
     }
 
     if (city && city.trim() !== '') {
@@ -124,10 +108,15 @@ export default async function HospitalsPage({ searchParams }: PageProps) {
           {/* Instant Auto-Submit FilterBar onSelect */}
           <FilterBar
             basePath="/hospitals"
-            states={INDIAN_STATES}
-            cities={INDIAN_CITIES}
+            states={states}
+            districts={districts}
+            cities={cities}
+            locationsMap={locationsMap}
+            stateDistrictMap={stateDistrictMap}
+            districtCityMap={districtCityMap}
             services={allServices}
             currentState={state || ''}
+            currentDistrict={district || ''}
             currentCity={city || ''}
             currentSearch={search || ''}
             currentService={serviceSlug || ''}

@@ -9,38 +9,14 @@ import { Service, Hospital, HospitalService } from '@/models';
 import { Op } from 'sequelize';
 import { Stethoscope } from 'lucide-react';
 
+import { getLocationsData } from '@/lib/locations';
+
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ state?: string; city?: string; search?: string }>;
+  searchParams: Promise<{ state?: string; district?: string; city?: string; search?: string }>;
 }
-
-const INDIAN_STATES = [
-  'Maharashtra',
-  'Delhi NCR',
-  'Karnataka',
-  'Tamil Nadu',
-  'Telangana',
-  'Gujarat',
-  'Kerala',
-  'West Bengal',
-  'Punjab',
-];
-
-const INDIAN_CITIES = [
-  'Mumbai',
-  'Delhi',
-  'Gurgaon',
-  'Noida',
-  'Bangalore',
-  'Chennai',
-  'Hyderabad',
-  'Ahmedabad',
-  'Kochi',
-  'Kolkata',
-  'Mohali',
-];
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
@@ -60,10 +36,12 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function ServiceDetailPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const { state, city, search } = await searchParams;
+  const { state, district, city, search } = await searchParams;
 
   const db = await connectDB();
   if (!db) notFound();
+
+  const { states, districts, cities, locationsMap, stateDistrictMap, districtCityMap } = await getLocationsData();
 
   const service = await Service.findOne({
     where: { slug: slug.toLowerCase(), status: 'ACTIVE' },
@@ -81,6 +59,13 @@ export default async function ServiceDetailPage({ params, searchParams }: PagePr
 
   if (state && state.trim() !== '') {
     hospitalWhere.state = { [Op.like]: `%${state.trim()}%` };
+  }
+
+  if (district && district.trim() !== '') {
+    hospitalWhere[Op.or] = [
+      { district: { [Op.like]: `%${district.trim()}%` } },
+      { city: { [Op.like]: `%${district.trim()}%` } },
+    ];
   }
 
   if (city && city.trim() !== '') {
@@ -138,9 +123,14 @@ export default async function ServiceDetailPage({ params, searchParams }: PagePr
           {/* Instant Auto-Submit FilterBar onSelect */}
           <FilterBar
             basePath={`/services/${service.slug}`}
-            states={INDIAN_STATES}
-            cities={INDIAN_CITIES}
+            states={states}
+            districts={districts}
+            cities={cities}
+            locationsMap={locationsMap}
+            stateDistrictMap={stateDistrictMap}
+            districtCityMap={districtCityMap}
             currentState={state || ''}
+            currentDistrict={district || ''}
             currentCity={city || ''}
             currentSearch={search || ''}
           />
