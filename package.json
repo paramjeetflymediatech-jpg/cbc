@@ -4,10 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build -- --webpack",
     "start": "next start",
     "lint": "eslint",
-    "seed": "npx tsx src/scripts/seed-runner.ts"
+    "seed": "npx tsx src/scripts/seed-runner.ts",
+    "seed:india": "npx tsx src/scripts/seed-india-data.ts",
+    "db:clean": "npx tsx src/scripts/clean-db.ts",
+    "db:reset": "npx tsx src/scripts/clean-db.ts --seed",
+    "create:admin": "npx tsx src/scripts/create-superadmin.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
