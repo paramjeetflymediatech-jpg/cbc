@@ -25,6 +25,13 @@ export default function HospitalProfilePage() {
   const [contactPersonName, setContactPersonName] = useState('');
   const [contactPersonPhone, setContactPersonPhone] = useState('');
 
+  // Trust & Quality Badges
+  const [isNabhAccredited, setIsNabhAccredited] = useState(true);
+  const [isVerifiedPartner, setIsVerifiedPartner] = useState(true);
+  const [googleRating, setGoogleRating] = useState<number | string>(4.8);
+  const [googleReviewsCount, setGoogleReviewsCount] = useState<number | null>(null);
+  const [fetchingGoogleRating, setFetchingGoogleRating] = useState(false);
+
   // Uploading state
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
 
@@ -55,12 +62,43 @@ export default function HospitalProfilePage() {
           setCoverImage(h.coverImage || '');
           setContactPersonName(h.contactPersonName || '');
           setContactPersonPhone(h.contactPersonPhone || '');
+          setIsNabhAccredited(h.isNabhAccredited !== false);
+          setIsVerifiedPartner(h.isVerifiedPartner !== false);
+          setGoogleRating(h.googleRating || h.rating || 4.8);
+          setGoogleReviewsCount(h.googleReviewsCount || null);
           setFacilities(h.facilities || []);
           setGallery(h.gallery || []);
         }
       })
       .finally(() => setLoading(false));
   }, []);
+
+  const handleFetchGoogleRating = async () => {
+    setFetchingGoogleRating(true);
+    setMessage('');
+    setErrorMessage('');
+
+    try {
+      const res = await fetch('/api/hospital/fetch-google-rating', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: `${name} ${city}` }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMessage(data.error || 'Failed to fetch Google Rating.');
+      } else {
+        setGoogleRating(data.googleRating);
+        setGoogleReviewsCount(data.googleReviewsCount);
+        setMessage(`Live Google Rating fetched & updated to ${data.googleRating} ★ (${data.googleReviewsCount || 0} reviews)!`);
+      }
+    } catch {
+      setErrorMessage('Network error fetching live Google Rating.');
+    } finally {
+      setFetchingGoogleRating(false);
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetCategory: 'logo' | 'cover' | 'gallery') => {
     const file = e.target.files?.[0];
@@ -165,6 +203,9 @@ export default function HospitalProfilePage() {
           contactPersonPhone,
           facilities,
           gallery,
+          isNabhAccredited,
+          isVerifiedPartner,
+          googleRating: Number(googleRating),
         }),
       });
 
@@ -417,6 +458,70 @@ export default function HospitalProfilePage() {
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#fd1d74]"
             />
+          </div>
+
+          {/* Trust & Accreditation Badges */}
+          <div className="pt-4 border-t border-gray-100 space-y-3">
+            <h4 className="text-xs font-extrabold text-[#b02151] uppercase tracking-wider">
+              Accreditation & Trust Badges
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-gray-100">
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                  Google Rating {googleReviewsCount ? `(${googleReviewsCount} Reviews)` : ''}
+                </label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="1"
+                    max="5"
+                    value={googleRating}
+                    onChange={(e) => setGoogleRating(e.target.value)}
+                    className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#fd1d74]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleFetchGoogleRating}
+                    disabled={fetchingGoogleRating}
+                    className="bg-pink-50 hover:bg-pink-100 text-[#b02151] px-3 py-2 rounded-xl text-xs font-extrabold flex-shrink-0 flex items-center space-x-1 border border-pink-200 transition-colors cursor-pointer"
+                  >
+                    {fetchingGoogleRating ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )}
+                    <span>Fetch Live</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 sm:pt-6">
+                <input
+                  type="checkbox"
+                  id="isNabhAccredited"
+                  checked={isNabhAccredited}
+                  onChange={(e) => setIsNabhAccredited(e.target.checked)}
+                  className="w-4 h-4 text-[#b02151] rounded focus:ring-0 cursor-pointer"
+                />
+                <label htmlFor="isNabhAccredited" className="text-xs font-bold text-gray-800 cursor-pointer select-none">
+                  NABH Accredited Badge
+                </label>
+              </div>
+
+              <div className="flex items-center space-x-2 sm:pt-6">
+                <input
+                  type="checkbox"
+                  id="isVerifiedPartner"
+                  checked={isVerifiedPartner}
+                  onChange={(e) => setIsVerifiedPartner(e.target.checked)}
+                  className="w-4 h-4 text-emerald-600 rounded focus:ring-0 cursor-pointer"
+                />
+                <label htmlFor="isVerifiedPartner" className="text-xs font-bold text-gray-800 cursor-pointer select-none">
+                  Verified Partner Badge
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 

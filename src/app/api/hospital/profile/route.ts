@@ -57,6 +57,10 @@ export async function PUT(req: Request) {
       doctors,
       facilities,
       faqs,
+      isNabhAccredited,
+      isVerifiedPartner,
+      googleRating,
+      rating,
     } = body;
 
     await hospital.update({
@@ -78,6 +82,10 @@ export async function PUT(req: Request) {
       doctors: doctors !== undefined ? doctors : hospital.doctors,
       facilities: facilities !== undefined ? facilities : hospital.facilities,
       faqs: faqs !== undefined ? faqs : hospital.faqs,
+      isNabhAccredited: isNabhAccredited !== undefined ? Boolean(isNabhAccredited) : hospital.isNabhAccredited,
+      isVerifiedPartner: isVerifiedPartner !== undefined ? Boolean(isVerifiedPartner) : hospital.isVerifiedPartner,
+      googleRating: googleRating !== undefined ? Number(googleRating) : (hospital.googleRating || hospital.rating || 4.8),
+      rating: googleRating !== undefined ? Number(googleRating) : (rating !== undefined ? Number(rating) : hospital.rating),
     });
 
     return NextResponse.json({ message: 'Profile updated successfully', hospital });

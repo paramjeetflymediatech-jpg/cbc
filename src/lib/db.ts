@@ -61,6 +61,31 @@ export async function connectDB(): Promise<Sequelize | null> {
       initAssociations();
       await instance.authenticate();
       await instance.sync();
+
+      // Ensure new hospital columns exist
+      try {
+        const queryInterface = instance.getQueryInterface();
+        const table: any = await queryInterface.describeTable('hospitals');
+
+        if (!table.isNabhAccredited) {
+          await instance.query('ALTER TABLE hospitals ADD COLUMN isNabhAccredited TINYINT(1) NOT NULL DEFAULT 1;');
+        }
+        if (!table.isVerifiedPartner) {
+          await instance.query('ALTER TABLE hospitals ADD COLUMN isVerifiedPartner TINYINT(1) NOT NULL DEFAULT 1;');
+        }
+        if (!table.googleRating) {
+          await instance.query('ALTER TABLE hospitals ADD COLUMN googleRating FLOAT NOT NULL DEFAULT 4.8;');
+        }
+        if (!table.googlePlaceId) {
+          await instance.query('ALTER TABLE hospitals ADD COLUMN googlePlaceId VARCHAR(255) NULL;');
+        }
+        if (!table.googleReviewsCount) {
+          await instance.query('ALTER TABLE hospitals ADD COLUMN googleReviewsCount INT NULL DEFAULT 0;');
+        }
+      } catch (colErr) {
+        // Table schema up to date or column already exists
+      }
+
       return instance;
     } catch (error) {
       console.warn('MySQL DB Connection notice:', (error as Error)?.message || error);

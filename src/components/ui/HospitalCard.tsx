@@ -48,12 +48,23 @@ export default function HospitalCard({ hospital, defaultServiceId }: HospitalCar
           </div>
 
           <div className="space-y-2 flex-1">
-            <div className="flex items-center space-x-2">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-pink-50 text-[#ec2c6c]">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-pink-50 text-[#ec2c6c]">
                 <Star className="w-3 h-3 fill-current mr-1 text-[#ec2c6c]" />
-                {hospital.rating || 4.8} Rating
+                {(hospital as any).googleRating || hospital.rating || 4.8} Verified
               </span>
-              <span className="text-xs text-gray-500 font-medium flex items-center">
+              {(hospital as any).isNabhAccredited !== false && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-white">
+                  NABH Accredited
+                </span>
+              )}
+              {(hospital as any).isVerifiedPartner !== false && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <ShieldCheck className="w-3 h-3 mr-1 text-emerald-600" />
+                  Verified Partner
+                </span>
+              )}
+              <span className="text-xs text-gray-500 font-medium flex items-center ml-auto">
                 <MapPin className="w-3.5 h-3.5 mr-1 text-gray-400" />
                 {hospital.city}
               </span>

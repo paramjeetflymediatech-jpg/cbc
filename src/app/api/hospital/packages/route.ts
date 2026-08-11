@@ -19,7 +19,10 @@ export async function GET() {
 
     const activePackages = await HospitalPackage.findAll({
       where: { hospitalId: authUser.hospitalId },
-      include: [{ model: LeadPackage, as: 'package' }],
+      include: [
+        { model: LeadPackage, as: 'package' },
+        { model: Payment, as: 'payment' },
+      ],
       order: [['purchasedAt', 'DESC']],
     });
 

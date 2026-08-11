@@ -67,6 +67,9 @@ export function initAssociations() {
     if (!HospitalPackage.associations.package) {
       HospitalPackage.belongsTo(LeadPackage, { foreignKey: 'packageId', as: 'package' });
     }
+    if (!HospitalPackage.associations.payment) {
+      HospitalPackage.belongsTo(Payment, { foreignKey: 'paymentId', as: 'payment' });
+    }
     if (!Hospital.associations.packages) {
       Hospital.hasMany(HospitalPackage, { foreignKey: 'hospitalId', as: 'packages' });
     }

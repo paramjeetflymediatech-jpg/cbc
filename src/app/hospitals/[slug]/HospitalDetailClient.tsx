@@ -115,17 +115,21 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
 
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="bg-[#fd1d74] text-white text-xs font-extrabold px-3 py-1 rounded-full flex items-center shadow-sm">
+                  <span className="bg-[#fd1d74] text-white text-xs font-extrabold px-3.5 py-1 rounded-full flex items-center shadow-xs">
                     <Star className="w-3.5 h-3.5 fill-current mr-1 text-yellow-300" />
-                    {hospital.rating || 4.9} Verified Hospital
+                    {(hospital as any).googleRating || hospital.rating || 4.8} Verified Hospital
                   </span>
-                  <span className="bg-white/10 text-white text-xs font-bold px-3 py-1 rounded-full border border-white/20">
-                    NABH Accredited
-                  </span>
-                  <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-extrabold px-3 py-1 rounded-full flex items-center">
-                    <ShieldCheck className="w-3.5 h-3.5 mr-1" />
-                    Verified Partner
-                  </span>
+                  {(hospital as any).isNabhAccredited !== false && (
+                    <span className="bg-slate-800/90 text-white text-xs font-bold px-3.5 py-1 rounded-full border border-slate-700 shadow-xs">
+                      NABH Accredited
+                    </span>
+                  )}
+                  {(hospital as any).isVerifiedPartner !== false && (
+                    <span className="bg-[#045c43]/60 text-emerald-300 border border-emerald-600/50 text-xs font-extrabold px-3.5 py-1 rounded-full flex items-center shadow-xs">
+                      <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+                      Verified Partner
+                    </span>
+                  )}
                 </div>
 
                 <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">{hospital.name}</h1>

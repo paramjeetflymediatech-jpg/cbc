@@ -44,6 +44,11 @@ export interface HospitalAttributes {
   faqs?: IFAQ[] | null;
   rating: number;
   isFeatured: boolean;
+  isNabhAccredited: boolean;
+  isVerifiedPartner: boolean;
+  googleRating: number;
+  googlePlaceId?: string | null;
+  googleReviewsCount?: number | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -58,6 +63,11 @@ export type HospitalCreationAttributes = Optional<
   | 'totalLeadsUsed'
   | 'rating'
   | 'isFeatured'
+  | 'isNabhAccredited'
+  | 'isVerifiedPartner'
+  | 'googleRating'
+  | 'googlePlaceId'
+  | 'googleReviewsCount'
   | 'gallery'
   | 'doctors'
   | 'facilities'
@@ -94,6 +104,11 @@ export class Hospital extends Model<HospitalAttributes, HospitalCreationAttribut
   declare faqs: IFAQ[] | null;
   declare rating: number;
   declare isFeatured: boolean;
+  declare isNabhAccredited: boolean;
+  declare isVerifiedPartner: boolean;
+  declare googleRating: number;
+  declare googlePlaceId: string | null;
+  declare googleReviewsCount: number | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -226,6 +241,30 @@ Hospital.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
+    },
+    isNabhAccredited: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
+    isVerifiedPartner: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
+    googleRating: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+      defaultValue: 4.8,
+    },
+    googlePlaceId: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    googleReviewsCount: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
     },
   },
   {
