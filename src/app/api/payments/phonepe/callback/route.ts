@@ -57,6 +57,7 @@ async function handleCallback(req: Request) {
     const phonepeStatus = await verifyPhonePeStatus(merchantTransactionId);
     const isSuccess =
       code === 'PAYMENT_SUCCESS' ||
+      phonepeStatus.state === 'COMPLETED' ||
       phonepeStatus.code === 'PAYMENT_SUCCESS' ||
       phonepeStatus.data?.paymentState === 'COMPLETED';
 
@@ -88,7 +89,7 @@ async function handleCallback(req: Request) {
       await paymentRecord.update(
         {
           status: 'SUCCESS',
-          providerReferenceId: phonepeStatus.data?.transactionId || `PAY_${Date.now()}`,
+          providerReferenceId: phonepeStatus.transactionId || phonepeStatus.data?.transactionId || `PAY_${Date.now()}`,
           rawResponse: phonepeStatus,
         },
         { transaction }
