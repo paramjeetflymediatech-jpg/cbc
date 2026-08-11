@@ -19,10 +19,10 @@ export const metadata: Metadata = {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
       { url: "/favicon.png", type: "image/png" },
-      { url: "/images/logo.png", type: "image/png" },
+      { url: "/images/logoblac.png", type: "image/png" },
     ],
     shortcut: "/favicon.ico",
-    apple: "/images/logo.png",
+    apple: "/images/logoblac.png",
   },
 };
 
@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/images/logo.png" />
+        <link rel="apple-touch-icon" href="/images/logoblac.png" />
       </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
