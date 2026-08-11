@@ -49,6 +49,13 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(bytes);
     await writeFile(filePath, buffer);
 
+    // Also sync to standalone public directory if running in Next standalone mode
+    try {
+      const standaloneTargetDir = path.join(process.cwd(), '.next', 'standalone', 'public', 'uploads', 'hospitals', hospitalFolder);
+      await mkdir(standaloneTargetDir, { recursive: true });
+      await writeFile(path.join(standaloneTargetDir, uniqueFileName), buffer);
+    } catch {}
+
     // Generate public relative URL
     const publicUrl = `/uploads/hospitals/${hospitalFolder}/${uniqueFileName}`;
 

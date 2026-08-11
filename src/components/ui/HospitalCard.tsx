@@ -38,6 +38,7 @@ export default function HospitalCard({ hospital }: HospitalCardProps) {
                 src={hospital.logo}
                 alt={hospital.name}
                 fill
+                unoptimized
                 className="object-contain p-1"
               />
             ) : (

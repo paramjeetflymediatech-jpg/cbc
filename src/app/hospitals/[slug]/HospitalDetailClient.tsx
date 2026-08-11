@@ -106,7 +106,7 @@ export default function HospitalDetailClient({ hospital }: HospitalDetailClientP
               {/* Logo Box */}
               <div className="relative w-28 h-28 bg-white rounded-3xl p-3 flex-shrink-0 flex items-center justify-center overflow-hidden shadow-2xl border-2 border-white/20">
                 {hospital.logo ? (
-                  <Image src={hospital.logo} alt={hospital.name} fill className="object-contain p-2" />
+                  <Image src={hospital.logo} alt={hospital.name} fill unoptimized className="object-contain p-2" />
                 ) : (
                   <Building2 className="w-14 h-14 text-[#b02151]" />
                 )}
