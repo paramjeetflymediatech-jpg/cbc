@@ -84,11 +84,31 @@ export default function HospitalProfilePage() {
       if (!res.ok) {
         setErrorMessage(data.error || 'Failed to upload image.');
       } else {
-        if (targetCategory === 'logo') setLogo(data.url);
-        else if (targetCategory === 'cover') setCoverImage(data.url);
-        else if (targetCategory === 'gallery') setGallery([...gallery, data.url]);
+        if (targetCategory === 'logo') {
+          setLogo(data.url);
+          await fetch('/api/hospital/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ logo: data.url }),
+          });
+        } else if (targetCategory === 'cover') {
+          setCoverImage(data.url);
+          await fetch('/api/hospital/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ coverImage: data.url }),
+          });
+        } else if (targetCategory === 'gallery') {
+          const updatedGallery = [...gallery, data.url];
+          setGallery(updatedGallery);
+          await fetch('/api/hospital/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gallery: updatedGallery }),
+          });
+        }
 
-        setMessage(`Image uploaded successfully and saved to local folder (${data.hospitalFolder})!`);
+        setMessage(`Image uploaded and updated in profile successfully!`);
       }
     } catch {
       setErrorMessage('Network error uploading file.');
@@ -340,37 +360,51 @@ export default function HospitalProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="block text-xs font-bold text-gray-700 uppercase">Hospital Logo</label>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="url"
-                  value={logo}
-                  onChange={(e) => setLogo(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#fd1d74]"
-                />
-                <label className="bg-gray-900 text-white text-xs font-bold px-3 py-2 rounded-xl flex-shrink-0 cursor-pointer hover:bg-black inline-flex items-center space-x-1">
-                  {uploadingCategory === 'logo' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                  <span>Upload Logo</span>
-                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} className="hidden" />
-                </label>
+              <div className="flex items-center space-x-3">
+                {logo ? (
+                  <div className="relative w-12 h-12 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0">
+                    <Image src={logo} alt="Logo preview" fill unoptimized className="object-contain p-1" />
+                  </div>
+                ) : null}
+                <div className="flex items-center space-x-2 flex-1">
+                  <input
+                    type="url"
+                    value={logo}
+                    onChange={(e) => setLogo(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#fd1d74]"
+                  />
+                  <label className="bg-gray-900 text-white text-xs font-bold px-3 py-2 rounded-xl flex-shrink-0 cursor-pointer hover:bg-black inline-flex items-center space-x-1">
+                    {uploadingCategory === 'logo' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                    <span>Upload Logo</span>
+                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} className="hidden" />
+                  </label>
+                </div>
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="block text-xs font-bold text-gray-700 uppercase">Cover Banner</label>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="url"
-                  value={coverImage}
-                  onChange={(e) => setCoverImage(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#fd1d74]"
-                />
-                <label className="bg-gray-900 text-white text-xs font-bold px-3 py-2 rounded-xl flex-shrink-0 cursor-pointer hover:bg-black inline-flex items-center space-x-1">
-                  {uploadingCategory === 'cover' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                  <span>Upload Cover</span>
-                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'cover')} className="hidden" />
-                </label>
+              <div className="flex items-center space-x-3">
+                {coverImage ? (
+                  <div className="relative w-16 h-12 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0">
+                    <Image src={coverImage} alt="Cover preview" fill unoptimized className="object-cover" />
+                  </div>
+                ) : null}
+                <div className="flex items-center space-x-2 flex-1">
+                  <input
+                    type="url"
+                    value={coverImage}
+                    onChange={(e) => setCoverImage(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#fd1d74]"
+                  />
+                  <label className="bg-gray-900 text-white text-xs font-bold px-3 py-2 rounded-xl flex-shrink-0 cursor-pointer hover:bg-black inline-flex items-center space-x-1">
+                    {uploadingCategory === 'cover' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                    <span>Upload Cover</span>
+                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'cover')} className="hidden" />
+                  </label>
+                </div>
               </div>
             </div>
           </div>
