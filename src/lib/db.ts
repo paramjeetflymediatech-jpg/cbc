@@ -60,19 +60,11 @@ export async function connectDB(): Promise<Sequelize | null> {
       const { initAssociations } = await import('../models');
       initAssociations();
       await instance.authenticate();
-      await instance.sync({ alter: true });
+      await instance.sync();
       return instance;
     } catch (error) {
       console.warn('MySQL DB Connection notice:', (error as Error)?.message || error);
-      try {
-        const { initAssociations } = await import('../models');
-        initAssociations();
-        await instance.sync();
-        return instance;
-      } catch (innerErr) {
-        console.warn('MySQL is currently offline or unconfigured. Server will render with fallback state.', (innerErr as Error)?.message);
-        return null;
-      }
+      return null;
     }
   })();
 

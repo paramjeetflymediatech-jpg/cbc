@@ -19,9 +19,10 @@ interface HospitalCardProps {
     leadsRemaining?: number;
     hospitalServices?: any[];
   };
+  defaultServiceId?: number;
 }
 
-export default function HospitalCard({ hospital }: HospitalCardProps) {
+export default function HospitalCard({ hospital, defaultServiceId }: HospitalCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const services = hospital.hospitalServices || [];
@@ -119,6 +120,8 @@ export default function HospitalCard({ hospital }: HospitalCardProps) {
         onClose={() => setIsModalOpen(false)}
         hospitalId={hospital.id}
         hospitalName={hospital.name}
+        defaultServiceId={defaultServiceId}
+        servicesList={services.map((hs: any) => hs.service).filter(Boolean)}
       />
     </>
   );

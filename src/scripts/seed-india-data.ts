@@ -658,10 +658,10 @@ export async function seedIndiaStatesCitiesAndServices() {
   await connectDB();
 
   console.log(' Syncing State, District, City, and Service tables...');
-  await State.sync({ alter: true });
-  await District.sync({ alter: true });
-  await City.sync({ alter: true });
-  await Service.sync({ alter: true });
+  await State.sync();
+  await District.sync();
+  await City.sync();
+  await Service.sync();
 
   console.log(` Starting seeding for ${indianStatesDistrictsCitiesData.length} Indian States & Union Territories...`);
   let stateCount = 0;

@@ -6,8 +6,8 @@ export async function seedDatabase() {
   await connectDB();
 
   // Force sync State & City tables first
-  await State.sync({ alter: true });
-  await City.sync({ alter: true });
+  await State.sync();
+  await City.sync();
 
   console.log('Seeding Clinic By Choice database with Union Super Speciality Hospital...');
 

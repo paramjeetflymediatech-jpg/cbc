@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectDB, sequelize } from '@/lib/db';
 import { Payment, Hospital, LeadPackage, HospitalPackage, LeadTransaction, Notification } from '@/models';
 import { verifyPhonePeStatus } from '@/lib/phonepe';
+import { sendPackagePurchaseEmail } from '@/lib/mailer';
 
 export async function POST(req: Request) {
   return handleCallback(req);
@@ -164,6 +165,17 @@ async function handleCallback(req: Request) {
       );
 
       await transaction.commit();
+
+      // Trigger Email Notification (Asynchronous)
+      sendPackagePurchaseEmail({
+        hospitalName: hospital.name,
+        hospitalEmail: hospital.email,
+        packageName: leadPkg.name,
+        leadCount: addedLeads,
+        amountPaid: leadPkg.price,
+        transactionId: merchantTransactionId,
+        newBalance: balanceAfter,
+      }).catch((err) => console.error('[MAILER] Async package purchase email failed:', err));
 
       return NextResponse.redirect(
         `${appUrl}/hospital/packages?status=success&added=${addedLeads}&balance=${balanceAfter}`

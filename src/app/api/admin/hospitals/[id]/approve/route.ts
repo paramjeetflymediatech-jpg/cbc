@@ -22,9 +22,14 @@ export async function POST(
       return NextResponse.json({ error: 'Hospital not found' }, { status: 404 });
     }
 
+    const initialLeads = hospital.leadsRemaining <= 0 ? 10 : hospital.leadsRemaining;
+    const initialPurchased = hospital.totalLeadsPurchased <= 0 ? 10 : hospital.totalLeadsPurchased;
+
     await hospital.update({
       status: 'APPROVED',
       accountStatus: 'ACTIVE',
+      leadsRemaining: initialLeads,
+      totalLeadsPurchased: initialPurchased,
       rejectionReason: null,
     });
 

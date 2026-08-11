@@ -8,9 +8,9 @@ export async function GET(req: Request) {
     initAssociations();
 
     // Ensure tables exist before querying
-    await State.sync({ alter: true });
-    await District.sync({ alter: true });
-    await City.sync({ alter: true });
+    await State.sync();
+    await District.sync();
+    await City.sync();
 
     const { searchParams } = new URL(req.url);
     const stateId = searchParams.get('stateId');

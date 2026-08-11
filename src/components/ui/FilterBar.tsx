@@ -96,7 +96,8 @@ export default function FilterBar({
         })
         .catch(() => {});
     }
-  }, [selectedState, dynStateDistrictMap]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedState]);
 
   // Dynamically fetch cities for selectedDistrict if missing in map
   useEffect(() => {
@@ -111,7 +112,8 @@ export default function FilterBar({
         })
         .catch(() => {});
     }
-  }, [selectedDistrict, dynDistrictCityMap]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDistrict]);
 
   // Compute available districts & cities
   const availableDistricts = selectedState

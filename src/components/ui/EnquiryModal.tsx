@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
 interface ServiceItem {
@@ -18,19 +18,22 @@ interface EnquiryModalProps {
   servicesList?: ServiceItem[];
 }
 
+const EMPTY_SERVICES: ServiceItem[] = [];
+
 export default function EnquiryModal({
   isOpen,
   onClose,
   hospitalId,
   hospitalName,
   defaultServiceId,
-  servicesList = [],
+  servicesList = EMPTY_SERVICES,
 }: EnquiryModalProps) {
   const [patientName, setPatientName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [city, setCity] = useState('');
-  const [serviceId, setServiceId] = useState<number | string>(defaultServiceId || '');
+  const validDefaultId = defaultServiceId && !Number.isNaN(Number(defaultServiceId)) ? Number(defaultServiceId) : '';
+  const [serviceId, setServiceId] = useState<number | string>(validDefaultId);
   const [message, setMessage] = useState('');
   const [preferredContactTime, setPreferredContactTime] = useState('Morning (9 AM - 12 PM)');
   const [availableServices, setAvailableServices] = useState<ServiceItem[]>(servicesList);
@@ -39,22 +42,49 @@ export default function EnquiryModal({
   const [errorMessage, setErrorMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const fetchedRef = useRef(false);
+  const prevIsOpenRef = useRef(false);
+
   useEffect(() => {
-    if (defaultServiceId) {
-      setServiceId(defaultServiceId);
+    if (isOpen && !prevIsOpenRef.current) {
+      // Modal opened: initialize serviceId to validDefaultId or first available service
+      const initial = validDefaultId || (availableServices.length > 0 ? availableServices[0].id : '');
+      setServiceId(initial);
+    } else if (isOpen && !serviceId && availableServices.length > 0) {
+      // Services loaded asynchronously after opening
+      const initial = validDefaultId || availableServices[0].id;
+      setServiceId(initial);
     }
-  }, [defaultServiceId]);
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, validDefaultId, availableServices, serviceId]);
 
   useEffect(() => {
-    if (!isOpen) return;
-
-    // 1. If explicit servicesList prop is provided with items, use it directly
-    if (servicesList && servicesList.length > 0) {
-      setAvailableServices(servicesList);
-      if (!serviceId && servicesList.length > 0) {
-        setServiceId(servicesList[0].id);
-      }
+    if (!isOpen) {
+      fetchedRef.current = false;
       return;
+    }
+
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
+    const dedupe = (list: any[]) => {
+      if (!Array.isArray(list)) return [];
+      const map = new Map();
+      list.forEach((item, idx) => {
+        if (!item) return;
+        const key = item.id || item.slug || item.name || idx;
+        if (!map.has(key)) map.set(key, item);
+      });
+      return Array.from(map.values());
+    };
+
+    // 1. If explicit servicesList prop is provided with items, check if validDefaultId is included
+    if (servicesList && servicesList.length > 0) {
+      const hasDefault = validDefaultId ? servicesList.some((s: any) => s && s.id === Number(validDefaultId)) : true;
+      if (hasDefault) {
+        setAvailableServices(dedupe(servicesList));
+        return;
+      }
     }
 
     // 2. If hospitalId is provided, fetch hospital details to display ONLY its offered services
@@ -64,15 +94,20 @@ export default function EnquiryModal({
         .then((data) => {
           if (data.hospitals && Array.isArray(data.hospitals)) {
             const currentHospital = data.hospitals.find((h: any) => h.id === hospitalId);
-            if (currentHospital && currentHospital.services && currentHospital.services.length > 0) {
-              setAvailableServices(currentHospital.services);
-              if (!serviceId) {
-                setServiceId(currentHospital.services[0].id);
+            if (currentHospital) {
+              const hServices =
+                currentHospital.services ||
+                currentHospital.hospitalServices?.map((hs: any) => hs.service).filter(Boolean);
+              if (hServices && hServices.length > 0) {
+                const hasDefault = validDefaultId ? hServices.some((s: any) => s && s.id === Number(validDefaultId)) : true;
+                if (hasDefault) {
+                  setAvailableServices(dedupe(hServices));
+                  return;
+                }
               }
-              return;
             }
           }
-          // Fallback if no specific services found
+          // Fallback if no specific services found or default missing
           fetchGlobalServices();
         })
         .catch(() => {
@@ -87,15 +122,12 @@ export default function EnquiryModal({
         .then((res) => res.json())
         .then((data) => {
           if (data.services) {
-            setAvailableServices(data.services);
-            if (!serviceId && data.services.length > 0) {
-              setServiceId(data.services[0].id);
-            }
+            setAvailableServices(dedupe(data.services));
           }
         })
         .catch(() => {});
     }
-  }, [isOpen, servicesList, hospitalId, serviceId]);
+  }, [isOpen, servicesList, hospitalId, validDefaultId]);
 
   if (!isOpen) return null;
 
@@ -257,15 +289,15 @@ export default function EnquiryModal({
                 </label>
                 <select
                   required
-                  value={serviceId}
-                  onChange={(e) => setServiceId(Number(e.target.value))}
+                  value={Number.isNaN(Number(serviceId)) ? '' : String(serviceId)}
+                  onChange={(e) => setServiceId(e.target.value ? Number(e.target.value) : '')}
                   className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ec2c6c] cursor-pointer"
                 >
                   <option value="" disabled>
                     Select Medical Service
                   </option>
-                  {availableServices.map((s) => (
-                    <option key={s.id} value={s.id}>
+                  {availableServices.map((s, idx) => (
+                    <option key={s.id ? `service-${s.id}-${idx}` : `service-idx-${idx}`} value={s.id ?? ''}>
                       {s.name}
                     </option>
                   ))}

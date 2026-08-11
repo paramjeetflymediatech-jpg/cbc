@@ -253,3 +253,97 @@ export async function sendHospitalRegistrationEmail({
     html,
   });
 }
+
+/**
+ * Send Lead Package Purchase Confirmation Email with Black Logo Header via BCC
+ */
+export async function sendPackagePurchaseEmail({
+  hospitalName,
+  hospitalEmail,
+  packageName,
+  leadCount,
+  amountPaid,
+  transactionId,
+  newBalance,
+}: {
+  hospitalName: string;
+  hospitalEmail: string;
+  packageName: string;
+  leadCount: number;
+  amountPaid: number;
+  transactionId: string;
+  newBalance: number;
+}) {
+  const adminRecipients = parseRecipients(
+    process.env.SUPER_ADMIN_EMAIL || process.env.ADMIN_EMAIL || SMTP_USER || 'info@clinicbychoice.com'
+  );
+  const hospitalRecipients = hospitalEmail ? parseRecipients(hospitalEmail) : [];
+  const allRecipients = Array.from(new Set([...adminRecipients, ...hospitalRecipients]));
+  const logoUrl = getLogoUrl();
+
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+      
+      <!-- Header with Black Logo Badge -->
+      <div style="background: linear-gradient(90deg, rgb(180 58 173) 0%, rgb(253 29 116) 50%, rgb(252 69 214) 100%); padding: 28px 24px; text-align: center;">
+        <div style="background-color: rgba(255, 255, 255, 0.98); padding: 10px 22px; border-radius: 14px; display: inline-block; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <img src="${logoUrl}" alt="Clinic By Choice Logo" style="max-height: 48px; width: auto; display: block; margin: 0 auto;" />
+        </div>
+        <h2 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Lead Package Purchase Confirmed</h2>
+      </div>
+
+      <!-- Main Content -->
+      <div style="padding: 28px 24px; background-color: #ffffff;">
+        <p style="font-size: 15px; color: #374151; margin-top: 0; line-height: 1.6;">
+          Payment confirmed! Your hospital account on <strong>Clinic By Choice</strong> has been credited with new patient leads.
+        </p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px;">
+          <tr style="border-bottom: 1px solid #f3f4f6;">
+            <td style="padding: 10px 0; font-weight: 700; color: #6b7280; width: 150px;">Hospital Name:</td>
+            <td style="padding: 10px 0; color: #111827; font-weight: 800;">${hospitalName}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f3f4f6;">
+            <td style="padding: 10px 0; font-weight: 700; color: #6b7280;">Package Purchased:</td>
+            <td style="padding: 10px 0; color: #111827; font-weight: 700;">${packageName}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f3f4f6;">
+            <td style="padding: 10px 0; font-weight: 700; color: #6b7280;">Leads Credited:</td>
+            <td style="padding: 10px 0; color: #059669; font-weight: 800;">+${leadCount} Leads</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f3f4f6;">
+            <td style="padding: 10px 0; font-weight: 700; color: #6b7280;">New Total Balance:</td>
+            <td style="padding: 10px 0; color: #111827; font-weight: 800;">${newBalance} Leads Available</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f3f4f6;">
+            <td style="padding: 10px 0; font-weight: 700; color: #6b7280;">Amount Paid:</td>
+            <td style="padding: 10px 0; color: #111827; font-weight: 700;">₹${amountPaid.toLocaleString('en-IN')}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f3f4f6;">
+            <td style="padding: 10px 0; font-weight: 700; color: #6b7280;">Transaction ID:</td>
+            <td style="padding: 10px 0; color: #4b5563; font-family: monospace;">${transactionId}</td>
+          </tr>
+        </table>
+
+        <!-- Footer Banner CTA -->
+        <div style="margin-top: 28px; padding: 16px; background-color: #ecfdf5; border-left: 4px solid #10b981; border-radius: 8px;">
+          <p style="margin: 0; font-size: 13px; color: #065f46; font-weight: 600;">
+            Log in to your hospital dashboard to view unlocked patient leads and start contacting patients immediately.
+          </p>
+        </div>
+      </div>
+
+      <!-- Footer Bar -->
+      <div style="background-color: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af;">
+        Copyright © 2026 Clinic By Choice. All rights reserved.
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    bcc: allRecipients,
+    subject: `Package Purchased (${leadCount} Leads): ${packageName} - ${hospitalName}`,
+    html,
+  });
+}
+

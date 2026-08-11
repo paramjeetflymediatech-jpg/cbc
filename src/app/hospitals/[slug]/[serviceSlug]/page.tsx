@@ -64,7 +64,7 @@ export default async function HospitalServiceDetailPage({ params }: PageProps) {
           Selected Specialty Treatment: {service.name}
         </div>
       </div>
-      <HospitalDetailClient hospital={parsedHospital} />
+      <HospitalDetailClient hospital={parsedHospital} initialServiceId={service.id} />
       <Footer />
     </div>
   );

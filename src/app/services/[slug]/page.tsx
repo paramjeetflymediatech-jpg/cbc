@@ -155,7 +155,7 @@ export default async function ServiceDetailPage({ params, searchParams }: PagePr
 
           {hospitals.length > 0 ? (
             hospitals.map((h: any) => (
-              <HospitalCard key={h.id} hospital={JSON.parse(JSON.stringify(h))} />
+              <HospitalCard key={h.id} hospital={JSON.parse(JSON.stringify(h))} defaultServiceId={service.id} />
             ))
           ) : (
             <div className="text-center py-16 bg-gray-50 rounded-2xl space-y-3 border border-dashed border-gray-200">

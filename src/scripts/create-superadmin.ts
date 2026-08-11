@@ -25,7 +25,7 @@ export async function createSuperAdmin(customEmail?: string, customPassword?: st
   const { User } = await import('../models');
 
   await connectDB();
-  await User.sync({ alter: true });
+  await User.sync();
 
   const email = (customEmail || process.env.SUPER_ADMIN_DEFAULT_EMAIL || 'admin@clinicbychoice.com').trim().toLowerCase();
   const password = customPassword || process.env.SUPER_ADMIN_DEFAULT_PASS || 'Admin123!';

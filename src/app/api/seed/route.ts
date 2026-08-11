@@ -7,7 +7,7 @@ export async function GET() {
   try {
     initAssociations();
     await sequelize.authenticate();
-    await sequelize.sync({ alter: true });
+    await sequelize.sync();
     await seedDatabase();
     return NextResponse.json({ message: 'Database seeded successfully with states, cities, services, and default admin.' });
   } catch (error: any) {

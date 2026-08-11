@@ -7,12 +7,13 @@ import EnquiryModal from '@/components/ui/EnquiryModal';
 
 interface HospitalDetailClientProps {
   hospital: any;
+  initialServiceId?: number;
 }
 
-export default function HospitalDetailClient({ hospital }: HospitalDetailClientProps) {
+export default function HospitalDetailClient({ hospital, initialServiceId }: HospitalDetailClientProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'doctors' | 'facilities' | 'gallery' | 'faqs' | 'map'>('overview');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedServiceId, setSelectedServiceId] = useState<number | undefined>();
+  const [selectedServiceId, setSelectedServiceId] = useState<number | undefined>(initialServiceId);
   const [activeGalleryIndex, setActiveGalleryIndex] = useState<number | null>(null);
 
   // Sidebar Inline Enquiry Form State
@@ -20,7 +21,7 @@ export default function HospitalDetailClient({ hospital }: HospitalDetailClientP
   const [sidebarPhone, setSidebarPhone] = useState('');
   const [sidebarEmail, setSidebarEmail] = useState('');
   const [sidebarCity, setSidebarCity] = useState('');
-  const [sidebarServiceId, setSidebarServiceId] = useState<number | string>('');
+  const [sidebarServiceId, setSidebarServiceId] = useState<number | string>(initialServiceId || '');
   const [sidebarMessage, setSidebarMessage] = useState('');
   const [sidebarTime, setSidebarTime] = useState('Morning (9 AM - 12 PM)');
 

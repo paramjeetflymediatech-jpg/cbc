@@ -7,21 +7,6 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 export async function cleanDatabase() {
   const { connectDB, getSequelize } = await import('../lib/db');
-  const {
-    User,
-    Hospital,
-    Service,
-    HospitalService,
-    Lead,
-    LeadPackage,
-    HospitalPackage,
-    LeadTransaction,
-    Payment,
-    Notification,
-    State,
-    District,
-    City,
-  } = await import('../models');
 
   console.log(' Connecting to database...');
   const sequelize = await connectDB();
@@ -35,23 +20,19 @@ export async function cleanDatabase() {
   await dbInstance.query('SET FOREIGN_KEY_CHECKS = 0;');
 
   try {
-    console.log(' Clearing all tables in the database...');
+    console.log(' Dropping and recreating all tables in the database...');
 
-    await LeadTransaction.destroy({ where: {}, truncate: true });
-    await Lead.destroy({ where: {}, truncate: true });
-    await HospitalPackage.destroy({ where: {}, truncate: true });
-    await Payment.destroy({ where: {}, truncate: true });
-    await HospitalService.destroy({ where: {}, truncate: true });
-    await Notification.destroy({ where: {}, truncate: true });
-    await User.destroy({ where: {}, truncate: true });
-    await Hospital.destroy({ where: {}, truncate: true });
-    await LeadPackage.destroy({ where: {}, truncate: true });
-    await City.destroy({ where: {}, truncate: true });
-    await District.destroy({ where: {}, truncate: true });
-    await State.destroy({ where: {}, truncate: true });
-    await Service.destroy({ where: {}, truncate: true });
+    await dbInstance.query(`
+      DROP TABLE IF EXISTS 
+        lead_transactions, leads, hospital_packages, payments, 
+        hospital_services, notifications, users, hospitals, 
+        lead_packages, cities, districts, states, services;
+    `);
 
-    console.log(' All tables cleaned successfully!');
+    console.log(' Rebuilding clean database schema...');
+    await dbInstance.sync();
+
+    console.log(' All tables cleaned & rebuilt successfully!');
   } finally {
     console.log(' Re-enabling foreign key checks...');
     await dbInstance.query('SET FOREIGN_KEY_CHECKS = 1;');
