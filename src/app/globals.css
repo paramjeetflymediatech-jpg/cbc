@@ -1,26 +1,73 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --cbc-pink: #ec2c6c;
+    --cbc-pink-hover: #d41f5a;
+    --cbc-pink-light: #fdf2f6;
+    --cbc-dark: #101828;
+    --cbc-dark-muted: #1d2939;
+    --cbc-gray: #475467;
+    --cbc-bg-light: #f9fafb;
+  }
+
+  body {
+    color: var(--cbc-dark);
+    background-color: #ffffff;
+    font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom Utilities for CBC styling */
+.bg-cbc-pink { background-color: #ec2c6c; }
+.bg-cbc-pink-hover:hover { background-color: #d41f5a; }
+.bg-cbc-pink-light { background-color: #fdf2f6; }
+.text-cbc-pink { color: #ec2c6c; }
+.border-cbc-pink { border-color: #ec2c6c; }
+
+.bg-cbc-dark { background-color: #101828; }
+.text-cbc-dark { color: #101828; }
+.text-cbc-muted { color: #475467; }
+
+.cbc-card {
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease-in-out;
+}
+
+.cbc-card:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.cbc-btn-primary {
+  background-color: #ec2c6c;
+  color: #ffffff;
+  border-radius: 9999px;
+  font-weight: 500;
+  padding: 0.625rem 1.5rem;
+  transition: background-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cbc-btn-primary:hover {
+  background-color: #d41f5a;
+}
+
+.cbc-btn-dark {
+  background-color: #101828;
+  color: #ffffff;
+  border-radius: 9999px;
+  font-weight: 500;
+  padding: 0.625rem 1.5rem;
+  transition: background-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cbc-btn-dark:hover {
+  background-color: #1d2939;
 }

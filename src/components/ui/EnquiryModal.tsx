@@ -1,0 +1,326 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+
+interface ServiceItem {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+interface EnquiryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  hospitalId: number;
+  hospitalName: string;
+  defaultServiceId?: number;
+  servicesList?: ServiceItem[];
+}
+
+export default function EnquiryModal({
+  isOpen,
+  onClose,
+  hospitalId,
+  hospitalName,
+  defaultServiceId,
+  servicesList = [],
+}: EnquiryModalProps) {
+  const [patientName, setPatientName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [city, setCity] = useState('');
+  const [serviceId, setServiceId] = useState<number | string>(defaultServiceId || '');
+  const [message, setMessage] = useState('');
+  const [preferredContactTime, setPreferredContactTime] = useState('Morning (9 AM - 12 PM)');
+  const [availableServices, setAvailableServices] = useState<ServiceItem[]>(servicesList);
+
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  useEffect(() => {
+    if (defaultServiceId) {
+      setServiceId(defaultServiceId);
+    }
+  }, [defaultServiceId]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // 1. If explicit servicesList prop is provided with items, use it directly
+    if (servicesList && servicesList.length > 0) {
+      setAvailableServices(servicesList);
+      if (!serviceId && servicesList.length > 0) {
+        setServiceId(servicesList[0].id);
+      }
+      return;
+    }
+
+    // 2. If hospitalId is provided, fetch hospital details to display ONLY its offered services
+    if (hospitalId) {
+      fetch('/api/hospitals')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.hospitals && Array.isArray(data.hospitals)) {
+            const currentHospital = data.hospitals.find((h: any) => h.id === hospitalId);
+            if (currentHospital && currentHospital.services && currentHospital.services.length > 0) {
+              setAvailableServices(currentHospital.services);
+              if (!serviceId) {
+                setServiceId(currentHospital.services[0].id);
+              }
+              return;
+            }
+          }
+          // Fallback if no specific services found
+          fetchGlobalServices();
+        })
+        .catch(() => {
+          fetchGlobalServices();
+        });
+    } else {
+      fetchGlobalServices();
+    }
+
+    function fetchGlobalServices() {
+      fetch('/api/services')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.services) {
+            setAvailableServices(data.services);
+            if (!serviceId && data.services.length > 0) {
+              setServiceId(data.services[0].id);
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, servicesList, hospitalId, serviceId]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/enquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientName,
+          phone,
+          email,
+          city,
+          serviceId: Number(serviceId),
+          hospitalId,
+          message,
+          preferredContactTime,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMessage(data.error || 'Failed to submit enquiry. Please try again.');
+      } else {
+        setIsSuccess(true);
+      }
+    } catch {
+      setErrorMessage('Network error while submitting enquiry.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = () => {
+    setIsSuccess(false);
+    setErrorMessage('');
+    setPatientName('');
+    setPhone('');
+    setEmail('');
+    setCity('');
+    setMessage('');
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
+        {/* Header */}
+        <div className="bg-[#101828] text-white p-6 flex justify-between items-center border-b border-gray-800">
+          <div>
+            <span className="text-xs font-semibold text-[#ec2c6c] uppercase tracking-wider">
+              Hospital Service Enquiry
+            </span>
+            <h3 className="text-xl font-bold text-white mt-0.5">{hospitalName}</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 text-gray-400 hover:text-white rounded-lg transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Content Body */}
+        <div className="p-6">
+          {isSuccess ? (
+            <div className="text-center py-8 space-y-4">
+              <CheckCircle2 className="w-16 h-16 text-[#ec2c6c] mx-auto animate-bounce" />
+              <h4 className="text-2xl font-bold text-gray-900">Thank You for Your Enquiry!</h4>
+              <p className="text-gray-600 text-sm leading-relaxed max-w-md mx-auto">
+                Your enquiry has been submitted successfully to <strong>{hospitalName}</strong>. A medical coordinator will contact you shortly regarding your treatment preferences.
+              </p>
+              <div className="pt-4">
+                <button onClick={handleReset} className="cbc-btn-primary w-full text-sm">
+                  Close Window
+                </button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {errorMessage && (
+                <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl flex items-start space-x-2">
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Patient Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={patientName}
+                    onChange={(e) => setPatientName(e.target.value)}
+                    placeholder="Full Name"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#ec2c6c]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Phone Number *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+91 9876543210"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#ec2c6c]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email@example.com"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#ec2c6c]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Your City *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="e.g. Mumbai, Delhi"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#ec2c6c]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>Medical Service Needed *</span>
+                  <span className="text-[10px] text-pink-600 font-bold bg-pink-50 px-2 py-0.5 rounded-full border border-pink-100">
+                    Offered by {hospitalName} ({availableServices.length})
+                  </span>
+                </label>
+                <select
+                  required
+                  value={serviceId}
+                  onChange={(e) => setServiceId(Number(e.target.value))}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ec2c6c] cursor-pointer"
+                >
+                  <option value="" disabled>
+                    Select Medical Service
+                  </option>
+                  {availableServices.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Preferred Contact Time
+                </label>
+                <select
+                  value={preferredContactTime}
+                  onChange={(e) => setPreferredContactTime(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#ec2c6c]"
+                >
+                  <option value="Morning (9 AM - 12 PM)">Morning (9 AM - 12 PM)</option>
+                  <option value="Afternoon (12 PM - 4 PM)">Afternoon (12 PM - 4 PM)</option>
+                  <option value="Evening (4 PM - 8 PM)">Evening (4 PM - 8 PM)</option>
+                  <option value="Anytime">Anytime</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Medical Enquiry Message
+                </label>
+                <textarea
+                  rows={3}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Describe your medical condition or treatment requirements..."
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#ec2c6c]"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="cbc-btn-primary w-full text-base py-3 flex items-center justify-center space-x-2 shadow-lg"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Submitting Enquiry...</span>
+                    </>
+                  ) : (
+                    <span>Submit Enquiry Now</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
