@@ -105,6 +105,11 @@ export async function POST(req: Request) {
 
     const isPublished = status === 'PUBLISHED';
 
+    // Auto-calculate read time based on word count (200 words/min)
+    const textContent = (content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const wordCount = textContent ? textContent.split(' ').filter(Boolean).length : 0;
+    const computedReadTime = readTime || `${Math.max(1, Math.ceil(wordCount / 200))} min read`;
+
     const blog = await BlogPost.create({
       title,
       slug: finalSlug,
@@ -113,7 +118,7 @@ export async function POST(req: Request) {
       image: image || null,
       category: category || 'General Health',
       author: author || authUser.name || 'Clinic By Choice Editorial Team',
-      readTime: readTime || '5 min read',
+      readTime: computedReadTime,
       tags: tags || null,
       seoTitle: seoTitle || null,
       seoDescription: seoDescription || null,

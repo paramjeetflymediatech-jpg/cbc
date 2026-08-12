@@ -1,6 +1,14 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '@/lib/db';
 
+export interface IDoctorReview {
+  id?: string;
+  patientName: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
+
 export interface IDoctor {
   name: string;
   qualification?: string;
@@ -8,6 +16,8 @@ export interface IDoctor {
   experience?: string;
   image?: string;
   treatments?: string[];
+  reviews?: IDoctorReview[];
+  rating?: number;
 }
 
 export interface IFAQ {

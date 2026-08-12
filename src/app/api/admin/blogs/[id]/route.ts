@@ -87,6 +87,11 @@ export async function PUT(
       await cleanupOldImages(blog.image, image);
     }
 
+    const targetContent = content || blog.content;
+    const textContent = (targetContent || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const wordCount = textContent ? textContent.split(' ').filter(Boolean).length : 0;
+    const computedReadTime = readTime || `${Math.max(1, Math.ceil(wordCount / 200))} min read`;
+
     await blog.update({
       title: title || blog.title,
       slug: updatedSlug,
@@ -95,7 +100,7 @@ export async function PUT(
       image: image !== undefined ? image : blog.image,
       category: category !== undefined ? category : blog.category,
       author: author !== undefined ? author : blog.author,
-      readTime: readTime !== undefined ? readTime : blog.readTime,
+      readTime: computedReadTime,
       tags: tags !== undefined ? tags : blog.tags,
       seoTitle: seoTitle !== undefined ? seoTitle : blog.seoTitle,
       seoDescription: seoDescription !== undefined ? seoDescription : blog.seoDescription,

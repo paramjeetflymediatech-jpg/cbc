@@ -29,10 +29,64 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState(false);
 
+  // Doctor Review Modal State
+  const [doctorsList, setDoctorsList] = useState<any[]>(hospital.doctors || []);
+  const [activeDoctorModal, setActiveDoctorModal] = useState<any | null>(null);
+  const [patientReviewerName, setPatientReviewerName] = useState('');
+  const [patientRating, setPatientRating] = useState(5);
+  const [patientComment, setPatientComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const [reviewSuccess, setReviewSuccess] = useState('');
+
+  const handleDoctorReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeDoctorModal || !patientReviewerName.trim() || !patientComment.trim()) {
+      setReviewError('Please provide your name and review comments.');
+      return;
+    }
+
+    setSubmittingReview(true);
+    setReviewError('');
+    setReviewSuccess('');
+
+    try {
+      const res = await fetch('/api/doctor-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hospitalId: hospital.id,
+          doctorName: activeDoctorModal.name,
+          patientName: patientReviewerName,
+          rating: patientRating,
+          comment: patientComment,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setReviewSuccess('Thank you! Your patient review has been posted.');
+        setPatientReviewerName('');
+        setPatientComment('');
+        setPatientRating(5);
+        if (data.doctors) {
+          setDoctorsList(data.doctors);
+          const updatedDoc = data.doctors.find((d: any) => d.name === activeDoctorModal.name);
+          if (updatedDoc) setActiveDoctorModal(updatedDoc);
+        }
+      } else {
+        setReviewError(data.error || 'Failed to submit review.');
+      }
+    } catch {
+      setReviewError('An unexpected error occurred while posting your review.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   const isExhausted = (hospital.leadsRemaining || 0) <= 0;
   const hospitalServicesList = hospital.hospitalServices || [];
   const services = hospitalServicesList.map((hs: any) => hs.service).filter(Boolean);
-  const doctors = hospital.doctors || [];
   const facilities = hospital.facilities || [];
   const faqs = hospital.faqs || [];
   const gallery = hospital.gallery || [
@@ -155,11 +209,10 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
               <button
                 onClick={() => handleContactClick()}
                 disabled={isExhausted}
-                className={`w-full md:w-auto px-8 py-4 rounded-2xl text-sm font-extrabold uppercase tracking-wider transition-all shadow-2xl flex items-center justify-center space-x-2.5 cursor-pointer ${
-                  isExhausted
+                className={`w-full md:w-auto px-8 py-4 rounded-2xl text-sm font-extrabold uppercase tracking-wider transition-all shadow-2xl flex items-center justify-center space-x-2.5 cursor-pointer ${isExhausted
                     ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
                     : 'bg-[#b02151] hover:bg-[#921941] text-white shadow-pink-900/40'
-                }`}
+                  }`}
               >
                 <PhoneCall className="w-5 h-5" />
                 <span>{isExhausted ? 'Enquiries Paused' : 'Book Direct Consultation'}</span>
@@ -179,36 +232,32 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
           <div className="flex items-center space-x-2 overflow-x-auto py-3 no-scrollbar text-xs font-extrabold uppercase tracking-wider text-gray-600">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer ${
-                activeTab === 'overview' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
-              }`}
+              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'overview' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
+                }`}
             >
               Overview
             </button>
 
             <button
               onClick={() => setActiveTab('services')}
-              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer ${
-                activeTab === 'services' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
-              }`}
+              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'services' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
+                }`}
             >
               Medical Services ({hospitalServicesList.length || services.length})
             </button>
 
             <button
               onClick={() => setActiveTab('doctors')}
-              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer ${
-                activeTab === 'doctors' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
-              }`}
+              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'doctors' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
+                }`}
             >
-              Doctors & Specialists ({doctors.length})
+              Doctors & Specialists ({doctorsList.length})
             </button>
 
             <button
               onClick={() => setActiveTab('gallery')}
-              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer flex items-center space-x-1 ${
-                activeTab === 'gallery' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
-              }`}
+              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer flex items-center space-x-1 ${activeTab === 'gallery' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
+                }`}
             >
               <ImageIcon className="w-3.5 h-3.5 text-[#b02151] mr-1" />
               <span>Photo Gallery ({gallery.length})</span>
@@ -216,27 +265,24 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
 
             <button
               onClick={() => setActiveTab('facilities')}
-              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer ${
-                activeTab === 'facilities' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
-              }`}
+              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'facilities' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
+                }`}
             >
               Facilities
             </button>
 
             <button
               onClick={() => setActiveTab('faqs')}
-              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer ${
-                activeTab === 'faqs' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
-              }`}
+              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'faqs' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
+                }`}
             >
               Patient FAQs
             </button>
 
             <button
               onClick={() => setActiveTab('map')}
-              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer flex items-center space-x-1 ${
-                activeTab === 'map' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
-              }`}
+              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer flex items-center space-x-1 ${activeTab === 'map' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
+                }`}
             >
               <Map className="w-3.5 h-3.5 text-[#b02151] mr-1" />
               <span>Location Map</span>
@@ -251,7 +297,8 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
           {/* Left 8 Columns: Main Tab Content */}
           <div className="lg:col-span-8 space-y-8">
             {/* Overview Section */}
-            {(activeTab === 'overview' || activeTab === 'services') && (
+            {/* Overview Section (About Hospital) */}
+            {activeTab === 'overview' && (
               <section className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-4">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                   <h2 className="text-xl font-extrabold text-gray-900 flex items-center">
@@ -315,100 +362,139 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
             )}
 
             {/* Offered Medical Services */}
-            <section className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-5">
-              <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
-                <h2 className="text-xl font-extrabold text-gray-900 flex items-center">
-                  <Stethoscope className="w-6 h-6 text-[#b02151] mr-2" />
-                  Offered Medical Services & Treatments
-                </h2>
-                <span className="text-xs font-bold text-gray-500">
-                  {hospitalServicesList.length || services.length} Active Specialties
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {hospitalServicesList.map((hs: any) => (
-                  <div key={hs.id} className="p-5 bg-slate-50 border border-gray-200 rounded-2xl space-y-3 flex flex-col justify-between hover:shadow-md transition-all">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-extrabold text-[#b02151] bg-pink-50 border border-pink-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                          {hs.service?.category || 'Specialty'}
-                        </span>
-                        {hs.startingPrice && (
-                          <span className="text-xs font-extrabold text-emerald-700">
-                            From ₹{Number(hs.startingPrice).toLocaleString('en-IN')}
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="font-extrabold text-gray-900 text-base">{hs.service?.name}</h3>
-                      <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">
-                        {hs.description || hs.treatmentDetails || `Comprehensive surgical procedure and specialized clinical treatment at ${hospital.name}.`}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => handleContactClick(hs.serviceId)}
-                      disabled={isExhausted}
-                      className="text-xs font-extrabold text-[#b02151] hover:text-[#921941] flex items-center pt-2 border-t border-gray-200/60 cursor-pointer"
-                    >
-                      <span>Enquire for {hs.service?.name}</span>
-                      <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Doctors & Specialists */}
-            {doctors.length > 0 && (
+            {(activeTab === 'overview' || activeTab === 'services') && (
               <section className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-5">
-                <h2 className="text-xl font-extrabold text-gray-900 border-b border-gray-100 pb-3 flex items-center">
-                  <UserCheck className="w-6 h-6 text-[#b02151] mr-2" />
-                  Specialists & Medical Team
-                </h2>
+                <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+                  <h2 className="text-xl font-extrabold text-gray-900 flex items-center">
+                    <Stethoscope className="w-6 h-6 text-[#b02151] mr-2" />
+                    Offered Medical Services & Treatments
+                  </h2>
+                  <span className="text-xs font-bold text-gray-500">
+                    {hospitalServicesList.length || services.length} Active Specialties
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {doctors.map((doc: any, idx: number) => (
-                    <div key={idx} className="p-5 bg-slate-50 rounded-2xl border border-gray-200 flex items-start space-x-4">
-                      <div className="w-14 h-14 rounded-2xl bg-[#b02151] text-white flex items-center justify-center font-extrabold text-xl flex-shrink-0 shadow-md overflow-hidden">
-                        {doc.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={doc.image} alt={doc.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <span>{doc.name ? doc.name.replace('Dr.', '').trim()[0] : 'D'}</span>
-                        )}
-                      </div>
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <h4 className="font-extrabold text-gray-900 text-base">{doc.name}</h4>
-                        <p className="text-xs text-[#b02151] font-bold">{doc.specialty || doc.qualification}</p>
-                        {doc.qualification && <p className="text-xs text-gray-500 font-medium">{doc.qualification}</p>}
-                        {doc.experience && <p className="text-xs text-gray-600 font-extrabold">{doc.experience} Experience</p>}
-                        {doc.treatments && doc.treatments.length > 0 && (
-                          <div className="pt-2">
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
-                              Treatments Offered:
+                  {hospitalServicesList.map((hs: any) => (
+                    <div key={hs.id} className="p-5 bg-slate-50 border border-gray-200 rounded-2xl space-y-3 flex flex-col justify-between hover:shadow-md transition-all">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-extrabold text-[#b02151] bg-pink-50 border border-pink-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                            {hs.service?.category || 'Specialty'}
+                          </span>
+                          {hs.startingPrice && (
+                            <span className="text-xs font-extrabold text-emerald-700">
+                              From ₹{Number(hs.startingPrice).toLocaleString('en-IN')}
                             </span>
-                            <div className="flex flex-wrap gap-1">
-                              {doc.treatments.map((tr: string, tIdx: number) => (
-                                <span
-                                  key={tIdx}
-                                  className="px-2 py-0.5 bg-pink-100/80 text-[#b02151] font-bold text-[10px] rounded-md border border-pink-200"
-                                >
-                                  {tr}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
+
+                        <h3 className="font-extrabold text-gray-900 text-base">{hs.service?.name}</h3>
+                        <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">
+                          {hs.description || hs.treatmentDetails || `Comprehensive surgical procedure and specialized clinical treatment at ${hospital.name}.`}
+                        </p>
                       </div>
+
+                      <button
+                        onClick={() => handleContactClick(hs.serviceId)}
+                        disabled={isExhausted}
+                        className="text-xs font-extrabold text-[#b02151] hover:text-[#921941] flex items-center pt-2 border-t border-gray-200/60 cursor-pointer"
+                      >
+                        <span>Enquire for {hs.service?.name}</span>
+                        <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                      </button>
                     </div>
                   ))}
                 </div>
               </section>
             )}
 
+            {/* Doctors & Specialists */}
+            {(activeTab === 'overview' || activeTab === 'doctors') && doctorsList.length > 0 && (
+              <section className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-5">
+                <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+                  <h2 className="text-xl font-extrabold text-gray-900 flex items-center">
+                    <UserCheck className="w-6 h-6 text-[#b02151] mr-2" />
+                    Specialists & Medical Team
+                  </h2>
+                  <span className="text-xs font-bold text-gray-500">
+                    {doctorsList.length} Verified Doctors
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {doctorsList.map((doc: any, idx: number) => {
+                    const reviewCount = doc.reviews?.length || 0;
+                    const docRating = doc.rating || (reviewCount > 0 ? (doc.reviews.reduce((s: number, r: any) => s + (r.rating || 5), 0) / reviewCount).toFixed(1) : 5.0);
+
+                    return (
+                      <div key={idx} className="p-5 bg-slate-50 rounded-2xl border border-gray-200 flex flex-col justify-between hover:shadow-md transition-all space-y-3">
+                        <div className="flex items-start space-x-4">
+                          <div className="w-14 h-14 rounded-2xl bg-[#b02151] text-white flex items-center justify-center font-extrabold text-xl flex-shrink-0 shadow-md overflow-hidden relative">
+                            {doc.image ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={doc.image} alt={doc.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{doc.name ? doc.name.replace('Dr.', '').trim()[0] : 'D'}</span>
+                            )}
+                          </div>
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-extrabold text-gray-900 text-base truncate">{doc.name}</h4>
+                              <div className="flex items-center space-x-1 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-full flex-shrink-0">
+                                <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                <span className="text-[11px] font-black text-amber-800">{docRating}</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-[#b02151] font-bold">{doc.specialty || doc.qualification}</p>
+                            {doc.qualification && <p className="text-xs text-gray-500 font-medium">{doc.qualification}</p>}
+                            {doc.experience && <p className="text-xs text-gray-600 font-extrabold">{doc.experience} Experience</p>}
+                            {doc.treatments && doc.treatments.length > 0 && (
+                              <div className="pt-1.5">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                  Treatments:
+                                </span>
+                                <div className="flex flex-wrap gap-1">
+                                  {doc.treatments.map((tr: string, tIdx: number) => (
+                                    <span
+                                      key={tIdx}
+                                      className="px-2 py-0.5 bg-pink-100/80 text-[#b02151] font-bold text-[10px] rounded-md border border-pink-200"
+                                    >
+                                      {tr}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Doctor Profile & Reviews Trigger */}
+                        <div className="pt-2 border-t border-gray-200/70 flex items-center justify-between">
+                          <span className="text-[11px] text-gray-500 font-semibold">
+                            {reviewCount > 0 ? `${reviewCount} Patient Review${reviewCount > 1 ? 's' : ''}` : 'No reviews yet'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveDoctorModal(doc);
+                              setReviewError('');
+                              setReviewSuccess('');
+                            }}
+                            className="px-3 py-1.5 bg-[#b02151] hover:bg-[#921941] text-white rounded-xl text-xs font-extrabold shadow-xs transition-all flex items-center space-x-1 cursor-pointer"
+                          >
+                            <Star className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                            <span>Profile & Reviews</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* Hospital Facilities & Amenities */}
-            {facilities.length > 0 && (
+            {(activeTab === 'overview' || activeTab === 'facilities') && facilities.length > 0 && (
               <section className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-4">
                 <h2 className="text-xl font-extrabold text-gray-900 border-b border-gray-100 pb-3 flex items-center">
                   <Sparkles className="w-6 h-6 text-[#b02151] mr-2" />
@@ -426,36 +512,38 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
             )}
 
             {/* Location & Street Map */}
-            <section className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-4">
-              <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
-                <h2 className="text-xl font-extrabold text-gray-900 flex items-center">
-                  <MapPin className="w-6 h-6 text-[#b02151] mr-2" />
-                  Hospital Address & Street Map
-                </h2>
-                <span className="text-xs font-bold text-gray-500">{hospital.city}, {hospital.state || 'Punjab'}</span>
-              </div>
+            {(activeTab === 'overview' || activeTab === 'map') && (
+              <section className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-4">
+                <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+                  <h2 className="text-xl font-extrabold text-gray-900 flex items-center">
+                    <MapPin className="w-6 h-6 text-[#b02151] mr-2" />
+                    Hospital Address & Street Map
+                  </h2>
+                  <span className="text-xs font-bold text-gray-500">{hospital.city}, {hospital.state || 'Punjab'}</span>
+                </div>
 
-              <p className="text-xs text-gray-700 font-medium">
-                <strong>Exact Address:</strong> {hospital.address}, {hospital.city}, {hospital.state || 'Punjab'}, India
-              </p>
+                <p className="text-xs text-gray-700 font-medium">
+                  <strong>Exact Address:</strong> {hospital.address}, {hospital.city}, {hospital.state || 'Punjab'}, India
+                </p>
 
-              <div className="rounded-2xl border border-gray-200 overflow-hidden h-64 w-full relative">
-                <iframe
-                  title="Hospital Google Map"
-                  width="100%"
-                  height="100%"
-                  frameBorder="0"
-                  scrolling="no"
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(
-                    `${hospital.name}, ${hospital.address}, ${hospital.city}`
-                  )}&t=m&z=15&output=embed`}
-                  className="w-full h-full border-0"
-                />
-              </div>
-            </section>
+                <div className="rounded-2xl border border-gray-200 overflow-hidden h-64 w-full relative">
+                  <iframe
+                    title="Hospital Google Map"
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    scrolling="no"
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(
+                      `${hospital.name}, ${hospital.address}, ${hospital.city}`
+                    )}&t=m&z=15&output=embed`}
+                    className="w-full h-full border-0"
+                  />
+                </div>
+              </section>
+            )}
 
             {/* FAQs */}
-            {faqs.length > 0 && (
+            {(activeTab === 'overview' || activeTab === 'faqs') && faqs.length > 0 && (
               <section className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-4">
                 <h2 className="text-xl font-extrabold text-gray-900 border-b border-gray-100 pb-3 flex items-center">
                   <HelpCircle className="w-6 h-6 text-[#b02151] mr-2" />
@@ -660,6 +748,217 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
 
           <div className="absolute bottom-6 text-center text-white text-xs font-extrabold bg-black/60 px-4 py-2 rounded-full border border-white/20">
             Photo {activeGalleryIndex + 1} of {gallery.length} • {hospital.name}
+          </div>
+        </div>
+      )}
+
+      {/* Doctor Profile & Patient Reviews Modal */}
+      {activeDoctorModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-100 relative my-8">
+            {/* Modal Header */}
+            <div className="p-6 bg-slate-900 text-white rounded-t-3xl relative flex items-start justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 rounded-2xl bg-[#b02151] text-white flex items-center justify-center font-black text-2xl flex-shrink-0 shadow-lg overflow-hidden relative">
+                  {activeDoctorModal.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={activeDoctorModal.image} alt={activeDoctorModal.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{activeDoctorModal.name ? activeDoctorModal.name.replace('Dr.', '').trim()[0] : 'D'}</span>
+                  )}
+                </div>
+
+                <div className="space-y-0.5">
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-xl font-extrabold text-white">{activeDoctorModal.name}</h3>
+                    <div className="flex items-center space-x-1 bg-amber-400/20 border border-amber-400/30 px-2.5 py-0.5 rounded-full">
+                      <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                      <span className="text-xs font-black text-amber-300">
+                        {activeDoctorModal.rating || (activeDoctorModal.reviews?.length > 0 ? (activeDoctorModal.reviews.reduce((s: number, r: any) => s + (r.rating || 5), 0) / activeDoctorModal.reviews.length).toFixed(1) : '5.0')}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs font-bold text-pink-400">{activeDoctorModal.specialty || activeDoctorModal.qualification}</p>
+                  <p className="text-[11px] text-gray-300 font-medium">
+                    {activeDoctorModal.qualification ? `${activeDoctorModal.qualification} • ` : ''}
+                    {activeDoctorModal.experience ? `${activeDoctorModal.experience} Experience` : 'Accredited Specialist'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveDoctorModal(null)}
+                className="p-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-6">
+              {/* Doctor Treatments */}
+              {activeDoctorModal.treatments && activeDoctorModal.treatments.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-extrabold uppercase text-gray-400 tracking-wider">
+                    Specialized Treatments Offered
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activeDoctorModal.treatments.map((tr: string, i: number) => (
+                      <span key={i} className="px-3 py-1 bg-pink-50 text-[#b02151] font-extrabold text-xs rounded-xl border border-pink-100">
+                        {tr}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Patient Reviews Section Header */}
+              <div className="border-t border-gray-100 pt-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-base font-extrabold text-gray-900 flex items-center">
+                    <Star className="w-5 h-5 text-amber-500 fill-amber-500 mr-2" />
+                    <span>Patient Reviews & Ratings ({activeDoctorModal.reviews?.length || 0})</span>
+                  </h4>
+                </div>
+
+                {/* Patient Reviews List */}
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                  {activeDoctorModal.reviews && activeDoctorModal.reviews.length > 0 ? (
+                    activeDoctorModal.reviews.map((rev: any, rIdx: number) => (
+                      <div key={rev.id || rIdx} className="p-4 bg-slate-50 border border-gray-200 rounded-2xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 rounded-full bg-pink-100 text-[#b02151] font-bold text-xs flex items-center justify-center">
+                              {rev.patientName ? rev.patientName[0].toUpperCase() : 'P'}
+                            </div>
+                            <div>
+                              <span className="font-extrabold text-gray-900 text-xs block">{rev.patientName}</span>
+                              <span className="text-[10px] text-gray-400 font-medium">
+                                {rev.date ? new Date(rev.date).toLocaleDateString() : 'Verified Patient'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-0.5">
+                            {Array.from({ length: 5 }).map((_, s) => (
+                              <Star
+                                key={s}
+                                className={`w-3.5 h-3.5 ${
+                                  s < (rev.rating || 5)
+                                    ? 'text-amber-500 fill-amber-500'
+                                    : 'text-gray-300'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-gray-700 leading-relaxed font-medium pl-10">
+                          &ldquo;{rev.comment}&rdquo;
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-6 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-xs text-gray-500">
+                      No patient reviews submitted yet for {activeDoctorModal.name}. Be the first to leave feedback below!
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Submit Patient Review Form */}
+              <div className="bg-gradient-to-br from-slate-50 to-pink-50/30 p-5 rounded-2xl border border-pink-100 space-y-3">
+                <h5 className="text-xs font-extrabold uppercase text-[#b02151] tracking-wider flex items-center">
+                  <Star className="w-4 h-4 text-[#b02151] mr-1.5" />
+                  Leave a Review for {activeDoctorModal.name}
+                </h5>
+
+                {reviewSuccess && (
+                  <div className="p-3 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-200">
+                    {reviewSuccess}
+                  </div>
+                )}
+
+                {reviewError && (
+                  <div className="p-3 bg-red-100 text-red-800 text-xs font-bold rounded-xl border border-red-200">
+                    {reviewError}
+                  </div>
+                )}
+
+                <form onSubmit={handleDoctorReviewSubmit} className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-gray-600 mb-1">
+                        Your Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={patientReviewerName}
+                        onChange={(e) => setPatientReviewerName(e.target.value)}
+                        placeholder="e.g. Ramesh Kumar"
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#b02151]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-gray-600 mb-1">
+                        Star Rating *
+                      </label>
+                      <div className="flex items-center space-x-1.5 py-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setPatientRating(star)}
+                            className="p-1 focus:outline-none cursor-pointer hover:scale-110 transition-transform"
+                          >
+                            <Star
+                              className={`w-5 h-5 ${
+                                star <= patientRating
+                                  ? 'text-amber-500 fill-amber-500'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          </button>
+                        ))}
+                        <span className="text-xs font-bold text-gray-700 ml-2">{patientRating} / 5 Stars</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-gray-600 mb-1">
+                      Patient Experience & Review *
+                    </label>
+                    <textarea
+                      rows={2}
+                      required
+                      value={patientComment}
+                      onChange={(e) => setPatientComment(e.target.value)}
+                      placeholder={`Share your experience regarding treatment, diagnosis, or consultation with ${activeDoctorModal.name}...`}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#b02151] resize-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submittingReview}
+                    className="w-full py-2.5 bg-[#b02151] hover:bg-[#921941] text-white rounded-xl text-xs font-extrabold shadow-md transition-all flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    {submittingReview ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Posting Review...</span>
+                      </>
+                    ) : (
+                      <span>Submit Patient Review</span>
+                    )}
+                  </button>
+                </form>
+              </div>
+            </div>
           </div>
         </div>
       )}

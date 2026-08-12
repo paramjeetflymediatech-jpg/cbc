@@ -2,9 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Save, Loader2, CheckCircle2, AlertCircle, Trash2, Image as ImageIcon, Sparkles, ExternalLink, Upload, MapPin } from 'lucide-react';
-import RichTextEditor from '@/components/ui/RichTextEditor';
-import GoogleAddressMapPicker from '@/components/ui/GoogleAddressMapPicker';
+import { Save, Loader2, CheckCircle2, AlertCircle, Trash2, Image as ImageIcon, ExternalLink, Upload } from 'lucide-react';
+
+interface IFAQ {
+  question: string;
+  answer: string;
+}
 
 interface HospitalProfileData {
   id: number;
@@ -28,6 +31,7 @@ interface HospitalProfileData {
   rating?: number;
   facilities?: string[];
   gallery?: string[];
+  faqs?: IFAQ[];
 }
 
 export default function HospitalProfilePage() {
@@ -69,6 +73,22 @@ export default function HospitalProfilePage() {
   const [gallery, setGallery] = useState<string[]>([]);
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
 
+  // FAQs array
+  const [faqs, setFaqs] = useState<IFAQ[]>([]);
+  const [newFaqQuestion, setNewFaqQuestion] = useState('');
+  const [newFaqAnswer, setNewFaqAnswer] = useState('');
+
+  const handleAddFaq = () => {
+    if (!newFaqQuestion.trim() || !newFaqAnswer.trim()) return;
+    setFaqs([...faqs, { question: newFaqQuestion.trim(), answer: newFaqAnswer.trim() }]);
+    setNewFaqQuestion('');
+    setNewFaqAnswer('');
+  };
+
+  const handleRemoveFaq = (index: number) => {
+    setFaqs(faqs.filter((_, idx) => idx !== index));
+  };
+
   useEffect(() => {
     fetch('/api/hospital/profile')
       .then((r) => r.json())
@@ -94,6 +114,7 @@ export default function HospitalProfilePage() {
           setGoogleReviewsCount(h.googleReviewsCount || null);
           setFacilities(h.facilities || []);
           setGallery(h.gallery || []);
+          setFaqs(h.faqs || []);
         }
       })
       .finally(() => setLoading(false));
@@ -489,15 +510,6 @@ export default function HospitalProfilePage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Hospital Description & Overview *</label>
-            <RichTextEditor
-              value={description}
-              onChange={setDescription}
-              placeholder="Write detailed hospital overview, specialty medical departments, surgical facilities, and patient care standards..."
-            />
-          </div>
-
           {/* Trust & Accreditation Badges */}
           <div className="pt-4 border-t border-gray-100 space-y-3">
             <h4 className="text-xs font-extrabold text-[#b02151] uppercase tracking-wider">
@@ -506,7 +518,7 @@ export default function HospitalProfilePage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-gray-100">
               <div className="space-y-1">
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                  Google Rating {googleReviewsCount ? `(${googleReviewsCount} Reviews)` : ''}
+                  Google Rating
                 </label>
                 <div className="flex items-center space-x-2">
                   <input
@@ -518,19 +530,6 @@ export default function HospitalProfilePage() {
                     onChange={(e) => setGoogleRating(e.target.value)}
                     className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#fd1d74]"
                   />
-                  <button
-                    type="button"
-                    onClick={handleFetchGoogleRating}
-                    disabled={fetchingGoogleRating}
-                    className="bg-pink-50 hover:bg-pink-100 text-[#b02151] px-3 py-2 rounded-xl text-xs font-extrabold flex-shrink-0 flex items-center space-x-1 border border-pink-200 transition-colors cursor-pointer"
-                  >
-                    {fetchingGoogleRating ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-3.5 h-3.5" />
-                    )}
-                    <span>Fetch Live</span>
-                  </button>
                 </div>
               </div>
 
@@ -563,25 +562,9 @@ export default function HospitalProfilePage() {
           </div>
         </div>
 
-        {/* Location & Address with Google Maps Picker */}
+        {/* Location Details */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-5">
-          <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
-            <h3 className="text-xs font-extrabold text-[#b02151] uppercase tracking-wider flex items-center">
-              <MapPin className="w-4 h-4 mr-1 text-[#b02151]" />
-              Location & Address
-            </h3>
-            <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-              Google Maps Enabled
-            </span>
-          </div>
-
-          <GoogleAddressMapPicker
-            onAddressSelect={handleGoogleAddressSelected}
-            initialAddress={address}
-            initialCity={city}
-            initialState={state}
-          />
-
+          <h3 className="text-xs font-extrabold text-[#b02151] uppercase tracking-wider">Location & Address</h3>
           <div>
             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Full Street Address *</label>
             <textarea
@@ -609,7 +592,6 @@ export default function HospitalProfilePage() {
                 type="text"
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
-                placeholder="e.g. Ludhiana"
                 className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#fd1d74]"
               />
             </div>
@@ -639,7 +621,7 @@ export default function HospitalProfilePage() {
             <button
               type="button"
               onClick={handleAddFacility}
-              className="px-4 py-2 bg-[#b02151] hover:bg-[#921941] text-white rounded-xl text-xs font-extrabold uppercase"
+              className="px-4 py-2 bg-[#b02151] hover:bg-[#921941] text-white rounded-xl text-xs font-extrabold uppercase cursor-pointer"
             >
               Add
             </button>
@@ -652,13 +634,85 @@ export default function HospitalProfilePage() {
                 <button
                   type="button"
                   onClick={() => handleRemoveFacility(idx)}
-                  className="ml-2 text-red-500 hover:text-red-700 font-extrabold"
+                  className="ml-2 text-red-500 hover:text-red-700 font-extrabold cursor-pointer"
                 >
                   ×
                 </button>
               </span>
             ))}
           </div>
+        </div>
+
+        {/* Patient FAQs */}
+        <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-4">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+            <div>
+              <h3 className="text-xs font-extrabold text-[#b02151] uppercase tracking-wider">
+                Patient Frequently Asked Questions (FAQs)
+              </h3>
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                Answer common patient questions about visiting hours, insurance, emergency care, and appointments.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              {faqs.length} FAQs Added
+            </span>
+          </div>
+
+          <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-gray-100">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Question</label>
+              <input
+                type="text"
+                value={newFaqQuestion}
+                onChange={(e) => setNewFaqQuestion(e.target.value)}
+                placeholder="e.g. What are the visiting hours for ICU patients?"
+                className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#fd1d74]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Answer</label>
+              <textarea
+                rows={2}
+                value={newFaqAnswer}
+                onChange={(e) => setNewFaqAnswer(e.target.value)}
+                placeholder="e.g. ICU visiting hours are strictly 4:00 PM to 6:00 PM daily for one attendant at a time."
+                className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#fd1d74]"
+              />
+            </div>
+
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={handleAddFaq}
+                className="px-4 py-2 bg-[#b02151] hover:bg-[#921941] text-white rounded-xl text-xs font-extrabold uppercase cursor-pointer"
+              >
+                + Add FAQ
+              </button>
+            </div>
+          </div>
+
+          {faqs.length > 0 && (
+            <div className="space-y-3 pt-2">
+              {faqs.map((faq, idx) => (
+                <div key={idx} className="p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-1 relative group">
+                  <div className="flex items-start justify-between">
+                    <h4 className="font-extrabold text-gray-900 text-sm flex-1">{faq.question}</h4>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFaq(idx)}
+                      className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      title="Remove FAQ"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed font-medium">{faq.answer}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </form>
     </div>

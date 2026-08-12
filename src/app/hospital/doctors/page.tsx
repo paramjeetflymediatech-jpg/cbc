@@ -1,7 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { UserCheck, Plus, Edit3, Trash2, X, Upload, Loader2, CheckCircle2, AlertCircle, Search, Stethoscope, Award, Briefcase } from 'lucide-react';
+import { UserCheck, Plus, Edit3, Trash2, X, Upload, Loader2, CheckCircle2, AlertCircle, Search, Stethoscope, Award, Briefcase, Star } from 'lucide-react';
+
+interface IDoctorReview {
+  id?: string;
+  patientName: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
 
 interface DoctorItem {
   name: string;
@@ -10,12 +18,15 @@ interface DoctorItem {
   experience?: string;
   image?: string;
   treatments?: string[];
+  reviews?: IDoctorReview[];
+  rating?: number;
 }
 
 export default function HospitalDoctorsPage() {
   const [doctors, setDoctors] = useState<DoctorItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [reviewModalDoc, setReviewModalDoc] = useState<DoctorItem | null>(null);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -259,88 +270,110 @@ export default function HospitalDoctorsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDoctors.map((doc, idx) => (
-            <div
-              key={idx}
-              className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 space-y-4 flex flex-col justify-between group"
-            >
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-pink-50 border border-pink-100 flex-shrink-0 flex items-center justify-center text-[#ec2c6c] font-bold text-xl">
-                    {doc.image ? (
-                      <img src={doc.image} alt={doc.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span>{doc.name.replace(/^(Dr\.\s*)/i, '')[0] || 'D'}</span>
+          {filteredDoctors.map((doc, idx) => {
+            const revCount = doc.reviews?.length || 0;
+            const docRating = doc.rating || (revCount > 0 ? (doc.reviews!.reduce((s: number, r: IDoctorReview) => s + (r.rating || 5), 0) / revCount).toFixed(1) : 5.0);
+
+            return (
+              <div
+                key={idx}
+                className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 space-y-4 flex flex-col justify-between group"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-pink-50 border border-pink-100 flex-shrink-0 flex items-center justify-center text-[#ec2c6c] font-bold text-xl">
+                      {doc.image ? (
+                        <img src={doc.image} alt={doc.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span>{doc.name.replace(/^(Dr\.\s*)/i, '')[0] || 'D'}</span>
+                      )}
+                    </div>
+
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-extrabold text-gray-900 text-base truncate group-hover:text-[#ec2c6c] transition-colors">
+                          {doc.name}
+                        </h3>
+                        <div className="flex items-center space-x-1 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-full">
+                          <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                          <span className="text-[11px] font-black text-amber-800">{docRating}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs font-bold text-[#ec2c6c] bg-pink-50 px-2.5 py-0.5 rounded-full w-fit truncate">
+                        {doc.specialty || 'Medical Specialist'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-xs text-gray-600 pt-2 border-t border-gray-100">
+                    {doc.qualification && (
+                      <div className="flex items-start space-x-2">
+                        <Award className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
+                        <span className="font-medium text-gray-800">{doc.qualification}</span>
+                      </div>
+                    )}
+
+                    {doc.experience && (
+                      <div className="flex items-center space-x-2">
+                        <Briefcase className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                        <span className="font-semibold text-gray-700">{doc.experience} Experience</span>
+                      </div>
+                    )}
+
+                    {doc.treatments && doc.treatments.length > 0 && (
+                      <div className="pt-2 border-t border-gray-50">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                          Treatments Provided:
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {doc.treatments.map((tr, tIdx) => (
+                            <span
+                              key={tIdx}
+                              className="px-2 py-0.5 bg-pink-50 text-[#ec2c6c] border border-pink-100 font-semibold text-[10px] rounded-md"
+                            >
+                              {tr}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
+                </div>
 
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <h3 className="font-extrabold text-gray-900 text-base truncate group-hover:text-[#ec2c6c] transition-colors">
-                      {doc.name}
-                    </h3>
-                    <p className="text-xs font-bold text-[#ec2c6c] bg-pink-50 px-2.5 py-0.5 rounded-full w-fit truncate">
-                      {doc.specialty || 'Medical Specialist'}
-                    </p>
+                {/* Card Actions */}
+                <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setReviewModalDoc(doc)}
+                    className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-bold transition-all flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                    <span>Reviews ({revCount})</span>
+                  </button>
+
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(doc, idx)}
+                      className="px-3.5 py-1.5 bg-pink-50 hover:bg-pink-100 text-[#ec2c6c] border border-pink-100 rounded-lg text-xs font-bold transition-all flex items-center space-x-1 cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDeletingIndex(idx)}
+                      className="px-3.5 py-1.5 bg-gray-100 hover:bg-red-100 text-gray-700 hover:text-red-700 rounded-lg text-xs font-bold transition-colors flex items-center space-x-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove</span>
+                    </button>
                   </div>
                 </div>
-
-                <div className="space-y-2 text-xs text-gray-600 pt-2 border-t border-gray-100">
-                  {doc.qualification && (
-                    <div className="flex items-start space-x-2">
-                      <Award className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
-                      <span className="font-medium text-gray-800">{doc.qualification}</span>
-                    </div>
-                  )}
-
-                  {doc.experience && (
-                    <div className="flex items-center space-x-2">
-                      <Briefcase className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                      <span className="font-semibold text-gray-700">{doc.experience} Experience</span>
-                    </div>
-                  )}
-
-                  {doc.treatments && doc.treatments.length > 0 && (
-                    <div className="pt-2 border-t border-gray-50">
-                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
-                        Treatments Provided:
-                      </span>
-                      <div className="flex flex-wrap gap-1">
-                        {doc.treatments.map((tr, tIdx) => (
-                          <span
-                            key={tIdx}
-                            className="px-2 py-0.5 bg-pink-50 text-[#ec2c6c] border border-pink-100 font-semibold text-[10px] rounded-md"
-                          >
-                            {tr}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
-
-              {/* Card Actions */}
-              <div className="pt-4 border-t border-gray-100 flex items-center justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => handleOpenEditModal(doc, idx)}
-                  className="px-3.5 py-1.5 bg-pink-50 hover:bg-pink-100 text-[#ec2c6c] border border-pink-100 rounded-lg text-xs font-bold transition-all flex items-center space-x-1 cursor-pointer"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Edit</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setDeletingIndex(idx)}
-                  className="px-3.5 py-1.5 bg-gray-100 hover:bg-red-100 text-gray-700 hover:text-red-700 rounded-lg text-xs font-bold transition-colors flex items-center space-x-1 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Remove</span>
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -524,6 +557,82 @@ export default function HospitalDoctorsPage() {
               >
                 <Trash2 className="w-4 h-4" />
                 <span>Confirm Remove</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hospital Manager Doctor Reviews Modal */}
+      {reviewModalDoc && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-gray-100 space-y-5 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div>
+                <h3 className="text-lg font-extrabold text-gray-900 flex items-center">
+                  <Star className="w-5 h-5 text-amber-500 fill-amber-500 mr-2" />
+                  Patient Reviews for {reviewModalDoc.name}
+                </h3>
+                <p className="text-xs text-gray-500">{reviewModalDoc.specialty || reviewModalDoc.qualification}</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setReviewModalDoc(null)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {reviewModalDoc.reviews && reviewModalDoc.reviews.length > 0 ? (
+                reviewModalDoc.reviews.map((rev, rIdx) => (
+                  <div key={rev.id || rIdx} className="p-4 bg-slate-50 border border-gray-200 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-7 h-7 rounded-full bg-pink-100 text-[#ec2c6c] font-extrabold text-xs flex items-center justify-center">
+                          {rev.patientName ? rev.patientName[0].toUpperCase() : 'P'}
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-gray-900 text-xs block">{rev.patientName}</span>
+                          <span className="text-[10px] text-gray-400 font-medium">
+                            {rev.date ? new Date(rev.date).toLocaleDateString() : 'Verified Patient'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-0.5">
+                        {Array.from({ length: 5 }).map((_, s) => (
+                          <Star
+                            key={s}
+                            className={`w-3.5 h-3.5 ${
+                              s < (rev.rating || 5) ? 'text-amber-500 fill-amber-500' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-700 leading-relaxed font-medium pl-9">
+                      &ldquo;{rev.comment}&rdquo;
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="py-10 text-center text-xs text-gray-500 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                  No patient reviews recorded yet for {reviewModalDoc.name}.
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 text-right">
+              <button
+                type="button"
+                onClick={() => setReviewModalDoc(null)}
+                className="px-5 py-2.5 bg-[#ec2c6c] hover:bg-[#d41f5a] text-white text-xs font-extrabold rounded-xl cursor-pointer"
+              >
+                Close
               </button>
             </div>
           </div>

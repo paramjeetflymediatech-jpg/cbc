@@ -5,7 +5,7 @@ import { connectDB } from '@/lib/db';
 import { BlogPost } from '@/models';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, Calendar, Clock, User, ArrowRight, Sparkles, BookOpen } from 'lucide-react';
+import { Search, Calendar, Clock, User, ArrowRight, Sparkles, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Op } from 'sequelize';
 
 export const dynamic = 'force-dynamic';
@@ -308,27 +308,80 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center space-x-2 pt-6">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
-              const queryParams = new URLSearchParams();
-              if (category) queryParams.set('category', category);
-              if (search) queryParams.set('search', search);
-              queryParams.set('page', pageNum.toString());
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200">
+            <div className="text-xs font-semibold text-gray-500">
+              Showing Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong> ({total} total articles)
+            </div>
 
-              return (
+            <div className="flex items-center space-x-2">
+              {/* Prev Button */}
+              {currentPage > 1 ? (
                 <Link
-                  key={pageNum}
-                  href={`/blogs?${queryParams.toString()}`}
-                  className={`w-10 h-10 rounded-xl text-sm font-extrabold flex items-center justify-center transition-all ${
-                    currentPage === pageNum
-                      ? 'bg-[#fd1d74] text-white shadow-md'
-                      : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-                  }`}
+                  href={`/blogs?${(() => {
+                    const q = new URLSearchParams();
+                    if (category) q.set('category', category);
+                    if (search) q.set('search', search);
+                    q.set('page', (currentPage - 1).toString());
+                    return q.toString();
+                  })()}`}
+                  className="px-3.5 py-2 bg-white border border-gray-200 text-xs font-extrabold text-gray-700 rounded-xl hover:bg-gray-50 transition-all flex items-center space-x-1 shadow-xs"
                 >
-                  {pageNum}
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Previous</span>
                 </Link>
-              );
-            })}
+              ) : (
+                <span className="px-3.5 py-2 bg-gray-100 border border-gray-200 text-xs font-extrabold text-gray-400 rounded-xl cursor-not-allowed flex items-center space-x-1 opacity-60">
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Previous</span>
+                </span>
+              )}
+
+              {/* Page Numbers */}
+              <div className="flex items-center space-x-1.5">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                  const queryParams = new URLSearchParams();
+                  if (category) queryParams.set('category', category);
+                  if (search) queryParams.set('search', search);
+                  queryParams.set('page', pageNum.toString());
+
+                  return (
+                    <Link
+                      key={pageNum}
+                      href={`/blogs?${queryParams.toString()}`}
+                      className={`w-9 h-9 rounded-xl text-xs font-extrabold flex items-center justify-center transition-all ${
+                        currentPage === pageNum
+                          ? 'bg-[#fd1d74] text-white shadow-md'
+                          : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                      }`}
+                    >
+                      {pageNum}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Next Button */}
+              {currentPage < totalPages ? (
+                <Link
+                  href={`/blogs?${(() => {
+                    const q = new URLSearchParams();
+                    if (category) q.set('category', category);
+                    if (search) q.set('search', search);
+                    q.set('page', (currentPage + 1).toString());
+                    return q.toString();
+                  })()}`}
+                  className="px-3.5 py-2 bg-white border border-gray-200 text-xs font-extrabold text-gray-700 rounded-xl hover:bg-gray-50 transition-all flex items-center space-x-1 shadow-xs"
+                >
+                  <span>Next</span>
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+              ) : (
+                <span className="px-3.5 py-2 bg-gray-100 border border-gray-200 text-xs font-extrabold text-gray-400 rounded-xl cursor-not-allowed flex items-center space-x-1 opacity-60">
+                  <span>Next</span>
+                  <ChevronRight className="w-4 h-4" />
+                </span>
+              )}
+            </div>
           </div>
         )}
 

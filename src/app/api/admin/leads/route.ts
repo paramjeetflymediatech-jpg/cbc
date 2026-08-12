@@ -51,3 +51,37 @@ export async function GET() {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const authUser = await getAuthUser();
+    if (!authUser || (authUser.role !== 'SUPER_ADMIN' && authUser.role !== 'ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    const type = searchParams.get('type') || 'lead';
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    }
+
+    await connectDB();
+
+    if (type === 'transaction') {
+      const tx = await LeadTransaction.findByPk(id);
+      if (!tx) return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
+      await tx.destroy();
+      return NextResponse.json({ message: 'Transaction deleted successfully' });
+    } else {
+      const lead = await Lead.findByPk(id);
+      if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+      await lead.destroy();
+      return NextResponse.json({ message: 'Lead deleted successfully' });
+    }
+  } catch (error) {
+    console.error('Admin leads DELETE error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}

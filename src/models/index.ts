@@ -132,4 +132,4 @@ export {
   BlogPost,
 };
 
-export type { IDoctor, IFAQ } from './Hospital';
+export type { IDoctor, IDoctorReview, IFAQ } from './Hospital';

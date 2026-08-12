@@ -24,7 +24,19 @@ import {
   Stethoscope,
   UserPlus,
   User,
+  Activity,
+  Sparkles,
+  DollarSign,
+  Star,
 } from 'lucide-react';
+
+interface IDoctorReview {
+  id?: string;
+  patientName: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
 
 interface IDoctor {
   name: string;
@@ -33,6 +45,27 @@ interface IDoctor {
   experience?: string;
   image?: string;
   treatments?: string[];
+  reviews?: IDoctorReview[];
+  rating?: number;
+}
+
+interface PlatformService {
+  id: number;
+  name: string;
+  slug: string;
+  category?: string;
+  status: string;
+}
+
+interface HospitalServiceData {
+  id: number;
+  hospitalId: number;
+  serviceId: number;
+  startingPrice?: number | null;
+  description?: string | null;
+  treatmentDetails?: string | null;
+  status: string;
+  service?: PlatformService;
 }
 
 interface StateItem {
@@ -61,6 +94,7 @@ interface HospitalData {
   contactPersonPhone?: string | null;
   contactPersonEmail?: string | null;
   doctors?: IDoctor[];
+  faqs?: { question: string; answer: string }[];
   isNabhAccredited?: boolean;
   isVerifiedPartner?: boolean;
   googleRating?: number;
@@ -135,6 +169,22 @@ export default function AdminHospitalsPage() {
   const [editFormError, setEditFormError] = useState('');
   const [editSuccessMessage, setEditSuccessMessage] = useState('');
 
+  // Super Admin Hospital FAQs state
+  const [editFaqs, setEditFaqs] = useState<{ question: string; answer: string }[]>([]);
+  const [newEditFaqQ, setNewEditFaqQ] = useState('');
+  const [newEditFaqA, setNewEditFaqA] = useState('');
+
+  const handleAddEditFaq = () => {
+    if (!newEditFaqQ.trim() || !newEditFaqA.trim()) return;
+    setEditFaqs([...editFaqs, { question: newEditFaqQ.trim(), answer: newEditFaqA.trim() }]);
+    setNewEditFaqQ('');
+    setNewEditFaqA('');
+  };
+
+  const handleRemoveEditFaq = (index: number) => {
+    setEditFaqs(editFaqs.filter((_, idx) => idx !== index));
+  };
+
   // Super Admin Doctor Management State
   const [doctorModalHospital, setDoctorModalHospital] = useState<HospitalData | null>(null);
   const [showAddDocModal, setShowAddDocModal] = useState(false);
@@ -147,6 +197,46 @@ export default function AdminHospitalsPage() {
   const [docTreatmentsInput, setDocTreatmentsInput] = useState('');
   const [uploadingDocImage, setUploadingDocImage] = useState(false);
   const [docSaving, setDocSaving] = useState(false);
+  const [viewingReviewsDoc, setViewingReviewsDoc] = useState<{ doc: IDoctor; docIndex: number } | null>(null);
+
+  const handleDeleteDoctorReview = async (reviewId?: string, reviewIndex?: number) => {
+    if (!doctorModalHospital || !viewingReviewsDoc) return;
+    if (!confirm('Are you sure you want to delete this patient review?')) return;
+
+    const { doc, docIndex } = viewingReviewsDoc;
+    const currentReviews = doc.reviews || [];
+    const updatedReviews = currentReviews.filter((r, idx) => (reviewId ? r.id !== reviewId : idx !== reviewIndex));
+
+    const totalRating = updatedReviews.reduce((sum, r) => sum + (r.rating || 5), 0);
+    const avgRating = updatedReviews.length > 0 ? Math.round((totalRating / updatedReviews.length) * 10) / 10 : 5.0;
+
+    const currentDoctors = [...(doctorModalHospital.doctors || [])];
+    currentDoctors[docIndex] = {
+      ...doc,
+      reviews: updatedReviews,
+      rating: avgRating,
+    };
+
+    try {
+      const res = await fetch(`/api/admin/hospitals/${doctorModalHospital.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doctors: currentDoctors }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete review');
+
+      const updatedHospital = { ...doctorModalHospital, doctors: currentDoctors };
+      setDoctorModalHospital(updatedHospital);
+      setViewingReviewsDoc({ doc: currentDoctors[docIndex], docIndex });
+      setHospitals((prev) =>
+        prev.map((h) => (h.id === doctorModalHospital.id ? { ...h, doctors: currentDoctors } : h))
+      );
+    } catch (err) {
+      alert((err as Error).message || 'Error deleting review.');
+    }
+  };
 
   const resetDocForm = () => {
     setDocName('');
@@ -288,6 +378,131 @@ export default function AdminHospitalsPage() {
       setDocSaving(false);
     }
   };
+
+  // Super Admin Hospital Services State
+  const [serviceModalHospital, setServiceModalHospital] = useState<HospitalData | null>(null);
+  const [platformServices, setPlatformServices] = useState<PlatformService[]>([]);
+  const [linkedServices, setLinkedServices] = useState<HospitalServiceData[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [showAddServiceModal, setShowAddServiceModal] = useState(false);
+  const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
+
+  const [svcSelectedServiceId, setSvcSelectedServiceId] = useState<number | string>('');
+  const [svcStartingPrice, setSvcStartingPrice] = useState('');
+  const [svcStatus, setSvcStatus] = useState('ACTIVE');
+  const [svcDescription, setSvcDescription] = useState('');
+  const [svcTreatmentDetails, setSvcTreatmentDetails] = useState('');
+  const [svcSaving, setSvcSaving] = useState(false);
+
+  const resetServiceForm = () => {
+    setEditingServiceId(null);
+    setSvcSelectedServiceId('');
+    setSvcStartingPrice('');
+    setSvcStatus('ACTIVE');
+    setSvcDescription('');
+    setSvcTreatmentDetails('');
+  };
+
+  const handleOpenServiceModal = async (h: HospitalData) => {
+    setServiceModalHospital(h);
+    setShowAddServiceModal(false);
+    resetServiceForm();
+    setLoadingServices(true);
+
+    try {
+      const res = await fetch(`/api/admin/hospitals/${h.id}/services`);
+      const data = await res.json();
+      if (res.ok) {
+        setPlatformServices(data.allPlatformServices || []);
+        setLinkedServices(data.hospitalServices || []);
+      } else {
+        alert(data.error || 'Failed to fetch hospital services');
+      }
+    } catch {
+      alert('Error fetching hospital services');
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
+  const handleStartAddService = () => {
+    resetServiceForm();
+    if (platformServices.length > 0) {
+      const linkedIds = new Set(linkedServices.map((ls) => ls.serviceId));
+      const firstAvailable = platformServices.find((ps) => !linkedIds.has(ps.id));
+      if (firstAvailable) {
+        setSvcSelectedServiceId(firstAvailable.id);
+      } else if (platformServices[0]) {
+        setSvcSelectedServiceId(platformServices[0].id);
+      }
+    }
+    setShowAddServiceModal(true);
+  };
+
+  const handleStartEditService = (hs: HospitalServiceData) => {
+    setEditingServiceId(hs.serviceId);
+    setSvcSelectedServiceId(hs.serviceId);
+    setSvcStartingPrice(hs.startingPrice ? String(hs.startingPrice) : '');
+    setSvcStatus(hs.status || 'ACTIVE');
+    setSvcDescription(hs.description || '');
+    setSvcTreatmentDetails(hs.treatmentDetails || '');
+    setShowAddServiceModal(true);
+  };
+
+  const handleSaveService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!serviceModalHospital || !svcSelectedServiceId) return;
+
+    setSvcSaving(true);
+    try {
+      const res = await fetch(`/api/admin/hospitals/${serviceModalHospital.id}/services`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceId: Number(svcSelectedServiceId),
+          startingPrice: svcStartingPrice,
+          status: svcStatus,
+          description: svcDescription,
+          treatmentDetails: svcTreatmentDetails,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save service');
+
+      if (data.hospitalServices) {
+        setLinkedServices(data.hospitalServices);
+      }
+      setShowAddServiceModal(false);
+      resetServiceForm();
+    } catch (err: unknown) {
+      alert((err as Error).message || 'Error saving service.');
+    } finally {
+      setSvcSaving(false);
+    }
+  };
+
+  const handleDeleteService = async (serviceId: number) => {
+    if (!serviceModalHospital || !confirm('Are you sure you want to remove this service from the hospital?')) return;
+
+    setSvcSaving(true);
+    try {
+      const res = await fetch(
+        `/api/admin/hospitals/${serviceModalHospital.id}/services?serviceId=${serviceId}`,
+        { method: 'DELETE' }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to remove service');
+
+      if (data.hospitalServices) {
+        setLinkedServices(data.hospitalServices);
+      }
+    } catch (err: unknown) {
+      alert((err as Error).message || 'Error removing service.');
+    } finally {
+      setSvcSaving(false);
+    }
+  };
   const [uploadingTarget, setUploadingTarget] = useState<string | null>(null);
 
   const fetchHospitals = () => {
@@ -406,6 +621,7 @@ export default function AdminHospitalsPage() {
     setEditLogo(h.logo || '');
     setEditCoverImage(h.coverImage || '');
     setEditGallery(h.gallery || []);
+    setEditFaqs(h.faqs || []);
     setEditContactPersonName(h.contactPersonName || '');
     setEditContactPersonPhone(h.contactPersonPhone || '');
     setEditContactPersonEmail(h.contactPersonEmail || '');
@@ -451,6 +667,7 @@ export default function AdminHospitalsPage() {
           logo: editLogo,
           coverImage: editCoverImage,
           gallery: editGallery,
+          faqs: editFaqs,
           contactPersonName: editContactPersonName,
           contactPersonPhone: editContactPersonPhone,
           contactPersonEmail: editContactPersonEmail,
@@ -729,6 +946,14 @@ export default function AdminHospitalsPage() {
                 >
                   <Stethoscope className="w-4 h-4" />
                   <span>Doctors ({h.doctors?.length || 0})</span>
+                </button>
+
+                <button
+                  onClick={() => handleOpenServiceModal(h)}
+                  className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-full text-xs font-extrabold transition-all flex items-center space-x-1.5 border border-emerald-100 shadow-sm cursor-pointer"
+                >
+                  <Activity className="w-4 h-4" />
+                  <span>Services</span>
                 </button>
 
                 {h.status === 'PENDING' && (
@@ -1383,6 +1608,68 @@ export default function AdminHospitalsPage() {
                 </div>
               </div>
 
+              {/* Section 7: Patient FAQs */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 border-b border-gray-100 pb-2">
+                  7. Patient Frequently Asked Questions (FAQs)
+                </h4>
+
+                <div className="space-y-3 p-4 bg-gray-50/70 border border-gray-200 rounded-2xl">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Question</label>
+                    <input
+                      type="text"
+                      value={newEditFaqQ}
+                      onChange={(e) => setNewEditFaqQ(e.target.value)}
+                      placeholder="e.g. What insurance plans are accepted?"
+                      className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Answer</label>
+                    <textarea
+                      rows={2}
+                      value={newEditFaqA}
+                      onChange={(e) => setNewEditFaqA(e.target.value)}
+                      placeholder="e.g. We accept all major TPA cashless health insurance plans including Star Health, HDFC Ergo, etc."
+                      className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      onClick={handleAddEditFaq}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold rounded-xl uppercase tracking-wider cursor-pointer"
+                    >
+                      + Add FAQ
+                    </button>
+                  </div>
+                </div>
+
+                {editFaqs.length > 0 && (
+                  <div className="space-y-2">
+                    {editFaqs.map((faq, idx) => (
+                      <div key={idx} className="p-3 bg-slate-50 border border-gray-200 rounded-xl space-y-1">
+                        <div className="flex items-start justify-between">
+                          <h5 className="font-extrabold text-gray-900 text-xs flex-1">{faq.question}</h5>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEditFaq(idx)}
+                            className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            title="Remove FAQ"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-gray-600 leading-relaxed">{faq.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Form Action Buttons */}
               <div className="pt-4 border-t border-gray-100 flex items-center justify-end space-x-3">
                 <button
@@ -1654,192 +1941,308 @@ export default function AdminHospitalsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {doctorModalHospital.doctors?.map((doc, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 rounded-xl border border-gray-200 bg-gray-50/50 flex items-start space-x-4 hover:bg-white hover:shadow-md transition-all"
-                  >
-                    <div className="relative w-16 h-16 rounded-full overflow-hidden bg-gray-200 border border-purple-200 flex-shrink-0 flex items-center justify-center">
-                      {doc.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={doc.image} alt={doc.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <User className="w-8 h-8 text-gray-400" />
-                      )}
-                    </div>
+                {doctorModalHospital.doctors?.map((doc, idx) => {
+                  const revCount = doc.reviews?.length || 0;
+                  const docRating = doc.rating || (revCount > 0 ? (doc.reviews!.reduce((sum, r) => sum + (r.rating || 5), 0) / revCount).toFixed(1) : 5.0);
 
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <h4 className="text-sm font-bold text-gray-900 truncate">{doc.name}</h4>
-                      {doc.specialty && (
-                        <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-800 font-bold text-[10px] rounded-full">
-                          {doc.specialty}
-                        </span>
-                      )}
-                      {doc.qualification && (
-                        <p className="text-xs text-gray-600 truncate">{doc.qualification}</p>
-                      )}
-                      {doc.experience && (
-                        <p className="text-[11px] text-gray-500 font-medium">Exp: {doc.experience}</p>
-                      )}
-                      {doc.treatments && doc.treatments.length > 0 && (
-                        <div className="pt-1 flex flex-wrap gap-1">
-                          {doc.treatments.map((tr, tIdx) => (
-                            <span
-                              key={tIdx}
-                              className="px-1.5 py-0.5 bg-purple-100 text-purple-800 font-semibold text-[9px] rounded-md"
-                            >
-                              {tr}
-                            </span>
-                          ))}
+                  return (
+                    <div
+                      key={idx}
+                      className="p-4 rounded-xl border border-gray-200 bg-gray-50/50 flex flex-col justify-between hover:bg-white hover:shadow-md transition-all space-y-3"
+                    >
+                      <div className="flex items-start space-x-4">
+                        <div className="relative w-16 h-16 rounded-full overflow-hidden bg-gray-200 border border-purple-200 flex-shrink-0 flex items-center justify-center">
+                          {doc.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={doc.image} alt={doc.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-8 h-8 text-gray-400" />
+                          )}
                         </div>
-                      )}
-                    </div>
 
-                    <div className="flex items-center space-x-1">
-                      <button
-                        onClick={() => handleStartEditDoctor(doc, idx)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit Doctor"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteDoctor(idx)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete Doctor"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-bold text-gray-900 truncate">{doc.name}</h4>
+                            <div className="flex items-center space-x-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                              <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                              <span className="text-[10px] font-black text-amber-800">{docRating}</span>
+                            </div>
+                          </div>
+
+                          {doc.specialty && (
+                            <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-800 font-bold text-[10px] rounded-full">
+                              {doc.specialty}
+                            </span>
+                          )}
+                          {doc.qualification && (
+                            <p className="text-xs text-gray-600 truncate">{doc.qualification}</p>
+                          )}
+                          {doc.experience && (
+                            <p className="text-[11px] text-gray-500 font-medium">Exp: {doc.experience}</p>
+                          )}
+                          {doc.treatments && doc.treatments.length > 0 && (
+                            <div className="pt-1 flex flex-wrap gap-1">
+                              {doc.treatments.map((tr, tIdx) => (
+                                <span
+                                  key={tIdx}
+                                  className="px-1.5 py-0.5 bg-purple-100 text-purple-800 font-semibold text-[9px] rounded-md"
+                                >
+                                  {tr}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-gray-200/80 flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => setViewingReviewsDoc({ doc, docIndex: idx })}
+                          className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-[11px] font-bold flex items-center space-x-1 cursor-pointer"
+                        >
+                          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                          <span>Patient Reviews ({revCount})</span>
+                        </button>
+
+                        <div className="flex items-center space-x-1">
+                          <button
+                            onClick={() => handleStartEditDoctor(doc, idx)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Edit Doctor"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDoctor(idx)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete Doctor"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
-            {/* Add / Edit Doctor Form Panel */}
-            {showAddDocModal && (
-              <div className="p-5 bg-purple-50/80 rounded-2xl border border-purple-200 space-y-4 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between border-b border-purple-200 pb-2">
-                  <h4 className="text-sm font-bold text-purple-900">
-                    {editingDocIndex !== null ? 'Edit Doctor Profile' : 'Add New Doctor'}
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddDocModal(false)}
-                    className="text-purple-600 hover:text-purple-900 text-xs font-bold"
-                  >
-                    Cancel
-                  </button>
-                </div>
+            {/* Super Admin Patient Reviews Modal Overlay */}
+            {viewingReviewsDoc && (
+              <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-gray-200 space-y-5 max-h-[85vh] overflow-y-auto">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div>
+                      <h3 className="text-lg font-extrabold text-gray-900 flex items-center">
+                        <Star className="w-5 h-5 text-amber-500 fill-amber-500 mr-2" />
+                        Patient Reviews for {viewingReviewsDoc.doc.name}
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        {viewingReviewsDoc.doc.specialty} • {doctorModalHospital?.name}
+                      </p>
+                    </div>
 
-                <form onSubmit={handleSaveDoctor} className="space-y-4">
-                  {/* Photo Uploader */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Doctor Photo</label>
-                    <div className="flex items-center space-x-4">
-                      <div className="w-14 h-14 rounded-full overflow-hidden bg-white border border-gray-200 flex items-center justify-center">
-                        {docImage ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={docImage} alt="Preview" className="w-full h-full object-cover" />
-                        ) : (
-                          <User className="w-7 h-7 text-gray-300" />
-                        )}
+                    <button
+                      type="button"
+                      onClick={() => setViewingReviewsDoc(null)}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {viewingReviewsDoc.doc.reviews && viewingReviewsDoc.doc.reviews.length > 0 ? (
+                      viewingReviewsDoc.doc.reviews.map((rev, rIdx) => (
+                        <div key={rev.id || rIdx} className="p-4 bg-slate-50 border border-gray-200 rounded-2xl space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-700 font-extrabold text-xs flex items-center justify-center">
+                                {rev.patientName ? rev.patientName[0].toUpperCase() : 'P'}
+                              </div>
+                              <div>
+                                <span className="font-extrabold text-gray-900 text-xs block">{rev.patientName}</span>
+                                <span className="text-[10px] text-gray-400">
+                                  {rev.date ? new Date(rev.date).toLocaleDateString() : 'Patient Review'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                              <div className="flex items-center space-x-0.5">
+                                {Array.from({ length: 5 }).map((_, s) => (
+                                  <Star
+                                    key={s}
+                                    className={`w-3.5 h-3.5 ${
+                                      s < (rev.rating || 5) ? 'text-amber-500 fill-amber-500' : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDoctorReview(rev.id, rIdx)}
+                                className="p-1 text-red-500 hover:bg-red-100 rounded-lg transition-colors cursor-pointer"
+                                title="Delete Review"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <p className="text-xs text-gray-700 leading-relaxed pl-9">
+                            &ldquo;{rev.comment}&rdquo;
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-10 text-center text-xs text-gray-500 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                        No patient reviews recorded yet for {viewingReviewsDoc.doc.name}.
                       </div>
-                      <label className="cursor-pointer px-3.5 py-1.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center space-x-1.5 shadow-xs">
-                        {uploadingDocImage ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
-                        ) : (
-                          <Upload className="w-3.5 h-3.5 text-purple-600" />
-                        )}
-                        <span>{uploadingDocImage ? 'Uploading...' : 'Upload Photo'}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleDocImageUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Doctor Name *</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Dr. Rajiv Sharma"
-                        value={docName}
-                        onChange={(e) => setDocName(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Specialty</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Cardiologist / Neurologist"
-                        value={docSpecialty}
-                        onChange={(e) => setDocSpecialty(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Qualification</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. MBBS, MD, DM (Cardiology)"
-                        value={docQualification}
-                        onChange={(e) => setDocQualification(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Experience</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. 15+ Years Experience"
-                        value={docExperience}
-                        onChange={(e) => setDocExperience(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
+                  <div className="pt-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setViewingReviewsDoc(null)}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-xl cursor-pointer"
+                    >
+                      Close
+                    </button>
                   </div>
+                </div>
+              </div>
+            )}
 
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">
-                      Treatments Provided / Procedures (Comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Knee Replacement, Hip Arthroplasty, ACL Surgery"
-                      value={docTreatmentsInput}
-                      onChange={(e) => setDocTreatmentsInput(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-
-                  <div className="flex justify-end space-x-3 pt-2">
+            {/* Add / Edit Doctor Sub-Modal Overlay */}
+            {showAddDocModal && (
+              <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 space-y-5 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <h4 className="text-base font-extrabold text-gray-900 flex items-center space-x-2">
+                      <Stethoscope className="w-5 h-5 text-purple-600" />
+                      <span>{editingDocIndex !== null ? 'Edit Doctor Profile' : 'Add New Doctor'}</span>
+                    </h4>
                     <button
                       type="button"
                       onClick={() => setShowAddDocModal(false)}
-                      className="px-4 py-1.5 border border-gray-200 text-gray-600 rounded-xl text-xs font-semibold hover:bg-white"
+                      className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
                     >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={docSaving}
-                      className="px-5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center space-x-1.5 disabled:opacity-50"
-                    >
-                      {docSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                      <span>{editingDocIndex !== null ? 'Save Changes' : 'Add Doctor'}</span>
+                      <X className="w-5 h-5" />
                     </button>
                   </div>
-                </form>
+
+                  <form onSubmit={handleSaveDoctor} className="space-y-4">
+                    {/* Photo Uploader */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Doctor Photo</label>
+                      <div className="flex items-center space-x-4">
+                        <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center">
+                          {docImage ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={docImage} alt="Preview" className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-7 h-7 text-gray-400" />
+                          )}
+                        </div>
+                        <label className="cursor-pointer px-3.5 py-1.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center space-x-1.5 shadow-xs">
+                          {uploadingDocImage ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
+                          ) : (
+                            <Upload className="w-3.5 h-3.5 text-purple-600" />
+                          )}
+                          <span>{uploadingDocImage ? 'Uploading...' : 'Upload Photo'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleDocImageUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Doctor Name *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Dr. Rajiv Sharma"
+                          value={docName}
+                          onChange={(e) => setDocName(e.target.value)}
+                          className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500 focus:bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Specialty</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Cardiologist / Neurologist"
+                          value={docSpecialty}
+                          onChange={(e) => setDocSpecialty(e.target.value)}
+                          className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500 focus:bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Qualification</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. MBBS, MD, DM (Cardiology)"
+                          value={docQualification}
+                          onChange={(e) => setDocQualification(e.target.value)}
+                          className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500 focus:bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Experience</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 15+ Years Experience"
+                          value={docExperience}
+                          onChange={(e) => setDocExperience(e.target.value)}
+                          className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500 focus:bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Treatments Provided / Procedures (Comma-separated)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Knee Replacement, Hip Arthroplasty, ACL Surgery"
+                        value={docTreatmentsInput}
+                        onChange={(e) => setDocTreatmentsInput(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500 focus:bg-white"
+                      />
+                    </div>
+
+                    <div className="flex justify-end space-x-3 pt-3 border-t border-gray-100">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddDocModal(false)}
+                        className="px-4 py-2 border border-gray-200 text-gray-600 rounded-full text-xs font-bold hover:bg-gray-50 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={docSaving}
+                        className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-xs font-bold shadow-md flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {docSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        <span>{editingDocIndex !== null ? 'Save Changes' : 'Add Doctor'}</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
             )}
 
@@ -1848,6 +2251,245 @@ export default function AdminHospitalsPage() {
               <button
                 type="button"
                 onClick={() => setDoctorModalHospital(null)}
+                className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-xs font-bold transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Super Admin Hospital Services Management Modal */}
+      {serviceModalHospital && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl border border-gray-200 space-y-6 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <div>
+                <div className="flex items-center space-x-2 text-emerald-600 font-bold text-xs uppercase tracking-wider mb-1">
+                  <Activity className="w-4 h-4" />
+                  <span>Hospital Services & Pricing</span>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Services for {serviceModalHospital.name}
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Link medical services, update starting prices, procedure details, and toggle active status.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={handleStartAddService}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold shadow-md transition-all flex items-center space-x-1.5 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Link New Service</span>
+                </button>
+                <button
+                  onClick={() => setServiceModalHospital(null)}
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Services Loading State */}
+            {loadingServices ? (
+              <div className="py-12 text-center text-xs text-gray-500 font-semibold flex items-center justify-center space-x-2">
+                <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+                <span>Loading hospital services...</span>
+              </div>
+            ) : linkedServices.length === 0 && !showAddServiceModal ? (
+              <div className="py-12 text-center bg-emerald-50/50 rounded-2xl border border-dashed border-emerald-200">
+                <Sparkles className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
+                <h4 className="text-sm font-bold text-gray-800">No Services Linked Yet</h4>
+                <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                  Click the &quot;Link New Service&quot; button above to assign medical specialties and pricing to {serviceModalHospital.name}.
+                </p>
+                <button
+                  onClick={handleStartAddService}
+                  className="mt-4 px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-full shadow-sm hover:bg-emerald-700"
+                >
+                  Link First Service
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {linkedServices.map((hs) => (
+                  <div
+                    key={hs.id}
+                    className="p-4 rounded-xl border border-gray-200 bg-gray-50/50 flex flex-col justify-between space-y-3 hover:bg-white hover:shadow-md transition-all"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-gray-900">
+                          {hs.service?.name || `Service #${hs.serviceId}`}
+                        </h4>
+                        <span
+                          className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
+                            hs.status === 'ACTIVE'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-gray-200 text-gray-700'
+                          }`}
+                        >
+                          {hs.status}
+                        </span>
+                      </div>
+
+                      <div className="text-xs font-bold text-emerald-700 flex items-center">
+                        <DollarSign className="w-3.5 h-3.5 mr-0.5 text-emerald-600" />
+                        <span>Starting Price: {hs.startingPrice ? `₹ ${Number(hs.startingPrice).toLocaleString('en-IN')}` : 'Not set'}</span>
+                      </div>
+
+                      {hs.description && (
+                        <p className="text-xs text-gray-600 line-clamp-2">{hs.description}</p>
+                      )}
+
+                      {hs.treatmentDetails && (
+                        <p className="text-[11px] text-gray-500 italic line-clamp-2">
+                          <strong>Details:</strong> {hs.treatmentDetails}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-end space-x-2 border-t border-gray-100 pt-2">
+                      <button
+                        onClick={() => handleStartEditService(hs)}
+                        className="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition-colors flex items-center space-x-1"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteService(hs.serviceId)}
+                        className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-xs font-bold transition-colors flex items-center space-x-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Unlink</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add / Edit Service Sub-Modal Overlay */}
+            {showAddServiceModal && (
+              <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 space-y-5 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <h4 className="text-base font-extrabold text-gray-900 flex items-center space-x-2">
+                      <Activity className="w-5 h-5 text-emerald-600" />
+                      <span>{editingServiceId !== null ? 'Edit Service Details & Pricing' : 'Link New Specialty Service'}</span>
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddServiceModal(false)}
+                      className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSaveService} className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Select Platform Medical Service *</label>
+                        <select
+                          value={svcSelectedServiceId}
+                          onChange={(e) => setSvcSelectedServiceId(e.target.value)}
+                          className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                        >
+                          {platformServices.map((ps) => {
+                            const isAlreadyLinked =
+                              linkedServices.some((ls) => ls.serviceId === ps.id) &&
+                              ps.id !== Number(svcSelectedServiceId);
+
+                            return (
+                              <option key={ps.id} value={ps.id} disabled={isAlreadyLinked}>
+                                {ps.name} {ps.category ? `(${ps.category})` : ''}{isAlreadyLinked ? ' — Already Added' : ''}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Starting Price (₹)</label>
+                        <input
+                          type="number"
+                          placeholder="e.g. 35000"
+                          value={svcStartingPrice}
+                          onChange={(e) => setSvcStartingPrice(e.target.value)}
+                          className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Status</label>
+                      <select
+                        value={svcStatus}
+                        onChange={(e) => setSvcStatus(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                      >
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Service Description</label>
+                      <textarea
+                        rows={2}
+                        placeholder="Short description of clinical procedure or department offerings..."
+                        value={svcDescription}
+                        onChange={(e) => setSvcDescription(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Procedure / Treatment Details</label>
+                      <textarea
+                        rows={2}
+                        placeholder="Comprehensive pre-op evaluation, surgery steps, post-op care, recovery time..."
+                        value={svcTreatmentDetails}
+                        onChange={(e) => setSvcTreatmentDetails(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                      />
+                    </div>
+
+                    <div className="flex justify-end space-x-3 pt-3 border-t border-gray-100">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddServiceModal(false)}
+                        className="px-4 py-2 border border-gray-200 text-gray-600 rounded-full text-xs font-bold hover:bg-gray-50 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={svcSaving}
+                        className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold shadow-md flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {svcSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        <span>{editingServiceId !== null ? 'Update Service' : 'Link Service'}</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Footer */}
+            <div className="flex justify-end border-t border-gray-100 pt-4">
+              <button
+                type="button"
+                onClick={() => setServiceModalHospital(null)}
                 className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-xs font-bold transition-all"
               >
                 Close

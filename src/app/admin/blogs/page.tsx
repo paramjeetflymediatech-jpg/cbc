@@ -48,7 +48,7 @@ export default function AdminBlogsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const [pageSize, setPageSize] = useState(10);
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -236,9 +236,10 @@ export default function AdminBlogsPage() {
   });
 
   // Pagination
-  const totalPages = Math.ceil(filteredBlogs.length / itemsPerPage) || 1;
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedBlogs = filteredBlogs.slice(startIndex, startIndex + itemsPerPage);
+  const totalPages = Math.ceil(filteredBlogs.length / pageSize) || 1;
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const paginatedBlogs = filteredBlogs.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -441,35 +442,53 @@ export default function AdminBlogsPage() {
         </div>
 
         {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-            <div className="text-xs text-gray-500 font-medium">
-              Showing {startIndex + 1}–{Math.min(startIndex + itemsPerPage, filteredBlogs.length)} of {filteredBlogs.length} posts
+        {filteredBlogs.length > 0 && (
+          <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600 mt-4">
+            <div className="flex items-center space-x-2">
+              <span>Articles per page:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-800 focus:outline-none cursor-pointer"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span className="text-gray-400">|</span>
+              <span>
+                Showing <strong>{Math.min(startIndex + 1, filteredBlogs.length)}</strong> to{' '}
+                <strong>{Math.min(startIndex + pageSize, filteredBlogs.length)}</strong> of <strong>{filteredBlogs.length}</strong> posts
+              </span>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1">
               <button
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-bold text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-40 flex items-center space-x-1"
+                disabled={safeCurrentPage === 1}
+                className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                title="Previous Page"
               >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                <span>Prev</span>
+                <ChevronLeft className="w-4 h-4" />
               </button>
 
-              <span className="text-xs font-bold text-gray-700 px-2">
-                {currentPage} / {totalPages}
+              <span className="px-3 py-1 font-bold text-gray-800">
+                Page {safeCurrentPage} of {totalPages}
               </span>
 
               <button
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-bold text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-40 flex items-center space-x-1"
+                disabled={safeCurrentPage >= totalPages}
+                className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                title="Next Page"
               >
-                <span>Next</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -543,7 +562,7 @@ export default function AdminBlogsPage() {
                   />
                 </div>
 
-                <div>
+                <div className="sm:col-span-2">
                   <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
                     Author Name
                   </label>
@@ -552,19 +571,6 @@ export default function AdminBlogsPage() {
                     value={author}
                     onChange={(e) => setAuthor(e.target.value)}
                     placeholder="e.g. Dr. S. S. Gill"
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#ec2c6c]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
-                    Read Time
-                  </label>
-                  <input
-                    type="text"
-                    value={readTime}
-                    onChange={(e) => setReadTime(e.target.value)}
-                    placeholder="e.g. 5 min read"
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#ec2c6c]"
                   />
                 </div>
