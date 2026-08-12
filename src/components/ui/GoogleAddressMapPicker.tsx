@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Navigation, Search, Loader2, Compass, Layers, ExternalLink, Map } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { MapPin, Navigation, Search, Loader2, Compass, Layers, ExternalLink, Map, CheckCircle2 } from 'lucide-react';
+import { cleanLocationName, validateIndiaLocation } from '@/lib/locationUtils';
 
 interface GoogleAddressMapPickerProps {
   onAddressSelect: (data: {
@@ -18,6 +19,24 @@ interface GoogleAddressMapPickerProps {
   initialState?: string;
 }
 
+interface LeafletMap {
+  setView: (coords: [number, number], zoom: number) => void;
+  on: (event: string, fn: (e: { latlng: { lat: number; lng: number } }) => void) => void;
+}
+
+interface LeafletMarker {
+  setLatLng: (coords: [number, number]) => void;
+  getLatLng: () => { lat: number; lng: number };
+  on: (event: string, fn: () => void) => void;
+}
+
+interface LeafletObject {
+  map: (element: HTMLElement, options?: object) => LeafletMap;
+  tileLayer: (url: string, options?: object) => { addTo: (map: LeafletMap) => void };
+  icon: (options: object) => object;
+  marker: (coords: [number, number], options?: object) => LeafletMarker & { addTo: (map: LeafletMap) => LeafletMarker };
+}
+
 interface PlaceSuggestion {
   place_id: number | string;
   display_name: string;
@@ -32,6 +51,7 @@ interface PlaceSuggestion {
     county?: string;
     state?: string;
     country?: string;
+    country_code?: string;
     postcode?: string;
   };
 }
@@ -48,12 +68,51 @@ export default function GoogleAddressMapPicker({
   const [detecting, setDetecting] = useState(false);
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [leafletReady, setLeafletReady] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
-  // Map Layer View Mode: 'm' = Street Map, 'k' = Satellite, 'h' = Hybrid
-  const [mapType, setMapType] = useState<'m' | 'k' | 'h'>('m');
+  // Map Layer View Mode: 'm' = Standard, 'k' = Satellite
+  const [mapType, setMapType] = useState<'m' | 'k'>('m');
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<LeafletMap | null>(null);
+  const markerRef = useRef<LeafletMarker | null>(null);
+
+  // Sync prop changes during render
+  const [prevInitialAddress, setPrevInitialAddress] = useState(initialAddress);
+  if (initialAddress !== prevInitialAddress) {
+    setPrevInitialAddress(initialAddress);
+    if (initialAddress && initialAddress.trim() !== '') {
+      setSearchQuery(initialAddress);
+    }
+  }
+
+  // Load Leaflet CSS & JS dynamically
+  useEffect(() => {
+    if (!document.getElementById('leaflet-css')) {
+      const link = document.createElement('link');
+      link.id = 'leaflet-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
+
+    const win = window as unknown as Record<string, unknown>;
+    if (!win.L) {
+      const script = document.createElement('script');
+      script.id = 'leaflet-js';
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.onload = () => {
+        setLeafletReady(true);
+      };
+      document.body.appendChild(script);
+    } else {
+      const timer = setTimeout(() => setLeafletReady(true), 0);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -65,20 +124,180 @@ export default function GoogleAddressMapPicker({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Sync typed address to parent form whenever input changes or loses focus
-  const notifyParent = (text: string, lat?: number, lng?: number, city?: string, district?: string, state?: string) => {
+  // Reverse Geocode coordinates to fetch address and notify parent
+  const fetchAddressFromCoords = useCallback(
+    async (lat: number, lng: number, updateQueryInput = true) => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/locations/reverse?lat=${lat}&lon=${lng}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.display_name) {
+            const fullAddr = data.display_name;
+            if (updateQueryInput) {
+              setSearchQuery(fullAddr);
+            }
+
+            const addrObj = data.address || {};
+            const locationCheck = validateIndiaLocation({
+              country: addrObj.country,
+              countryCode: addrObj.country_code,
+              address: fullAddr,
+            });
+
+            if (!locationCheck.isValid) {
+              setSelectedCoords(null);
+              setSearchQuery('');
+              const alertMessage = `⚠️ Location Restricted Error:\n\nThe selected address "${fullAddr}" is located outside India (${locationCheck.detectedCountry}).\n\nOnly hospital locations within India are allowed.`;
+              alert(alertMessage);
+              setToastMessage(`⚠️ Error: Selected address ("${fullAddr}") is outside India. Only locations in India are allowed.`);
+              setTimeout(() => setToastMessage(''), 8000);
+              return;
+            }
+
+            if (updateQueryInput) {
+              setSearchQuery(fullAddr);
+            }
+
+            let city = cleanLocationName(
+              addrObj.city ||
+              addrObj.town ||
+              addrObj.village ||
+              addrObj.municipality ||
+              addrObj.city_district ||
+              addrObj.suburb ||
+              ''
+            );
+            let district = cleanLocationName(addrObj.county || addrObj.state_district || '');
+            let state = cleanLocationName(addrObj.state || addrObj.state_district || '');
+
+            if (!city || !state) {
+              const parts = fullAddr.split(',').map((p: string) => p.trim());
+              if (!state && parts.length >= 2) {
+                state = parts[parts.length - 2] === 'India' ? parts[parts.length - 3] || '' : parts[parts.length - 2] || '';
+              }
+              if (!city && parts.length >= 3) {
+                city = parts[parts.length - 4] || parts[parts.length - 3] || parts[0];
+              }
+            }
+
+            city = cleanLocationName(city);
+            district = cleanLocationName(district);
+            state = cleanLocationName(state);
+
+            onAddressSelect({
+              address: fullAddr,
+              city: city || initialCity || '',
+              district: district || '',
+              state: state || initialState || '',
+              country: 'India',
+              lat,
+              lng,
+            });
+
+            setToastMessage('Location address fetched and filled automatically!');
+            setTimeout(() => setToastMessage(''), 3500);
+          }
+        }
+      } catch (err) {
+        console.error('Error reverse geocoding map click location:', err);
+      } finally {
+        setSearching(false);
+      }
+    },
+    [initialCity, initialState, onAddressSelect]
+  );
+
+  // Initialize Interactive Leaflet Map
+  useEffect(() => {
+    if (!leafletReady || !mapContainerRef.current) return;
+
+    const win = window as unknown as { L?: LeafletObject };
+    const L = win.L;
+    if (!L) return;
+
+    const defaultLat = selectedCoords?.lat || 20.5937;
+    const defaultLng = selectedCoords?.lng || 78.9629;
+    const defaultZoom = selectedCoords ? 16 : 5;
+
+    if (!mapInstanceRef.current) {
+      const map = L.map(mapContainerRef.current, {
+        center: [defaultLat, defaultLng],
+        zoom: defaultZoom,
+        zoomControl: true,
+      });
+
+      const tileUrl =
+        mapType === 'k'
+          ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+          : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+      L.tileLayer(tileUrl, {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap & Esri World Imagery',
+      }).addTo(map);
+
+      // Custom Pink Map Marker Icon
+      const pinIcon = L.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41],
+      });
+
+      const marker = L.marker([defaultLat, defaultLng], { icon: pinIcon, draggable: true }).addTo(map);
+
+      // CLICK ON MAP EVENT -> UPDATE MARKER & FETCH ADDRESS
+      map.on('click', async (e: { latlng: { lat: number; lng: number } }) => {
+        const clickLat = e.latlng.lat;
+        const clickLng = e.latlng.lng;
+        marker.setLatLng([clickLat, clickLng]);
+        setSelectedCoords({ lat: clickLat, lng: clickLng });
+        await fetchAddressFromCoords(clickLat, clickLng);
+      });
+
+      // DRAG PIN EVENT -> UPDATE MARKER & FETCH ADDRESS
+      marker.on('dragend', async () => {
+        const pos = marker.getLatLng();
+        setSelectedCoords({ lat: pos.lat, lng: pos.lng });
+        await fetchAddressFromCoords(pos.lat, pos.lng);
+      });
+
+      mapInstanceRef.current = map;
+      markerRef.current = marker;
+    } else {
+      if (selectedCoords && markerRef.current) {
+        markerRef.current.setLatLng([selectedCoords.lat, selectedCoords.lng]);
+        mapInstanceRef.current.setView([selectedCoords.lat, selectedCoords.lng], 16);
+      }
+    }
+  }, [leafletReady, mapType, selectedCoords, fetchAddressFromCoords]);
+
+  // Update map view when selectedCoords changes
+  useEffect(() => {
+    if (mapInstanceRef.current && selectedCoords) {
+      mapInstanceRef.current.setView([selectedCoords.lat, selectedCoords.lng], 16);
+      if (markerRef.current) {
+        markerRef.current.setLatLng([selectedCoords.lat, selectedCoords.lng]);
+      }
+    }
+  }, [selectedCoords]);
+
+  // Sync typed address to parent form
+  const notifyParent = (text: string) => {
     onAddressSelect({
       address: text,
-      city: city || initialCity || '',
-      district: district || '',
-      state: state || initialState || '',
+      city: initialCity || '',
+      district: '',
+      state: initialState || '',
       country: 'India',
-      lat,
-      lng,
     });
   };
 
-  // Debounced search input handler to fetch live suggestions
+  // Debounced search input handler
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
@@ -127,32 +346,60 @@ export default function GoogleAddressMapPicker({
     setSearchQuery(fullAddr);
     setShowDropdown(false);
 
-    // Parse city, state, country from response address object
     const addrObj = place.address || {};
-    const city =
+    const locationCheck = validateIndiaLocation({
+      country: addrObj.country,
+      countryCode: addrObj.country_code,
+      address: fullAddr,
+    });
+
+    if (!locationCheck.isValid) {
+      setSelectedCoords(null);
+      setSearchQuery('');
+      const alertMessage = `⚠️ Location Restricted Error:\n\nThe selected address "${fullAddr}" is located outside India (${locationCheck.detectedCountry}).\n\nOnly hospital locations within India are allowed.`;
+      alert(alertMessage);
+      setToastMessage(`⚠️ Error: Selected address ("${fullAddr}") is outside India. Only locations in India are allowed.`);
+      setTimeout(() => setToastMessage(''), 8000);
+      return;
+    }
+
+    let city = cleanLocationName(
       addrObj.city ||
       addrObj.town ||
       addrObj.village ||
       addrObj.county ||
       addrObj.suburb ||
-      initialCity ||
-      '';
-    const district = addrObj.county || '';
-    const state = addrObj.state || initialState || '';
-    const country = addrObj.country || 'India';
+      ''
+    );
+    let district = cleanLocationName(addrObj.county || '');
+    let state = cleanLocationName(addrObj.state || '');
+
+    if (!city || !state) {
+      const parts = fullAddr.split(',').map((p) => p.trim());
+      if (!state && parts.length >= 2) {
+        state = parts[parts.length - 2] === 'India' ? parts[parts.length - 3] || '' : parts[parts.length - 2] || '';
+      }
+      if (!city && parts.length >= 3) {
+        city = parts[parts.length - 4] || parts[parts.length - 3] || parts[0];
+      }
+    }
+
+    city = cleanLocationName(city);
+    district = cleanLocationName(district);
+    state = cleanLocationName(state);
 
     onAddressSelect({
       address: fullAddr,
-      city,
-      district,
-      state,
-      country,
+      city: city || initialCity || '',
+      district: district || '',
+      state: state || initialState || '',
+      country: 'India',
       lat,
       lng,
     });
   };
 
-  // Detect Current Location using Geolocation API & Internal Reverse Geocoding Proxy
+  // Detect Current Location using Geolocation API
   const handleDetectCurrentLocation = () => {
     if (!navigator.geolocation) {
       alert('Geolocation is not supported by your browser.');
@@ -166,41 +413,8 @@ export default function GoogleAddressMapPicker({
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         setSelectedCoords({ lat, lng });
-
-        try {
-          const res = await fetch(`/api/locations/reverse?lat=${lat}&lon=${lng}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.display_name) {
-              const fullAddr = data.display_name;
-              setSearchQuery(fullAddr);
-
-              const addrObj = data.address || {};
-              const city =
-                addrObj.city ||
-                addrObj.town ||
-                addrObj.village ||
-                addrObj.county ||
-                addrObj.suburb ||
-                '';
-              const state = addrObj.state || '';
-              const country = addrObj.country || 'India';
-
-              onAddressSelect({
-                address: fullAddr,
-                city,
-                state,
-                country,
-                lat,
-                lng,
-              });
-            }
-          }
-        } catch {
-          alert('Could not fetch address details for your location.');
-        } finally {
-          setDetecting(false);
-        }
+        await fetchAddressFromCoords(lat, lng);
+        setDetecting(false);
       },
       (error) => {
         setDetecting(false);
@@ -208,16 +422,6 @@ export default function GoogleAddressMapPicker({
       },
       { timeout: 10000, enableHighAccuracy: true }
     );
-  };
-
-  const getMapEmbedUrl = () => {
-    if (selectedCoords) {
-      return `https://maps.google.com/maps?q=${selectedCoords.lat},${selectedCoords.lng}&t=${mapType}&z=16&output=embed`;
-    }
-    if (searchQuery && searchQuery.trim().length > 0) {
-      return `https://maps.google.com/maps?q=${encodeURIComponent(searchQuery.trim())}&t=${mapType}&z=15&output=embed`;
-    }
-    return '';
   };
 
   const getExternalMapUrl = () => {
@@ -232,12 +436,20 @@ export default function GoogleAddressMapPicker({
 
   return (
     <div className="space-y-3 w-full" ref={dropdownRef}>
+      {/* Toast Notification when map clicked */}
+      {toastMessage && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center space-x-2 animate-fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Search Input Bar with Google Map Autocomplete */}
       <div className="relative">
         <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
           <span className="flex items-center">
             <MapPin className="w-4 h-4 text-[#b02151] mr-1.5" />
-            Google Street Map Address Search & Autocomplete
+            Click Map or Search Address Below
           </span>
           <button
             type="button"
@@ -276,14 +488,21 @@ export default function GoogleAddressMapPicker({
         {showDropdown && suggestions.length > 0 && (
           <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-h-60 overflow-y-auto">
             <div className="p-2 bg-pink-50 text-[10px] font-bold text-[#b02151] uppercase tracking-wider">
-              Google Street Map Suggestions ({suggestions.length})
+              Suggestions ({suggestions.length})
             </div>
             <ul className="divide-y divide-gray-100">
               {suggestions.map((item) => (
                 <li
                   key={item.place_id}
-                  onClick={() => handleSelectSuggestion(item)}
-                  className="p-3 hover:bg-gray-50 cursor-pointer transition-colors flex items-start space-x-2 text-xs text-gray-800"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelectSuggestion(item);
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleSelectSuggestion(item);
+                  }}
+                  className="p-3 hover:bg-pink-50/60 cursor-pointer transition-colors flex items-start space-x-2 text-xs text-gray-800"
                 >
                   <MapPin className="w-4 h-4 text-[#b02151] flex-shrink-0 mt-0.5" />
                   <span className="leading-relaxed font-medium">{item.display_name}</span>
@@ -294,7 +513,7 @@ export default function GoogleAddressMapPicker({
         )}
       </div>
 
-      {/* Map View Mode Toggles & Street View Bar */}
+      {/* Map View Mode Toggles & Instruction Bar */}
       <div className="flex items-center justify-between bg-gray-100 p-1.5 rounded-xl border border-gray-200 text-xs">
         <div className="flex items-center space-x-1">
           <button
@@ -318,17 +537,11 @@ export default function GoogleAddressMapPicker({
             <Layers className="w-3.5 h-3.5 mr-1" />
             <span>Satellite</span>
           </button>
-
-          <button
-            type="button"
-            onClick={() => setMapType('h')}
-            className={`px-3 py-1 rounded-lg font-extrabold transition-all flex items-center space-x-1 ${
-              mapType === 'h' ? 'bg-white text-[#b02151] shadow-xs' : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <span>Hybrid</span>
-          </button>
         </div>
+
+        <span className="text-[11px] font-semibold text-gray-500 hidden sm:inline">
+          💡 Click map or drag pin to auto-fill address
+        </span>
 
         {searchQuery && (
           <a
@@ -337,28 +550,19 @@ export default function GoogleAddressMapPicker({
             rel="noreferrer"
             className="text-[11px] font-bold text-pink-700 hover:underline inline-flex items-center space-x-1 pr-1"
           >
-            <span>Open Full Google Map</span>
+            <span>Open Google Maps</span>
             <ExternalLink className="w-3 h-3" />
           </a>
         )}
       </div>
 
-      {/* Interactive Street Map Canvas */}
-      <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-xs bg-gray-100 relative h-56 w-full">
-        {searchQuery ? (
-          <iframe
-            title="Google Street Map Address Preview"
-            width="100%"
-            height="100%"
-            frameBorder="0"
-            scrolling="no"
-            src={getMapEmbedUrl()}
-            className="w-full h-full border-0"
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-xs space-y-2 p-4 text-center">
-            <Compass className="w-8 h-8 text-gray-300 animate-pulse" />
-            <span>Search street address or landmark to render live Google Street Map pin</span>
+      {/* Interactive Clickable & Draggable Map Canvas */}
+      <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-xs bg-gray-100 relative h-64 w-full z-10">
+        <div ref={mapContainerRef} className="w-full h-full" />
+        {!leafletReady && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 text-gray-400 text-xs space-y-2">
+            <Compass className="w-8 h-8 animate-pulse text-[#b02151]" />
+            <span>Loading interactive map...</span>
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
 import { Service } from '@/models';
+import { cleanupOldImages } from '@/lib/fileCleanup';
 
 export async function GET() {
   try {
@@ -83,6 +84,13 @@ export async function PUT(req: Request) {
     const service = await Service.findByPk(id);
     if (!service) {
       return NextResponse.json({ error: 'Service not found' }, { status: 404 });
+    }
+
+    if (image !== undefined && image !== service.image) {
+      await cleanupOldImages(service.image, image);
+    }
+    if (icon !== undefined && icon !== service.icon) {
+      await cleanupOldImages(service.icon, icon);
     }
 
     await service.update({

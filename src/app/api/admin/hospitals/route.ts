@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db';
 import { getAuthUser, hashPassword } from '@/lib/auth';
 import { Hospital, User, Service, initAssociations } from '@/models';
 import { Op } from 'sequelize';
+import { ensureLocationMasterExists } from '@/lib/locationMaster';
 
 export async function GET(req: Request) {
   try {
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
     const status = searchParams.get('status');
     const search = searchParams.get('search');
 
-    const where: any = {};
+    const where: Record<string | symbol, unknown> = {};
     if (status) {
       where.status = status;
     }
@@ -80,6 +81,9 @@ export async function POST(req: Request) {
     if (!name || !email || !phone || !password || !city || !address) {
       return NextResponse.json({ error: 'Hospital Name, Email, Phone, Password, City and Address are required.' }, { status: 400 });
     }
+
+    // Auto-create missing State and City in location master DB
+    await ensureLocationMasterExists({ state: state || 'Maharashtra', city });
 
     const existingUser = await User.findOne({ where: { email: email.toLowerCase().trim() } });
     if (existingUser) {

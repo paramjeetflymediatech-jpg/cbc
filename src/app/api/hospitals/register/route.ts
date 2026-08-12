@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db';
 import { Hospital, User, HospitalService } from '@/models';
 import { hashPassword } from '@/lib/auth';
 import { sendHospitalRegistrationEmail } from '@/lib/mailer';
+import { ensureLocationMasterExists, isIndiaLocation } from '@/lib/locationMaster';
 
 export async function POST(req: Request) {
   try {
@@ -35,6 +36,16 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    if (!isIndiaLocation(country)) {
+      return NextResponse.json(
+        { error: 'Only locations within India are allowed for hospital registration.' },
+        { status: 400 }
+      );
+    }
+
+    // Auto-create missing State, District, and City in location master DB
+    await ensureLocationMasterExists({ state: state || 'Maharashtra', district, city });
 
     // Check duplicate hospital email or user email
     const existingUser = await User.findOne({ where: { email: email.toLowerCase().trim() } });
@@ -82,6 +93,8 @@ export async function POST(req: Request) {
       faqs: [],
       rating: 4.8,
       isFeatured: false,
+      isNabhAccredited: null,
+      isVerifiedPartner: null,
     });
 
     const passHash = await hashPassword(password);

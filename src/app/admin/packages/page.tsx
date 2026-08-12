@@ -2,9 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Plus, Save, Loader2, CheckCircle2, Edit3, Trash2, X, AlertCircle } from 'lucide-react';
+import RichTextEditor from '@/components/ui/RichTextEditor';
+
+interface LeadPackage {
+  id: number;
+  name: string;
+  leadCount: number;
+  price: number;
+  validityDays?: number | null;
+  description?: string;
+  status: string;
+}
 
 export default function AdminPackagesPage() {
-  const [packages, setPackages] = useState<any[]>([]);
+  const [packages, setPackages] = useState<LeadPackage[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Edit Mode state
@@ -23,7 +34,7 @@ export default function AdminPackagesPage() {
   const [errorMessage, setErrorMessage] = useState('');
 
   // Delete modal state
-  const [deletingPkg, setDeletingPkg] = useState<any | null>(null);
+  const [deletingPkg, setDeletingPkg] = useState<LeadPackage | null>(null);
 
   const fetchPackages = () => {
     fetch('/api/admin/packages')
@@ -48,7 +59,7 @@ export default function AdminPackagesPage() {
     setStatus('ACTIVE');
   };
 
-  const handleStartEdit = (pkg: any) => {
+  const handleStartEdit = (pkg: LeadPackage) => {
     setEditingId(pkg.id);
     setName(pkg.name);
     setLeadCount(String(pkg.leadCount));
@@ -72,7 +83,7 @@ export default function AdminPackagesPage() {
       const url = '/api/admin/packages';
       const method = isEditing ? 'PUT' : 'POST';
 
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         name,
         leadCount: Number(leadCount),
         price: Number(price),
@@ -225,15 +236,13 @@ export default function AdminPackagesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-center">
-            <div className="sm:col-span-3">
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Feature Description</label>
-              <input
-                type="text"
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Feature Description *</label>
+              <RichTextEditor
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="e.g. Recommended for single specialty clinics with dedicated support..."
-                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-[#fd1d74]"
+                onChange={setDescription}
+                placeholder="Write detailed package features (e.g. 25 Verified Patient Leads, Dedicated Manager, Priority Placement)..."
               />
             </div>
 
@@ -242,7 +251,7 @@ export default function AdminPackagesPage() {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#fd1d74]"
+                className="w-full sm:w-64 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#fd1d74]"
               >
                 <option value="ACTIVE">ACTIVE</option>
                 <option value="INACTIVE">INACTIVE</option>
@@ -277,8 +286,14 @@ export default function AdminPackagesPage() {
       <div className="space-y-4">
         <h3 className="text-lg font-extrabold text-gray-900">Active Packages ({packages.length})</h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {packages.map((pkg) => (
+        {loading ? (
+          <div className="p-8 text-center text-xs text-gray-500 font-semibold flex items-center justify-center space-x-2">
+            <Loader2 className="w-4 h-4 animate-spin text-[#b02151]" />
+            <span>Loading packages...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {packages.map((pkg) => (
             <div key={pkg.id} className="cbc-card p-6 border border-gray-100 space-y-4 flex flex-col justify-between relative group hover:shadow-lg transition-shadow">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -300,7 +315,12 @@ export default function AdminPackagesPage() {
                   {pkg.leadCount} Patient Leads ({pkg.validityDays ? `${pkg.validityDays} Days` : 'Unlimited'})
                 </p>
 
-                {pkg.description && <p className="text-xs text-gray-600 pt-1 leading-relaxed">{pkg.description}</p>}
+                {pkg.description && (
+                  <div
+                    className="text-xs text-gray-600 pt-1 leading-relaxed space-y-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-1 [&_h2]:font-bold [&_h3]:font-bold"
+                    dangerouslySetInnerHTML={{ __html: pkg.description }}
+                  />
+                )}
               </div>
 
               {/* Edit & Delete Action Buttons */}
@@ -326,6 +346,7 @@ export default function AdminPackagesPage() {
             </div>
           ))}
         </div>
+      )}
       </div>
 
       {/* Delete Package Confirmation Modal */}

@@ -7,15 +7,15 @@ import FAQSection from '@/components/ui/FAQSection';
 import HomeContactSection from '@/components/ui/HomeContactSection';
 import DoctorTestimonialCarousel from '@/components/ui/DoctorTestimonialCarousel';
 import { connectDB } from '@/lib/db';
-import { Service, Hospital, HospitalService } from '@/models';
-import { Search, ShieldCheck, Award, Stethoscope, Building2, FileText, Users, Clock } from 'lucide-react';
+import { Service, Hospital, HospitalService, BlogPost } from '@/models';
+import { Search, ShieldCheck, Award, Stethoscope, Building2, FileText, Users, Clock, ArrowRight, Calendar } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 async function getData() {
   try {
     const db = await connectDB();
-    if (!db) return { services: [], hospitals: [] };
+    if (!db) return { services: [], hospitals: [], blogs: [] };
 
     const services = await Service.findAll({
       where: { status: 'ACTIVE' },
@@ -37,12 +37,19 @@ async function getData() {
       limit: 6,
     });
 
+    const blogs = await BlogPost.findAll({
+      where: { status: 'PUBLISHED' },
+      order: [['publishedAt', 'DESC']],
+      limit: 3,
+    });
+
     return {
       services: JSON.parse(JSON.stringify(services)),
       hospitals: JSON.parse(JSON.stringify(hospitals)),
+      blogs: JSON.parse(JSON.stringify(blogs)),
     };
   } catch {
-    return { services: [], hospitals: [] };
+    return { services: [], hospitals: [], blogs: [] };
   }
 }
 
@@ -68,7 +75,7 @@ const defaultTestimonials = [
 ];
 
 export default async function HomePage() {
-  const { services, hospitals } = await getData();
+  const { services, hospitals, blogs } = await getData();
 
   // Extract dynamic doctor cards from database hospitals
   const dynamicDoctorCards = (hospitals || []).flatMap((h: any) => {
@@ -361,6 +368,109 @@ export default async function HomePage() {
 
       {/* Have questions? Get in touch! Contact Section */}
       <HomeContactSection />
+
+      {/* Latest Health Articles & Medical Blogs Section */}
+      {blogs && blogs.length > 0 && (
+        <section className="py-20 bg-gray-50 border-t border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div className="space-y-3">
+                <span className="text-xs font-bold text-[#fd1d74] uppercase tracking-wider bg-pink-100 px-3.5 py-1 rounded-full">
+                  Medical Articles & Health Insights
+                </span>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">
+                  Latest Health & Surgical Procedure Guides
+                </h2>
+                <p className="text-gray-600 text-sm sm:text-base max-w-2xl font-medium">
+                  Stay informed with clinical breakdowns, patient recovery tips, and expert surgical advice from top doctors in India.
+                </p>
+              </div>
+
+              <Link
+                href="/blogs"
+                className="inline-flex items-center space-x-2 text-sm font-extrabold text-[#fd1d74] hover:text-[#d41f5a] transition-all hover:translate-x-1"
+              >
+                <span>View All Articles</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {blogs.map((b: any) => (
+                <article
+                  key={b.id}
+                  className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group"
+                >
+                  <Link href={`/blogs/${b.slug}`} className="relative h-48 w-full bg-gray-100 block overflow-hidden">
+                    <Image
+                      src={
+                        b.image ||
+                        'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80'
+                      }
+                      alt={b.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-3 left-3">
+                      <span className="bg-[#101828]/80 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1 rounded-full border border-white/20">
+                        {b.category || 'Health'}
+                      </span>
+                    </div>
+                  </Link>
+
+                  <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-2.5">
+                      <div className="flex items-center space-x-3 text-xs font-semibold text-gray-400">
+                        <span className="flex items-center space-x-1">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>
+                            {b.publishedAt
+                              ? new Date(b.publishedAt).toLocaleDateString(undefined, {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })
+                              : 'Recent'}
+                          </span>
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center space-x-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>{b.readTime || '5 min'}</span>
+                        </span>
+                      </div>
+
+                      <Link href={`/blogs/${b.slug}`}>
+                        <h3 className="text-lg font-bold text-gray-900 group-hover:text-[#fd1d74] transition-colors leading-snug line-clamp-2">
+                          {b.title}
+                        </h3>
+                      </Link>
+
+                      <p className="text-gray-600 text-xs leading-relaxed line-clamp-3">
+                        {b.excerpt || 'Read full medical details and expert procedure breakdowns.'}
+                      </p>
+                    </div>
+
+                    <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs">
+                      <span className="font-semibold text-gray-700 truncate max-w-[150px]">
+                        {b.author || 'Clinic By Choice'}
+                      </span>
+
+                      <Link
+                        href={`/blogs/${b.slug}`}
+                        className="font-extrabold text-[#fd1d74] flex items-center space-x-1 hover:translate-x-1 transition-transform"
+                      >
+                        <span>Read More</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* FAQ's Pink Accordion Section */}
       <FAQSection />

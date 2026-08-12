@@ -3,6 +3,9 @@ import { connectDB } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
 import { Hospital } from '@/models';
 
+import { cleanupOldImages } from '@/lib/fileCleanup';
+import { ensureLocationMasterExists, isIndiaLocation } from '@/lib/locationMaster';
+
 export async function GET() {
   try {
     const authUser = await getAuthUser();
@@ -62,6 +65,30 @@ export async function PUT(req: Request) {
       googleRating,
       rating,
     } = body;
+
+    if (country && !isIndiaLocation(country)) {
+      return NextResponse.json(
+        { error: 'Only locations within India are allowed for hospital profiles.' },
+        { status: 400 }
+      );
+    }
+
+    // Auto-create missing State, District, and City in location master DB if location updated
+    const updatedState = state || hospital.state;
+    const updatedCity = city || hospital.city;
+    const updatedDistrict = district !== undefined ? district : hospital.district;
+    if (updatedState && updatedCity) {
+      await ensureLocationMasterExists({ state: updatedState, district: updatedDistrict, city: updatedCity });
+    }
+    if (logo !== undefined && logo !== hospital.logo) {
+      await cleanupOldImages(hospital.logo, logo);
+    }
+    if (coverImage !== undefined && coverImage !== hospital.coverImage) {
+      await cleanupOldImages(hospital.coverImage, coverImage);
+    }
+    if (gallery !== undefined && Array.isArray(gallery)) {
+      await cleanupOldImages(hospital.gallery, gallery);
+    }
 
     await hospital.update({
       name: name ? name.trim() : hospital.name,

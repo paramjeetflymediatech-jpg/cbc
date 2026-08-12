@@ -3,11 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-  ShoppingBag,
   CheckCircle2,
   AlertCircle,
   Loader2,
-  ShieldCheck,
   Zap,
   ChevronLeft,
   ChevronRight,
@@ -20,6 +18,32 @@ import {
   Clock,
 } from 'lucide-react';
 
+interface LeadPackage {
+  id: number;
+  name: string;
+  leadCount: number;
+  price: number;
+  validityDays?: number | null;
+  description?: string;
+}
+
+interface PackageSubscription {
+  id: number;
+  leadLimit: number;
+  leadsUsed?: number;
+  leadsRemaining?: number;
+  purchasePrice: number;
+  purchasedAt: string;
+  expiresAt?: string;
+  currency?: string;
+  status: string;
+  package?: LeadPackage;
+  payment?: {
+    merchantTransactionId?: string;
+    gateway?: string;
+  };
+}
+
 export default function HospitalPackagesPage() {
   const searchParams = useSearchParams();
   const statusParam = searchParams.get('status');
@@ -27,12 +51,12 @@ export default function HospitalPackagesPage() {
   const balanceParam = searchParams.get('balance');
   const errorParam = searchParams.get('error');
 
-  const [packages, setPackages] = useState<any[]>([]);
-  const [activePackages, setActivePackages] = useState<any[]>([]);
+  const [packages, setPackages] = useState<LeadPackage[]>([]);
+  const [activePackages, setActivePackages] = useState<PackageSubscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasingId, setPurchasingId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
-  const [selectedSubscription, setSelectedSubscription] = useState<any | null>(null);
+  const [selectedSubscription, setSelectedSubscription] = useState<PackageSubscription | null>(null);
 
   // Pagination for Active Package Subscriptions
   const [currentPage, setCurrentPage] = useState(1);
@@ -70,7 +94,7 @@ export default function HospitalPackagesPage() {
         setErrorMessage(data.error || 'Failed to initiate PhonePe checkout.');
       } else {
         // Redirect to PhonePe Gateway
-        window.location.href = data.redirectUrl;
+        window.location.assign(data.redirectUrl);
       }
     } catch {
       setErrorMessage('Network error initiating PhonePe payment.');
@@ -150,7 +174,12 @@ export default function HospitalPackagesPage() {
                   </span>
                 </div>
 
-                <p className="text-xs text-gray-600 leading-relaxed">{pkg.description}</p>
+                {pkg.description && (
+                  <div
+                    className="text-xs text-gray-600 leading-relaxed space-y-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-1 [&_h2]:font-bold [&_h3]:font-bold"
+                    dangerouslySetInnerHTML={{ __html: pkg.description }}
+                  />
+                )}
               </div>
 
               <div className="pt-4 border-t border-gray-100">
@@ -414,9 +443,10 @@ export default function HospitalPackagesPage() {
                 <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block">
                   Package Description
                 </span>
-                <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                  {selectedSubscription.package.description}
-                </p>
+                <div
+                  className="text-xs text-gray-600 leading-relaxed font-medium space-y-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-1 [&_h2]:font-bold [&_h3]:font-bold"
+                  dangerouslySetInnerHTML={{ __html: selectedSubscription.package.description }}
+                />
               </div>
             )}
 

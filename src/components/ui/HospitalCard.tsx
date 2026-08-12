@@ -53,12 +53,12 @@ export default function HospitalCard({ hospital, defaultServiceId }: HospitalCar
                 <Star className="w-3 h-3 fill-current mr-1 text-[#ec2c6c]" />
                 {(hospital as any).googleRating || hospital.rating || 4.8} Verified
               </span>
-              {(hospital as any).isNabhAccredited !== false && (
+              {Boolean((hospital as any).isNabhAccredited) && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-white">
                   NABH Accredited
                 </span>
               )}
-              {(hospital as any).isVerifiedPartner !== false && (
+              {Boolean((hospital as any).isVerifiedPartner) && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                   <ShieldCheck className="w-3 h-3 mr-1 text-emerald-600" />
                   Verified Partner

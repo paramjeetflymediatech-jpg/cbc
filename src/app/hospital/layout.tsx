@@ -4,13 +4,26 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Building2, Stethoscope, Users, ShoppingBag, CreditCard, LogOut, Menu, X, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Building2, Stethoscope, Users, ShoppingBag, CreditCard, LogOut, Menu, X, UserCheck } from 'lucide-react';
+
+interface UserData {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
+interface HospitalNavData {
+  id: number;
+  name: string;
+  city: string;
+}
 
 export default function HospitalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [hospital, setHospital] = useState<any>(null);
+  const [user, setUser] = useState<UserData | null>(null);
+  const [hospital, setHospital] = useState<HospitalNavData | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -37,6 +50,7 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
   const navItems = [
     { name: 'Dashboard', href: '/hospital/dashboard', icon: LayoutDashboard },
     { name: 'Hospital Profile', href: '/hospital/profile', icon: Building2 },
+    { name: 'Doctor Section', href: '/hospital/doctors', icon: UserCheck },
     { name: 'Offered Services', href: '/hospital/services', icon: Stethoscope },
     { name: 'Patient Leads', href: '/hospital/leads', icon: Users },
     { name: 'Lead Packages', href: '/hospital/packages', icon: ShoppingBag },

@@ -154,7 +154,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/contact-us" className="hover:text-[#F04B8B] flex items-center group">
+                <Link href="/blogs" className="hover:text-[#F04B8B] flex items-center group">
                   <span className="text-[#F04B8B] font-black mr-2 text-sm group-hover:translate-x-1 transition-transform">»</span>
                   <span>Blog</span>
                 </Link>

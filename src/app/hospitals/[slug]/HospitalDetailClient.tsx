@@ -119,12 +119,12 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
                     <Star className="w-3.5 h-3.5 fill-current mr-1 text-yellow-300" />
                     {(hospital as any).googleRating || hospital.rating || 4.8} Verified Hospital
                   </span>
-                  {(hospital as any).isNabhAccredited !== false && (
+                  {Boolean((hospital as any).isNabhAccredited) && (
                     <span className="bg-slate-800/90 text-white text-xs font-bold px-3.5 py-1 rounded-full border border-slate-700 shadow-xs">
                       NABH Accredited
                     </span>
                   )}
-                  {(hospital as any).isVerifiedPartner !== false && (
+                  {Boolean((hospital as any).isVerifiedPartner) && (
                     <span className="bg-[#045c43]/60 text-emerald-300 border border-emerald-600/50 text-xs font-extrabold px-3.5 py-1 rounded-full flex items-center shadow-xs">
                       <ShieldCheck className="w-3.5 h-3.5 mr-1" />
                       Verified Partner
@@ -262,9 +262,17 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
                     NABH Accredited
                   </span>
                 </div>
-                <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line font-medium">
-                  {hospital.description}
-                </p>
+                <div
+                  className="prose max-w-none text-gray-700 text-sm leading-relaxed font-medium space-y-3
+                    [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-gray-900 [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:border-b [&_h2]:border-pink-100 [&_h2]:pb-1
+                    [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-[#b02151] [&_h3]:mt-3 [&_h3]:mb-1
+                    [&_p]:mb-2 [&_p]:leading-relaxed
+                    [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1
+                    [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1
+                    [&_blockquote]:border-l-4 [&_blockquote]:border-[#b02151] [&_blockquote]:bg-pink-50/60 [&_blockquote]:p-3 [&_blockquote]:rounded-r-xl [&_blockquote]:italic
+                    [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-xl [&_img]:my-3"
+                  dangerouslySetInnerHTML={{ __html: hospital.description }}
+                />
               </section>
             )}
 
@@ -362,14 +370,36 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {doctors.map((doc: any, idx: number) => (
                     <div key={idx} className="p-5 bg-slate-50 rounded-2xl border border-gray-200 flex items-start space-x-4">
-                      <div className="w-14 h-14 rounded-2xl bg-[#b02151] text-white flex items-center justify-center font-extrabold text-xl flex-shrink-0 shadow-md">
-                        {doc.name ? doc.name.replace('Dr.', '').trim()[0] : 'D'}
+                      <div className="w-14 h-14 rounded-2xl bg-[#b02151] text-white flex items-center justify-center font-extrabold text-xl flex-shrink-0 shadow-md overflow-hidden">
+                        {doc.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={doc.image} alt={doc.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{doc.name ? doc.name.replace('Dr.', '').trim()[0] : 'D'}</span>
+                        )}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1 min-w-0 flex-1">
                         <h4 className="font-extrabold text-gray-900 text-base">{doc.name}</h4>
                         <p className="text-xs text-[#b02151] font-bold">{doc.specialty || doc.qualification}</p>
                         {doc.qualification && <p className="text-xs text-gray-500 font-medium">{doc.qualification}</p>}
                         {doc.experience && <p className="text-xs text-gray-600 font-extrabold">{doc.experience} Experience</p>}
+                        {doc.treatments && doc.treatments.length > 0 && (
+                          <div className="pt-2">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                              Treatments Offered:
+                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {doc.treatments.map((tr: string, tIdx: number) => (
+                                <span
+                                  key={tIdx}
+                                  className="px-2 py-0.5 bg-pink-100/80 text-[#b02151] font-bold text-[10px] rounded-md border border-pink-200"
+                                >
+                                  {tr}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

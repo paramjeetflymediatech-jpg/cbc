@@ -11,6 +11,7 @@ import { Notification } from './Notification';
 import { State } from './State';
 import { District } from './District';
 import { City } from './City';
+import { BlogPost } from './BlogPost';
 
 let isInitialized = false;
 
@@ -128,4 +129,7 @@ export {
   State,
   District,
   City,
+  BlogPost,
 };
+
+export type { IDoctor, IFAQ } from './Hospital';

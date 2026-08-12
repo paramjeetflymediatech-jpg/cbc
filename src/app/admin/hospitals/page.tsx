@@ -3,24 +3,93 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import GoogleAddressMapPicker from '@/components/ui/GoogleAddressMapPicker';
-import { Building2, CheckCircle2, XCircle, AlertCircle, Eye, Phone, Mail, MapPin, User, Stethoscope, FileText, Sparkles, X, Trash2, Plus, Loader2 } from 'lucide-react';
+import RichTextEditor from '@/components/ui/RichTextEditor';
+import {
+  Building2,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Eye,
+  Phone,
+  Mail,
+  MapPin,
+  FileText,
+  X,
+  Trash2,
+  Plus,
+  Loader2,
+  Edit3,
+  Upload,
+  Save,
+  Stethoscope,
+  UserPlus,
+  User,
+} from 'lucide-react';
+
+interface IDoctor {
+  name: string;
+  qualification?: string;
+  specialty?: string;
+  experience?: string;
+  image?: string;
+  treatments?: string[];
+}
+
+interface StateItem {
+  id: number;
+  name: string;
+  code?: string;
+  cities?: { id?: number; name: string }[];
+}
+
+interface HospitalData {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  website?: string | null;
+  address: string;
+  city: string;
+  district?: string | null;
+  state: string;
+  country?: string;
+  description?: string | null;
+  logo?: string | null;
+  coverImage?: string | null;
+  gallery?: string[];
+  contactPersonName?: string | null;
+  contactPersonPhone?: string | null;
+  contactPersonEmail?: string | null;
+  doctors?: IDoctor[];
+  isNabhAccredited?: boolean;
+  isVerifiedPartner?: boolean;
+  googleRating?: number;
+  googleReviewsCount?: number | null;
+  rating?: number;
+  leadsRemaining?: number;
+  status: string;
+  accountStatus?: string;
+  rejectionReason?: string | null;
+  createdAt: string;
+}
 
 export default function AdminHospitalsPage() {
   const searchParams = useSearchParams();
   const initialStatus = searchParams.get('status') || '';
 
-  const [hospitals, setHospitals] = useState<any[]>([]);
+  const [hospitals, setHospitals] = useState<HospitalData[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
 
   // Dynamic Locations State
-  const [statesList, setStatesList] = useState<any[]>([]);
+  const [statesList, setStatesList] = useState<StateItem[]>([]);
   const [cityOptions, setCityOptions] = useState<string[]>([]);
+  const [editCityOptions, setEditCityOptions] = useState<string[]>([]);
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
-  const [viewHospital, setViewHospital] = useState<any | null>(null);
-  const [deletingHospital, setDeletingHospital] = useState<any | null>(null);
+  const [viewHospital, setViewHospital] = useState<HospitalData | null>(null);
+  const [deletingHospital, setDeletingHospital] = useState<HospitalData | null>(null);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -39,6 +108,188 @@ export default function AdminHospitalsPage() {
   const [addStatus, setAddStatus] = useState('APPROVED');
   const [formError, setFormError] = useState('');
 
+  // Super Admin Edit Hospital Profile state
+  const [editHospital, setEditHospital] = useState<HospitalData | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editWebsite, setEditWebsite] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editCity, setEditCity] = useState('');
+  const [editDistrict, setEditDistrict] = useState('');
+  const [editState, setEditState] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editLogo, setEditLogo] = useState('');
+  const [editCoverImage, setEditCoverImage] = useState('');
+  const [editGallery, setEditGallery] = useState<string[]>([]);
+  const [editContactPersonName, setEditContactPersonName] = useState('');
+  const [editContactPersonPhone, setEditContactPersonPhone] = useState('');
+  const [editContactPersonEmail, setEditContactPersonEmail] = useState('');
+  const [editIsNabhAccredited, setEditIsNabhAccredited] = useState(true);
+  const [editIsVerifiedPartner, setEditIsVerifiedPartner] = useState(true);
+  const [editGoogleRating, setEditGoogleRating] = useState<number | string>(4.8);
+  const [editGoogleReviewsCount, setEditGoogleReviewsCount] = useState<number | string>('');
+  const [editLeadsRemaining, setEditLeadsRemaining] = useState<number | string>(50);
+  const [editStatus, setEditStatus] = useState('APPROVED');
+  const [editAccountStatus, setEditAccountStatus] = useState('ACTIVE');
+  const [editFormError, setEditFormError] = useState('');
+  const [editSuccessMessage, setEditSuccessMessage] = useState('');
+
+  // Super Admin Doctor Management State
+  const [doctorModalHospital, setDoctorModalHospital] = useState<HospitalData | null>(null);
+  const [showAddDocModal, setShowAddDocModal] = useState(false);
+  const [editingDocIndex, setEditingDocIndex] = useState<number | null>(null);
+  const [docName, setDocName] = useState('');
+  const [docQualification, setDocQualification] = useState('');
+  const [docSpecialty, setDocSpecialty] = useState('');
+  const [docExperience, setDocExperience] = useState('');
+  const [docImage, setDocImage] = useState('');
+  const [docTreatmentsInput, setDocTreatmentsInput] = useState('');
+  const [uploadingDocImage, setUploadingDocImage] = useState(false);
+  const [docSaving, setDocSaving] = useState(false);
+
+  const resetDocForm = () => {
+    setDocName('');
+    setDocQualification('');
+    setDocSpecialty('');
+    setDocExperience('');
+    setDocImage('');
+    setDocTreatmentsInput('');
+  };
+
+  const handleOpenDoctorModal = (h: HospitalData) => {
+    setDoctorModalHospital(h);
+    setShowAddDocModal(false);
+    setEditingDocIndex(null);
+    resetDocForm();
+  };
+
+  const handleStartAddDoctor = () => {
+    resetDocForm();
+    setEditingDocIndex(null);
+    setShowAddDocModal(true);
+  };
+
+  const handleStartEditDoctor = (doc: IDoctor, index: number) => {
+    setDocName(doc.name || '');
+    setDocQualification(doc.qualification || '');
+    setDocSpecialty(doc.specialty || '');
+    setDocExperience(doc.experience || '');
+    setDocImage(doc.image || '');
+    setDocTreatmentsInput((doc.treatments || []).join(', '));
+    setEditingDocIndex(index);
+    setShowAddDocModal(true);
+  };
+
+  const handleDocImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingDocImage(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', 'doctors');
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setDocImage(data.url);
+      } else {
+        alert(data.error || 'Photo upload failed');
+      }
+    } catch {
+      alert('Error uploading doctor photo');
+    } finally {
+      setUploadingDocImage(false);
+    }
+  };
+
+  const handleSaveDoctor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!doctorModalHospital || !docName.trim()) return;
+
+    setDocSaving(true);
+    try {
+      const currentDoctors = doctorModalHospital.doctors || [];
+      const updatedDoctors = [...currentDoctors];
+
+      const parsedTreatments = docTreatmentsInput
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+
+      const newDoc: IDoctor = {
+        name: docName.trim(),
+        qualification: docQualification.trim(),
+        specialty: docSpecialty.trim(),
+        experience: docExperience.trim(),
+        image: docImage || undefined,
+        treatments: parsedTreatments,
+      };
+
+      if (editingDocIndex !== null) {
+        updatedDoctors[editingDocIndex] = newDoc;
+      } else {
+        updatedDoctors.push(newDoc);
+      }
+
+      const res = await fetch(`/api/admin/hospitals/${doctorModalHospital.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doctors: updatedDoctors }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update doctors');
+
+      const updatedHospital = { ...doctorModalHospital, doctors: updatedDoctors };
+      setDoctorModalHospital(updatedHospital);
+      setHospitals((prev) =>
+        prev.map((h) => (h.id === doctorModalHospital.id ? { ...h, doctors: updatedDoctors } : h))
+      );
+
+      setShowAddDocModal(false);
+      setEditingDocIndex(null);
+      resetDocForm();
+    } catch (err: unknown) {
+      alert((err as Error).message || 'Error saving doctor.');
+    } finally {
+      setDocSaving(false);
+    }
+  };
+
+  const handleDeleteDoctor = async (index: number) => {
+    if (!doctorModalHospital || !confirm('Are you sure you want to remove this doctor?')) return;
+
+    const updatedDoctors = (doctorModalHospital.doctors || []).filter((_, idx) => idx !== index);
+    setDocSaving(true);
+    try {
+      const res = await fetch(`/api/admin/hospitals/${doctorModalHospital.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doctors: updatedDoctors }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to remove doctor');
+
+      const updatedHospital = { ...doctorModalHospital, doctors: updatedDoctors };
+      setDoctorModalHospital(updatedHospital);
+      setHospitals((prev) =>
+        prev.map((h) => (h.id === doctorModalHospital.id ? { ...h, doctors: updatedDoctors } : h))
+      );
+    } catch (err: unknown) {
+      alert((err as Error).message || 'Error deleting doctor.');
+    } finally {
+      setDocSaving(false);
+    }
+  };
+  const [uploadingTarget, setUploadingTarget] = useState<string | null>(null);
+
   const fetchHospitals = () => {
     const url = statusFilter ? `/api/admin/hospitals?status=${statusFilter}` : '/api/admin/hospitals';
     fetch(url)
@@ -50,7 +301,13 @@ export default function AdminHospitalsPage() {
   };
 
   useEffect(() => {
-    fetchHospitals();
+    const url = statusFilter ? `/api/admin/hospitals?status=${statusFilter}` : '/api/admin/hospitals';
+    fetch(url)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.hospitals) setHospitals(data.hospitals);
+      })
+      .finally(() => setLoading(false));
 
     // Fetch States & Cities
     fetch('/api/locations')
@@ -58,10 +315,10 @@ export default function AdminHospitalsPage() {
       .then((data) => {
         if (data.states && data.states.length > 0) {
           setStatesList(data.states);
-          const defaultSt = data.states.find((s: any) => s.name === 'Maharashtra') || data.states[0];
+          const defaultSt = data.states.find((s: StateItem) => s.name === 'Maharashtra') || data.states[0];
           setAddState(defaultSt.name);
           if (defaultSt.cities && defaultSt.cities.length > 0) {
-            const cities = defaultSt.cities.map((c: any) => c.name);
+            const cities = defaultSt.cities.map((c: { name: string }) => c.name);
             setCityOptions(cities);
             setAddCity(cities[0]);
           }
@@ -72,14 +329,26 @@ export default function AdminHospitalsPage() {
 
   const handleAddStateChange = (newStateName: string) => {
     setAddState(newStateName);
-    const selectedStateObj = statesList.find((s: any) => s.name === newStateName);
+    const selectedStateObj = statesList.find((s: StateItem) => s.name === newStateName);
     if (selectedStateObj && selectedStateObj.cities && selectedStateObj.cities.length > 0) {
-      const cities = selectedStateObj.cities.map((c: any) => c.name);
+      const cities = selectedStateObj.cities.map((c: { name: string }) => c.name);
       setCityOptions(cities);
       setAddCity(cities[0]);
     } else {
       setCityOptions([]);
       setAddCity('');
+    }
+  };
+
+  const handleEditStateChange = (newStateName: string) => {
+    setEditState(newStateName);
+    const selectedStateObj = statesList.find((s: StateItem) => s.name === newStateName);
+    if (selectedStateObj && selectedStateObj.cities && selectedStateObj.cities.length > 0) {
+      const cities = selectedStateObj.cities.map((c: { name: string }) => c.name);
+      setEditCityOptions(cities);
+      setEditCity(cities[0]);
+    } else {
+      setEditCityOptions([]);
     }
   };
 
@@ -91,7 +360,7 @@ export default function AdminHospitalsPage() {
   }) => {
     if (data.address) setAddAddress(data.address);
     if (data.state) {
-      const matchedState = statesList.find((s: any) =>
+      const matchedState = statesList.find((s: StateItem) =>
         s.name.toLowerCase().includes(data.state.toLowerCase())
       );
       if (matchedState) {
@@ -100,6 +369,151 @@ export default function AdminHospitalsPage() {
     }
     if (data.city) {
       setAddCity(data.city);
+    }
+  };
+
+  const handleEditGoogleAddressSelected = (data: {
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+  }) => {
+    if (data.address) setEditAddress(data.address);
+    if (data.state) {
+      const matchedState = statesList.find((s: StateItem) =>
+        s.name.toLowerCase().includes(data.state.toLowerCase())
+      );
+      if (matchedState) {
+        handleEditStateChange(matchedState.name);
+      }
+    }
+    if (data.city) {
+      setEditCity(data.city);
+    }
+  };
+
+  const handleStartEditHospital = (h: HospitalData) => {
+    setEditHospital(h);
+    setEditName(h.name || '');
+    setEditEmail(h.email || '');
+    setEditPhone(h.phone || '');
+    setEditWebsite(h.website || '');
+    setEditAddress(h.address || '');
+    setEditCity(h.city || '');
+    setEditDistrict(h.district || '');
+    setEditState(h.state || 'Maharashtra');
+    setEditDescription(h.description || '');
+    setEditLogo(h.logo || '');
+    setEditCoverImage(h.coverImage || '');
+    setEditGallery(h.gallery || []);
+    setEditContactPersonName(h.contactPersonName || '');
+    setEditContactPersonPhone(h.contactPersonPhone || '');
+    setEditContactPersonEmail(h.contactPersonEmail || '');
+    setEditIsNabhAccredited(Boolean(h.isNabhAccredited));
+    setEditIsVerifiedPartner(Boolean(h.isVerifiedPartner));
+    setEditGoogleRating(h.googleRating || h.rating || 4.8);
+    setEditGoogleReviewsCount(h.googleReviewsCount || '');
+    setEditLeadsRemaining(h.leadsRemaining ?? 50);
+    setEditStatus(h.status || 'APPROVED');
+    setEditAccountStatus(h.accountStatus || 'ACTIVE');
+    setEditFormError('');
+    setEditSuccessMessage('');
+
+    // Populate city options for edit state
+    const matchedState = statesList.find((s: StateItem) => s.name === (h.state || 'Maharashtra'));
+    if (matchedState && matchedState.cities) {
+      setEditCityOptions(matchedState.cities.map((c: { name: string }) => c.name));
+    }
+  };
+
+  const handleSaveEditHospital = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editHospital) return;
+
+    setEditFormError('');
+    setEditSuccessMessage('');
+    setActionLoading(true);
+
+    try {
+      const res = await fetch(`/api/admin/hospitals/${editHospital.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editName,
+          email: editEmail,
+          phone: editPhone,
+          website: editWebsite,
+          address: editAddress,
+          city: editCity,
+          district: editDistrict,
+          state: editState,
+          description: editDescription,
+          logo: editLogo,
+          coverImage: editCoverImage,
+          gallery: editGallery,
+          contactPersonName: editContactPersonName,
+          contactPersonPhone: editContactPersonPhone,
+          contactPersonEmail: editContactPersonEmail,
+          isNabhAccredited: editIsNabhAccredited,
+          isVerifiedPartner: editIsVerifiedPartner,
+          googleRating: Number(editGoogleRating),
+          googleReviewsCount: editGoogleReviewsCount ? Number(editGoogleReviewsCount) : null,
+          leadsRemaining: Number(editLeadsRemaining),
+          status: editStatus,
+          accountStatus: editAccountStatus,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setEditFormError(data.error || 'Failed to update hospital profile.');
+      } else {
+        setEditSuccessMessage('Hospital profile updated successfully!');
+        fetchHospitals();
+        setTimeout(() => {
+          setEditHospital(null);
+        }, 1200);
+      }
+    } catch {
+      setEditFormError('Server error updating hospital profile.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleImageFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    target: 'logo' | 'cover' | 'gallery'
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingTarget(target);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', 'hospitals');
+    if (editName) formData.append('hospitalFolder', editName.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.url) {
+        if (target === 'logo') setEditLogo(data.url);
+        if (target === 'cover') setEditCoverImage(data.url);
+        if (target === 'gallery') setEditGallery((prev) => [...prev, data.url]);
+      } else {
+        alert(data.error || 'Failed to upload image file.');
+      }
+    } catch {
+      alert('Error uploading image file.');
+    } finally {
+      setUploadingTarget(null);
+      e.target.value = '';
     }
   };
 
@@ -215,7 +629,7 @@ export default function AdminHospitalsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-4">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900">Hospital Approvals & Management</h1>
-          <p className="text-xs text-gray-500">Inspect hospital applications, add new hospitals, or purge data.</p>
+          <p className="text-xs text-gray-500">Inspect hospital applications, add new hospitals, edit profiles, or purge data.</p>
         </div>
 
         <div className="flex items-center space-x-3">
@@ -243,101 +657,126 @@ export default function AdminHospitalsPage() {
 
       {/* Hospital Cards List */}
       <div className="space-y-4">
-        {hospitals.map((h) => (
-          <div key={h.id} className="cbc-card p-6 border border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="space-y-2 flex-1">
-              <div className="flex items-center space-x-2">
-                <span
-                  className={`text-[10px] font-extrabold uppercase px-3 py-0.5 rounded-full ${
-                    h.status === 'APPROVED'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : h.status === 'PENDING'
-                      ? 'bg-amber-100 text-amber-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}
-                >
-                  {h.status}
-                </span>
-                <span className="text-xs text-gray-400 font-medium">Registered: {new Date(h.createdAt).toLocaleDateString('en-IN')}</span>
-              </div>
-
-              <h3 className="text-xl font-bold text-gray-900">{h.name}</h3>
-
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
-                <span className="flex items-center"><MapPin className="w-3.5 h-3.5 mr-1 text-gray-400" /> {h.city}, {h.state}</span>
-                <span className="flex items-center"><Phone className="w-3.5 h-3.5 mr-1 text-gray-400" /> {h.phone}</span>
-                <span className="flex items-center"><Mail className="w-3.5 h-3.5 mr-1 text-gray-400" /> {h.email}</span>
-              </div>
-
-              <p className="text-xs text-gray-600 line-clamp-2 pt-1">{h.description}</p>
-
-              {h.rejectionReason && (
-                <p className="text-xs text-red-600 bg-red-50 p-2 rounded-lg">
-                  <strong>Rejection Reason:</strong> {h.rejectionReason}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0">
-              <button
-                onClick={() => setViewHospital(h)}
-                className="px-3.5 py-2 bg-pink-50 hover:bg-pink-100 text-[#b02151] rounded-full text-xs font-extrabold transition-all flex items-center space-x-1.5 border border-pink-100 shadow-sm"
-              >
-                <Eye className="w-4 h-4" />
-                <span>View Details</span>
-              </button>
-
-              {h.status === 'PENDING' && (
-                <>
-                  <button
-                    onClick={() => handleApprove(h.id)}
-                    disabled={actionLoading}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold transition-all flex items-center space-x-1 shadow-md"
+        {loading ? (
+          <div className="p-8 text-center text-xs text-gray-500 font-semibold flex items-center justify-center space-x-2">
+            <Loader2 className="w-4 h-4 animate-spin text-[#b02151]" />
+            <span>Loading hospitals...</span>
+          </div>
+        ) : (
+          hospitals.map((h) => (
+            <div key={h.id} className="cbc-card p-6 border border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="space-y-2 flex-1">
+                <div className="flex items-center space-x-2">
+                  <span
+                    className={`text-[10px] font-extrabold uppercase px-3 py-0.5 rounded-full ${
+                      h.status === 'APPROVED'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : h.status === 'PENDING'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
                   >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Approve</span>
-                  </button>
+                    {h.status}
+                  </span>
+                  <span className="text-xs text-gray-400 font-medium">Registered: {new Date(h.createdAt).toLocaleDateString('en-IN')}</span>
+                  <span className="text-xs text-pink-600 font-bold bg-pink-50 px-2 py-0.5 rounded-full">
+                    Leads: {h.leadsRemaining ?? 0}
+                  </span>
+                </div>
 
+                <h3 className="text-xl font-bold text-gray-900">{h.name}</h3>
+
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                  <span className="flex items-center"><MapPin className="w-3.5 h-3.5 mr-1 text-gray-400" /> {h.city}, {h.state}</span>
+                  <span className="flex items-center"><Phone className="w-3.5 h-3.5 mr-1 text-gray-400" /> {h.phone}</span>
+                  <span className="flex items-center"><Mail className="w-3.5 h-3.5 mr-1 text-gray-400" /> {h.email}</span>
+                </div>
+
+                {h.description && (
+                  <div
+                    className="text-xs text-gray-600 line-clamp-2 pt-1"
+                    dangerouslySetInnerHTML={{ __html: h.description }}
+                  />
+                )}
+
+                {h.rejectionReason && (
+                  <p className="text-xs text-red-600 bg-red-50 p-2 rounded-lg">
+                    <strong>Rejection Reason:</strong> {h.rejectionReason}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0">
+                <button
+                  onClick={() => setViewHospital(h)}
+                  className="px-3.5 py-2 bg-pink-50 hover:bg-pink-100 text-[#b02151] rounded-full text-xs font-extrabold transition-all flex items-center space-x-1.5 border border-pink-100 shadow-sm cursor-pointer"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>View Details</span>
+                </button>
+
+                <button
+                  onClick={() => handleStartEditHospital(h)}
+                  className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-full text-xs font-extrabold transition-all flex items-center space-x-1.5 border border-indigo-100 shadow-sm cursor-pointer"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  <span>Edit Profile</span>
+                </button>
+
+                <button
+                  onClick={() => handleOpenDoctorModal(h)}
+                  className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-full text-xs font-extrabold transition-all flex items-center space-x-1.5 border border-purple-100 shadow-sm cursor-pointer"
+                >
+                  <Stethoscope className="w-4 h-4" />
+                  <span>Doctors ({h.doctors?.length || 0})</span>
+                </button>
+
+                {h.status === 'PENDING' && (
+                  <>
+                    <button
+                      onClick={() => handleApprove(h.id)}
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold transition-all flex items-center space-x-1 shadow-md cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Approve</span>
+                    </button>
+
+                    <button
+                      onClick={() => setRejectingId(h.id)}
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full text-xs font-bold transition-all flex items-center space-x-1 shadow-md cursor-pointer"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      <span>Reject</span>
+                    </button>
+                  </>
+                )}
+
+                {h.status === 'APPROVED' && (
                   <button
                     onClick={() => setRejectingId(h.id)}
-                    disabled={actionLoading}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full text-xs font-bold transition-all flex items-center space-x-1 shadow-md"
+                    className="px-3.5 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-full text-xs font-bold cursor-pointer"
                   >
-                    <XCircle className="w-4 h-4" />
-                    <span>Reject</span>
+                    Suspend
                   </button>
-                </>
-              )}
+                )}
 
-              {h.status === 'APPROVED' && (
                 <button
-                  onClick={() => setRejectingId(h.id)}
-                  className="px-3.5 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-full text-xs font-bold"
+                  onClick={() => setDeletingHospital(h)}
+                  className="px-3.5 py-2 bg-gray-100 hover:bg-red-100 text-gray-700 hover:text-red-700 rounded-full text-xs font-bold transition-colors flex items-center space-x-1 cursor-pointer"
+                  title="Delete Hospital & Purge Data"
                 >
-                  Suspend
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
                 </button>
-              )}
-
-              <button
-                onClick={() => setDeletingHospital(h)}
-                className="px-3.5 py-2 bg-gray-100 hover:bg-red-100 text-gray-700 hover:text-red-700 rounded-full text-xs font-bold transition-colors flex items-center space-x-1"
-                title="Delete Hospital & Purge Data"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Delete</span>
-              </button>
+              </div>
             </div>
-          </div>
-        ))}
-
-        {hospitals.length === 0 && !loading && (
-          <div className="text-center py-16 bg-gray-50 rounded-2xl text-gray-500 text-sm">
-            No hospital registrations found matching selected filter.
-          </div>
+          ))
         )}
       </div>
 
-      {/* Add Hospital Modal */}
+      {/* Add New Hospital Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative my-8 border border-gray-100 max-h-[90vh] overflow-y-auto">
@@ -348,12 +787,9 @@ export default function AdminHospitalsPage() {
               <X className="w-5 h-5" />
             </button>
 
-            <div className="border-b border-gray-100 pb-4">
-              <h2 className="text-2xl font-extrabold text-gray-900 flex items-center">
-                <Building2 className="w-6 h-6 text-[#b02151] mr-2" />
-                Add New Hospital
-              </h2>
-              <p className="text-xs text-gray-500 mt-1">Directly onboard a hospital with Google Maps address fetch & dynamic locations.</p>
+            <div className="space-y-1 border-b border-gray-100 pb-4">
+              <h2 className="text-xl font-extrabold text-gray-900">Add New Partner Hospital</h2>
+              <p className="text-xs text-gray-500">Create a hospital account and grant initial lead credits.</p>
             </div>
 
             {formError && (
@@ -366,25 +802,25 @@ export default function AdminHospitalsPage() {
             <form onSubmit={handleAddHospitalSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Hospital / Clinic Name *</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Hospital Name *</label>
                   <input
                     type="text"
                     required
                     value={addName}
                     onChange={(e) => setAddName(e.target.value)}
-                    placeholder="e.g. Fortis Healthcare"
+                    placeholder="e.g. Apollo Hospital"
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#fd1d74]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Official Email Address *</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Login Email Address *</label>
                   <input
                     type="email"
                     required
                     value={addEmail}
                     onChange={(e) => setAddEmail(e.target.value)}
-                    placeholder="contact@fortis.com"
+                    placeholder="admin@hospital.com"
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#fd1d74]"
                   />
                 </div>
@@ -392,7 +828,7 @@ export default function AdminHospitalsPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Contact Phone Number *</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Mobile / Phone *</label>
                   <input
                     type="tel"
                     required
@@ -416,7 +852,6 @@ export default function AdminHospitalsPage() {
                 </div>
               </div>
 
-              {/* Google Maps Location Autocomplete Component */}
               <div className="p-4 bg-slate-50 border border-gray-200 rounded-2xl">
                 <GoogleAddressMapPicker
                   initialAddress={addAddress}
@@ -426,7 +861,6 @@ export default function AdminHospitalsPage() {
                 />
               </div>
 
-              {/* Dynamic State & City Dropdowns */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Select State *</label>
@@ -436,7 +870,7 @@ export default function AdminHospitalsPage() {
                     onChange={(e) => handleAddStateChange(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#fd1d74] cursor-pointer"
                   >
-                    {statesList.map((st: any) => (
+                    {statesList.map((st: StateItem) => (
                       <option key={st.id} value={st.name}>
                         {st.name} ({st.code})
                       </option>
@@ -453,9 +887,9 @@ export default function AdminHospitalsPage() {
                       onChange={(e) => setAddCity(e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#fd1d74] cursor-pointer"
                     >
-                      {cityOptions.map((cName: string) => (
-                        <option key={cName} value={cName}>
-                          {cName}
+                      {cityOptions.map((cityName) => (
+                        <option key={cityName} value={cityName}>
+                          {cityName}
                         </option>
                       ))}
                     </select>
@@ -465,34 +899,22 @@ export default function AdminHospitalsPage() {
                       required
                       value={addCity}
                       onChange={(e) => setAddCity(e.target.value)}
-                      placeholder="Enter City Name"
+                      placeholder="Enter City"
                       className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#fd1d74]"
                     />
                   )}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Full Street Address *</label>
-                <textarea
-                  rows={2}
-                  required
-                  value={addAddress}
-                  onChange={(e) => setAddAddress(e.target.value)}
-                  placeholder="Building name, street address..."
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#fd1d74] resize-none"
-                />
-              </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Initial Leads Credit</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Initial Lead Package Balance</label>
                   <input
                     type="number"
                     value={addLeads}
                     onChange={(e) => setAddLeads(e.target.value)}
                     placeholder="50"
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#fd1d74]"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-[#b02151] focus:outline-none focus:border-[#fd1d74]"
                   />
                 </div>
 
@@ -521,13 +943,11 @@ export default function AdminHospitalsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Hospital Description</label>
-                <textarea
-                  rows={2}
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Hospital Description & Overview</label>
+                <RichTextEditor
                   value={addDescription}
-                  onChange={(e) => setAddDescription(e.target.value)}
-                  placeholder="Overview of hospital facilities and doctor team..."
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#fd1d74] resize-none"
+                  onChange={setAddDescription}
+                  placeholder="Overview of hospital facilities, specialty departments, and doctor team..."
                 />
               </div>
 
@@ -543,10 +963,443 @@ export default function AdminHospitalsPage() {
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="bg-[#b02151] hover:bg-[#921941] text-white text-xs font-extrabold px-6 py-2.5 rounded-full uppercase tracking-wider transition-all shadow-lg flex items-center space-x-1.5 disabled:opacity-50"
+                  className="bg-[#b02151] hover:bg-[#921941] text-white text-xs font-extrabold px-6 py-2.5 rounded-full uppercase tracking-wider transition-all shadow-lg flex items-center space-x-1.5 disabled:opacity-50 cursor-pointer"
                 >
                   {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   <span>Save & Create Hospital</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Super Admin Edit Hospital Profile Modal */}
+      {editHospital && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative my-8 border border-indigo-100 max-h-[90vh] overflow-y-auto text-gray-900">
+            <button
+              onClick={() => setEditHospital(null)}
+              className="absolute top-6 right-6 p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1 border-b border-gray-100 pb-4 flex items-center justify-between pr-8">
+              <div>
+                <h2 className="text-xl font-extrabold text-gray-900 flex items-center space-x-2">
+                  <Edit3 className="w-5 h-5 text-indigo-600" />
+                  <span>Edit Hospital Profile — {editHospital.name}</span>
+                </h2>
+                <p className="text-xs text-gray-500">Modify hospital credentials, branding photos, address, badges, and lead balance.</p>
+              </div>
+              <span className="text-xs font-mono text-gray-400 bg-gray-100 px-3 py-1 rounded-full">ID: #{editHospital.id}</span>
+            </div>
+
+            {editSuccessMessage && (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-2xl flex items-center space-x-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                <span className="font-semibold">{editSuccessMessage}</span>
+              </div>
+            )}
+
+            {editFormError && (
+              <div className="p-4 bg-red-50 border border-red-200 text-red-800 text-sm rounded-2xl flex items-center space-x-2">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                <span className="font-semibold">{editFormError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEditHospital} className="space-y-6">
+              {/* Section 1: Basic Info & Credentials */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 border-b border-gray-100 pb-2">
+                  1. Basic Information & Account Credentials
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Hospital Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Login Email *</label>
+                    <input
+                      type="email"
+                      required
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Official Phone *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Website URL</label>
+                    <input
+                      type="url"
+                      value={editWebsite}
+                      onChange={(e) => setEditWebsite(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Leads Balance</label>
+                    <input
+                      type="number"
+                      value={editLeadsRemaining}
+                      onChange={(e) => setEditLeadsRemaining(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-pink-50 border border-pink-200 text-pink-700 font-extrabold rounded-xl text-sm focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Approval Status</label>
+                    <select
+                      value={editStatus}
+                      onChange={(e) => setEditStatus(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-indigo-600 cursor-pointer"
+                    >
+                      <option value="APPROVED">APPROVED</option>
+                      <option value="PENDING">PENDING</option>
+                      <option value="REJECTED">REJECTED</option>
+                      <option value="SUSPENDED">SUSPENDED</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Account Status</label>
+                    <select
+                      value={editAccountStatus}
+                      onChange={(e) => setEditAccountStatus(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-indigo-600 cursor-pointer"
+                    >
+                      <option value="ACTIVE">ACTIVE</option>
+                      <option value="SUSPENDED">SUSPENDED</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Location & Map Address */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 border-b border-gray-100 pb-2">
+                  2. Location & Street Address
+                </h4>
+
+                <div className="p-4 bg-slate-50 border border-gray-200 rounded-2xl">
+                  <GoogleAddressMapPicker
+                    initialAddress={editAddress}
+                    initialCity={editCity}
+                    initialState={editState}
+                    onAddressSelect={handleEditGoogleAddressSelected}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">State *</label>
+                    <select
+                      required
+                      value={editState}
+                      onChange={(e) => handleEditStateChange(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-indigo-600 cursor-pointer"
+                    >
+                      {statesList.map((st: StateItem) => (
+                        <option key={st.id} value={st.name}>
+                          {st.name} ({st.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">City *</label>
+                    {editCityOptions.length > 0 ? (
+                      <select
+                        required
+                        value={editCity}
+                        onChange={(e) => setEditCity(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-indigo-600 cursor-pointer"
+                      >
+                        {editCityOptions.map((cityName) => (
+                          <option key={cityName} value={cityName}>
+                            {cityName}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        required
+                        value={editCity}
+                        onChange={(e) => setEditCity(e.target.value)}
+                        placeholder="Enter City"
+                        className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-600"
+                      />
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">District / Region</label>
+                    <input
+                      type="text"
+                      value={editDistrict}
+                      onChange={(e) => setEditDistrict(e.target.value)}
+                      placeholder="e.g. Central District"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Full Address *</label>
+                  <textarea
+                    rows={2}
+                    required
+                    value={editAddress}
+                    onChange={(e) => setEditAddress(e.target.value)}
+                    placeholder="Full street address..."
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-600 resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Section 3: Branding & Photos */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 border-b border-gray-100 pb-2">
+                  3. Branding Images & Photos
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Logo Upload */}
+                  <div className="p-4 border border-gray-200 rounded-2xl space-y-3 bg-gray-50/50">
+                    <label className="block text-xs font-bold text-gray-700 uppercase">Hospital Logo</label>
+                    {editLogo ? (
+                      <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200 bg-white">
+                        <img src={editLogo} alt="Logo" className="w-full h-full object-contain p-1" />
+                        <button
+                          type="button"
+                          onClick={() => setEditLogo('')}
+                          className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full text-xs"
+                          title="Remove Logo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400">
+                        <Building2 className="w-8 h-8" />
+                      </div>
+                    )}
+                    <label className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 cursor-pointer shadow-2xs">
+                      {uploadingTarget === 'logo' ? <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" /> : <Upload className="w-3.5 h-3.5 text-indigo-600" />}
+                      <span>Upload Logo Photo</span>
+                      <input type="file" accept="image/*" onChange={(e) => handleImageFileUpload(e, 'logo')} className="hidden" />
+                    </label>
+                  </div>
+
+                  {/* Cover Image Upload */}
+                  <div className="p-4 border border-gray-200 rounded-2xl space-y-3 bg-gray-50/50">
+                    <label className="block text-xs font-bold text-gray-700 uppercase">Cover Banner Image</label>
+                    {editCoverImage ? (
+                      <div className="relative w-full h-24 rounded-xl overflow-hidden border border-gray-200 bg-white">
+                        <img src={editCoverImage} alt="Cover" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setEditCoverImage('')}
+                          className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full text-xs"
+                          title="Remove Cover"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-full h-24 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400">
+                        <span className="text-xs">No Cover Image Uploaded</span>
+                      </div>
+                    )}
+                    <label className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 cursor-pointer shadow-2xs">
+                      {uploadingTarget === 'cover' ? <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" /> : <Upload className="w-3.5 h-3.5 text-indigo-600" />}
+                      <span>Upload Cover Image</span>
+                      <input type="file" accept="image/*" onChange={(e) => handleImageFileUpload(e, 'cover')} className="hidden" />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Gallery Photos */}
+                <div className="p-4 border border-gray-200 rounded-2xl space-y-3 bg-gray-50/50">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-gray-700 uppercase">Hospital Photo Gallery ({editGallery.length})</label>
+                    <label className="inline-flex items-center space-x-1 px-3 py-1 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 cursor-pointer shadow-xs">
+                      {uploadingTarget === 'gallery' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                      <span>Add Photo</span>
+                      <input type="file" accept="image/*" onChange={(e) => handleImageFileUpload(e, 'gallery')} className="hidden" />
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 pt-1">
+                    {editGallery.map((imgUrl, idx) => (
+                      <div key={idx} className="relative group h-20 rounded-xl overflow-hidden border border-gray-200 bg-white">
+                        <img src={imgUrl} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setEditGallery(editGallery.filter((_, i) => i !== idx))}
+                          className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full text-xs opacity-90 hover:opacity-100"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 4: Overview & Description */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 border-b border-gray-100 pb-2">
+                  4. Hospital Overview & Medical Description
+                </h4>
+                <RichTextEditor
+                  value={editDescription}
+                  onChange={setEditDescription}
+                  placeholder="Write detailed hospital overview, specialty departments, and patient care standards..."
+                />
+              </div>
+
+              {/* Section 5: Trust Badges & Ratings */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 border-b border-gray-100 pb-2">
+                  5. Quality Accreditation & Google Ratings
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
+                  <label className="flex items-center space-x-2 p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editIsNabhAccredited}
+                      onChange={(e) => setEditIsNabhAccredited(e.target.checked)}
+                      className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-xs font-bold text-gray-800">NABH Accredited</span>
+                  </label>
+
+                  <label className="flex items-center space-x-2 p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editIsVerifiedPartner}
+                      onChange={(e) => setEditIsVerifiedPartner(e.target.checked)}
+                      className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-xs font-bold text-gray-800">Verified Partner</span>
+                  </label>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Google Rating (1-5)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="1"
+                      max="5"
+                      value={editGoogleRating}
+                      onChange={(e) => setEditGoogleRating(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Google Reviews Count</label>
+                    <input
+                      type="number"
+                      value={editGoogleReviewsCount}
+                      onChange={(e) => setEditGoogleReviewsCount(e.target.value)}
+                      placeholder="e.g. 140"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 6: Contact Representative */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 border-b border-gray-100 pb-2">
+                  6. Designated Contact Person
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Contact Person Name</label>
+                    <input
+                      type="text"
+                      value={editContactPersonName}
+                      onChange={(e) => setEditContactPersonName(e.target.value)}
+                      placeholder="Dr. S. Sharma"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Contact Phone</label>
+                    <input
+                      type="tel"
+                      value={editContactPersonPhone}
+                      onChange={(e) => setEditContactPersonPhone(e.target.value)}
+                      placeholder="+91 9876543210"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Contact Email</label>
+                    <input
+                      type="email"
+                      value={editContactPersonEmail}
+                      onChange={(e) => setEditContactPersonEmail(e.target.value)}
+                      placeholder="contact@hospital.com"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Action Buttons */}
+              <div className="pt-4 border-t border-gray-100 flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setEditHospital(null)}
+                  className="px-5 py-2.5 text-xs font-bold text-gray-600 border border-gray-200 rounded-full hover:bg-gray-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold px-6 py-2.5 rounded-full uppercase tracking-wider transition-all shadow-lg flex items-center space-x-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>Save Profile Changes</span>
                 </button>
               </div>
             </form>
@@ -599,69 +1452,39 @@ export default function AdminHospitalsPage() {
 
               <div className="bg-gray-50 p-4 rounded-2xl space-y-2 border border-gray-100">
                 <h4 className="font-extrabold text-xs uppercase text-[#b02151] tracking-wider flex items-center">
-                  <MapPin className="w-4 h-4 mr-1.5" /> Location Address
+                  <MapPin className="w-4 h-4 mr-1.5" /> Location & Address
                 </h4>
+                <p className="text-xs text-gray-700"><strong>State:</strong> {viewHospital.state}</p>
+                <p className="text-xs text-gray-700"><strong>City:</strong> {viewHospital.city}</p>
                 <p className="text-xs text-gray-700"><strong>Address:</strong> {viewHospital.address}</p>
-                <p className="text-xs text-gray-700"><strong>City / State:</strong> {viewHospital.city}, {viewHospital.state || 'Maharashtra'}</p>
-                <p className="text-xs text-gray-700"><strong>Country:</strong> {viewHospital.country || 'India'}</p>
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-2xl space-y-2 border border-gray-100">
-                <h4 className="font-extrabold text-xs uppercase text-[#b02151] tracking-wider flex items-center">
-                  <User className="w-4 h-4 mr-1.5" /> Hospital Coordinator
-                </h4>
-                <p className="text-xs text-gray-700"><strong>Contact Person:</strong> {viewHospital.contactPersonName || 'N/A'}</p>
-                <p className="text-xs text-gray-700"><strong>Direct Mobile:</strong> {viewHospital.contactPersonPhone || viewHospital.phone}</p>
-                <p className="text-xs text-gray-700"><strong>Email:</strong> {viewHospital.contactPersonEmail || viewHospital.email}</p>
-              </div>
-
-              <div className="bg-pink-50/60 p-4 rounded-2xl space-y-2 border border-pink-100">
-                <h4 className="font-extrabold text-xs uppercase text-[#b02151] tracking-wider flex items-center">
-                  <Sparkles className="w-4 h-4 mr-1.5 text-yellow-500" /> Account Lead Balance
-                </h4>
-                <p className="text-xs text-gray-800"><strong>Available Leads:</strong> <span className="text-emerald-700 font-extrabold">{viewHospital.leadsRemaining || 0}</span></p>
-                <p className="text-xs text-gray-800"><strong>Total Purchased:</strong> {viewHospital.totalLeadsPurchased || 0}</p>
-                <p className="text-xs text-gray-800"><strong>Total Consumed:</strong> {viewHospital.totalLeadsUsed || 0}</p>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <h4 className="font-extrabold text-xs uppercase text-gray-700 tracking-wider flex items-center">
-                <FileText className="w-4 h-4 mr-1 text-gray-500" /> Hospital Overview & Credentials
+            <div className="bg-gray-50 p-4 rounded-2xl space-y-2 border border-gray-100">
+              <h4 className="font-extrabold text-xs uppercase text-[#b02151] tracking-wider flex items-center">
+                <FileText className="w-4 h-4 mr-1.5" /> Overview & Description
               </h4>
-              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-xs text-gray-700 leading-relaxed max-h-36 overflow-y-auto">
-                {viewHospital.description}
-              </div>
+              <div
+                className="text-xs text-gray-700 leading-relaxed font-medium"
+                dangerouslySetInnerHTML={{ __html: viewHospital.description || 'No description provided.' }}
+              />
             </div>
 
-            {viewHospital.services && viewHospital.services.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="font-extrabold text-xs uppercase text-gray-700 tracking-wider flex items-center">
-                  <Stethoscope className="w-4 h-4 mr-1 text-gray-500" /> Selected Medical Specialties ({viewHospital.services.length})
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {viewHospital.services.map((svc: any) => (
-                    <span key={svc.id} className="px-3 py-1 bg-pink-50 text-[#b02151] border border-pink-100 rounded-full text-xs font-bold">
-                      {svc.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+            <div className="pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-4">
               <button
-                type="button"
-                onClick={() => setDeletingHospital(viewHospital)}
-                className="px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-full text-xs font-extrabold transition-colors flex items-center space-x-1.5 border border-red-200 cursor-pointer"
+                onClick={() => {
+                  const target = viewHospital;
+                  setViewHospital(null);
+                  handleStartEditHospital(target);
+                }}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full text-xs font-extrabold transition-all flex items-center space-x-1.5 shadow-md cursor-pointer"
               >
-                <Trash2 className="w-4 h-4" />
-                <span>Delete & Purge Data</span>
+                <Edit3 className="w-4 h-4" />
+                <span>Edit Full Profile</span>
               </button>
 
               <div className="flex items-center space-x-3">
                 <button
-                  type="button"
                   onClick={() => setViewHospital(null)}
                   className="px-5 py-2.5 text-xs font-bold text-gray-600 border border-gray-200 rounded-full hover:bg-gray-50"
                 >
@@ -774,6 +1597,262 @@ export default function AdminHospitalsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Super Admin Doctor Management Modal */}
+      {doctorModalHospital && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl border border-gray-200 space-y-6 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <div>
+                <div className="flex items-center space-x-2 text-purple-600 font-bold text-xs uppercase tracking-wider mb-1">
+                  <Stethoscope className="w-4 h-4" />
+                  <span>Doctor Management</span>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Doctors for {doctorModalHospital.name}
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Add, edit, or remove specialists and doctors associated with this hospital.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={handleStartAddDoctor}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-xs font-bold shadow-md transition-all flex items-center space-x-1.5 cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Add Doctor</span>
+                </button>
+                <button
+                  onClick={() => setDoctorModalHospital(null)}
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Doctors Grid / Empty State */}
+            {(!doctorModalHospital.doctors || doctorModalHospital.doctors.length === 0) && !showAddDocModal ? (
+              <div className="py-12 text-center bg-purple-50/50 rounded-2xl border border-dashed border-purple-200">
+                <User className="w-12 h-12 text-purple-400 mx-auto mb-3" />
+                <h4 className="text-sm font-bold text-gray-800">No Doctors Added Yet</h4>
+                <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                  Click the &quot;Add Doctor&quot; button above to create doctor profiles for {doctorModalHospital.name}.
+                </p>
+                <button
+                  onClick={handleStartAddDoctor}
+                  className="mt-4 px-4 py-2 bg-purple-600 text-white text-xs font-bold rounded-full shadow-sm hover:bg-purple-700"
+                >
+                  Add First Doctor
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {doctorModalHospital.doctors?.map((doc, idx) => (
+                  <div
+                    key={idx}
+                    className="p-4 rounded-xl border border-gray-200 bg-gray-50/50 flex items-start space-x-4 hover:bg-white hover:shadow-md transition-all"
+                  >
+                    <div className="relative w-16 h-16 rounded-full overflow-hidden bg-gray-200 border border-purple-200 flex-shrink-0 flex items-center justify-center">
+                      {doc.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={doc.image} alt={doc.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-8 h-8 text-gray-400" />
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <h4 className="text-sm font-bold text-gray-900 truncate">{doc.name}</h4>
+                      {doc.specialty && (
+                        <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-800 font-bold text-[10px] rounded-full">
+                          {doc.specialty}
+                        </span>
+                      )}
+                      {doc.qualification && (
+                        <p className="text-xs text-gray-600 truncate">{doc.qualification}</p>
+                      )}
+                      {doc.experience && (
+                        <p className="text-[11px] text-gray-500 font-medium">Exp: {doc.experience}</p>
+                      )}
+                      {doc.treatments && doc.treatments.length > 0 && (
+                        <div className="pt-1 flex flex-wrap gap-1">
+                          {doc.treatments.map((tr, tIdx) => (
+                            <span
+                              key={tIdx}
+                              className="px-1.5 py-0.5 bg-purple-100 text-purple-800 font-semibold text-[9px] rounded-md"
+                            >
+                              {tr}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => handleStartEditDoctor(doc, idx)}
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit Doctor"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteDoctor(idx)}
+                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete Doctor"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add / Edit Doctor Form Panel */}
+            {showAddDocModal && (
+              <div className="p-5 bg-purple-50/80 rounded-2xl border border-purple-200 space-y-4 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between border-b border-purple-200 pb-2">
+                  <h4 className="text-sm font-bold text-purple-900">
+                    {editingDocIndex !== null ? 'Edit Doctor Profile' : 'Add New Doctor'}
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddDocModal(false)}
+                    className="text-purple-600 hover:text-purple-900 text-xs font-bold"
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveDoctor} className="space-y-4">
+                  {/* Photo Uploader */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Doctor Photo</label>
+                    <div className="flex items-center space-x-4">
+                      <div className="w-14 h-14 rounded-full overflow-hidden bg-white border border-gray-200 flex items-center justify-center">
+                        {docImage ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={docImage} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-7 h-7 text-gray-300" />
+                        )}
+                      </div>
+                      <label className="cursor-pointer px-3.5 py-1.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center space-x-1.5 shadow-xs">
+                        {uploadingDocImage ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
+                        ) : (
+                          <Upload className="w-3.5 h-3.5 text-purple-600" />
+                        )}
+                        <span>{uploadingDocImage ? 'Uploading...' : 'Upload Photo'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleDocImageUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Doctor Name *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Dr. Rajiv Sharma"
+                        value={docName}
+                        onChange={(e) => setDocName(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Specialty</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Cardiologist / Neurologist"
+                        value={docSpecialty}
+                        onChange={(e) => setDocSpecialty(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Qualification</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. MBBS, MD, DM (Cardiology)"
+                        value={docQualification}
+                        onChange={(e) => setDocQualification(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Experience</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 15+ Years Experience"
+                        value={docExperience}
+                        onChange={(e) => setDocExperience(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Treatments Provided / Procedures (Comma-separated)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Knee Replacement, Hip Arthroplasty, ACL Surgery"
+                      value={docTreatmentsInput}
+                      onChange={(e) => setDocTreatmentsInput(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  <div className="flex justify-end space-x-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddDocModal(false)}
+                      className="px-4 py-1.5 border border-gray-200 text-gray-600 rounded-xl text-xs font-semibold hover:bg-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={docSaving}
+                      className="px-5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center space-x-1.5 disabled:opacity-50"
+                    >
+                      {docSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      <span>{editingDocIndex !== null ? 'Save Changes' : 'Add Doctor'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Modal Footer */}
+            <div className="flex justify-end border-t border-gray-100 pt-4">
+              <button
+                type="button"
+                onClick={() => setDoctorModalHospital(null)}
+                className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-xs font-bold transition-all"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -7,6 +7,7 @@ export interface IDoctor {
   specialty?: string;
   experience?: string;
   image?: string;
+  treatments?: string[];
 }
 
 export interface IFAQ {
@@ -44,8 +45,8 @@ export interface HospitalAttributes {
   faqs?: IFAQ[] | null;
   rating: number;
   isFeatured: boolean;
-  isNabhAccredited: boolean;
-  isVerifiedPartner: boolean;
+  isNabhAccredited?: boolean | null;
+  isVerifiedPartner?: boolean | null;
   googleRating: number;
   googlePlaceId?: string | null;
   googleReviewsCount?: number | null;
@@ -104,8 +105,8 @@ export class Hospital extends Model<HospitalAttributes, HospitalCreationAttribut
   declare faqs: IFAQ[] | null;
   declare rating: number;
   declare isFeatured: boolean;
-  declare isNabhAccredited: boolean;
-  declare isVerifiedPartner: boolean;
+  declare isNabhAccredited: boolean | null;
+  declare isVerifiedPartner: boolean | null;
   declare googleRating: number;
   declare googlePlaceId: string | null;
   declare googleReviewsCount: number | null;
@@ -244,13 +245,13 @@ Hospital.init(
     },
     isNabhAccredited: {
       type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: true,
+      allowNull: true,
+      defaultValue: null,
     },
     isVerifiedPartner: {
       type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: true,
+      allowNull: true,
+      defaultValue: null,
     },
     googleRating: {
       type: DataTypes.FLOAT,

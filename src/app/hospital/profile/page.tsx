@@ -2,10 +2,36 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Building2, Save, Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Image as ImageIcon, Sparkles, ExternalLink, Upload } from 'lucide-react';
+import { Save, Loader2, CheckCircle2, AlertCircle, Trash2, Image as ImageIcon, Sparkles, ExternalLink, Upload, MapPin } from 'lucide-react';
+import RichTextEditor from '@/components/ui/RichTextEditor';
+import GoogleAddressMapPicker from '@/components/ui/GoogleAddressMapPicker';
+
+interface HospitalProfileData {
+  id: number;
+  slug: string;
+  name: string;
+  phone: string;
+  website?: string;
+  address: string;
+  city: string;
+  district?: string;
+  state?: string;
+  description: string;
+  logo?: string;
+  coverImage?: string;
+  contactPersonName?: string;
+  contactPersonPhone?: string;
+  isNabhAccredited?: boolean;
+  isVerifiedPartner?: boolean;
+  googleRating?: number;
+  googleReviewsCount?: number | null;
+  rating?: number;
+  facilities?: string[];
+  gallery?: string[];
+}
 
 export default function HospitalProfilePage() {
-  const [hospital, setHospital] = useState<any>(null);
+  const [hospital, setHospital] = useState<HospitalProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -26,8 +52,8 @@ export default function HospitalProfilePage() {
   const [contactPersonPhone, setContactPersonPhone] = useState('');
 
   // Trust & Quality Badges
-  const [isNabhAccredited, setIsNabhAccredited] = useState(true);
-  const [isVerifiedPartner, setIsVerifiedPartner] = useState(true);
+  const [isNabhAccredited, setIsNabhAccredited] = useState(false);
+  const [isVerifiedPartner, setIsVerifiedPartner] = useState(false);
   const [googleRating, setGoogleRating] = useState<number | string>(4.8);
   const [googleReviewsCount, setGoogleReviewsCount] = useState<number | null>(null);
   const [fetchingGoogleRating, setFetchingGoogleRating] = useState(false);
@@ -62,8 +88,8 @@ export default function HospitalProfilePage() {
           setCoverImage(h.coverImage || '');
           setContactPersonName(h.contactPersonName || '');
           setContactPersonPhone(h.contactPersonPhone || '');
-          setIsNabhAccredited(h.isNabhAccredited !== false);
-          setIsVerifiedPartner(h.isVerifiedPartner !== false);
+          setIsNabhAccredited(Boolean(h.isNabhAccredited));
+          setIsVerifiedPartner(Boolean(h.isVerifiedPartner));
           setGoogleRating(h.googleRating || h.rating || 4.8);
           setGoogleReviewsCount(h.googleReviewsCount || null);
           setFacilities(h.facilities || []);
@@ -176,6 +202,19 @@ export default function HospitalProfilePage() {
 
   const handleRemoveGalleryPhoto = (index: number) => {
     setGallery(gallery.filter((_, i) => i !== index));
+  };
+
+  const handleGoogleAddressSelected = (data: {
+    address: string;
+    city: string;
+    district?: string;
+    state: string;
+    country: string;
+  }) => {
+    if (data.address) setAddress(data.address);
+    if (data.city) setCity(data.city);
+    if (data.district) setDistrict(data.district);
+    if (data.state) setState(data.state);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -451,12 +490,11 @@ export default function HospitalProfilePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Hospital Description</label>
-            <textarea
-              rows={4}
+            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Hospital Description & Overview *</label>
+            <RichTextEditor
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#fd1d74]"
+              onChange={setDescription}
+              placeholder="Write detailed hospital overview, specialty medical departments, surgical facilities, and patient care standards..."
             />
           </div>
 
@@ -525,21 +563,39 @@ export default function HospitalProfilePage() {
           </div>
         </div>
 
-        {/* Location */}
-        <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-4">
-          <h3 className="text-xs font-extrabold text-[#b02151] uppercase tracking-wider">Location & Address</h3>
+        {/* Location & Address with Google Maps Picker */}
+        <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-5">
+          <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+            <h3 className="text-xs font-extrabold text-[#b02151] uppercase tracking-wider flex items-center">
+              <MapPin className="w-4 h-4 mr-1 text-[#b02151]" />
+              Location & Address
+            </h3>
+            <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              Google Maps Enabled
+            </span>
+          </div>
+
+          <GoogleAddressMapPicker
+            onAddressSelect={handleGoogleAddressSelected}
+            initialAddress={address}
+            initialCity={city}
+            initialState={state}
+          />
+
           <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Street Address</label>
+            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Full Street Address *</label>
             <textarea
               rows={2}
               value={address}
               onChange={(e) => setAddress(e.target.value)}
+              placeholder="Full street address..."
               className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#fd1d74]"
             />
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">City / Town</label>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">City / Town *</label>
               <input
                 type="text"
                 value={city}
@@ -558,7 +614,7 @@ export default function HospitalProfilePage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">State</label>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">State *</label>
               <input
                 type="text"
                 value={state}

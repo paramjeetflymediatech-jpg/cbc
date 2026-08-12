@@ -21,21 +21,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No image file provided' }, { status: 400 });
     }
 
-    // Determine hospital folder name
-    let hospitalFolder = 'general-hospitals';
+    // Determine target folder name and path
+    let folderPath = 'hospitals/general-hospitals';
 
-    if (authUser.role === 'HOSPITAL' && authUser.hospitalId) {
+    if (category.startsWith('blogs')) {
+      folderPath = 'blogs';
+    } else if (authUser.role === 'HOSPITAL' && authUser.hospitalId) {
       await connectDB();
       const hospital = await Hospital.findByPk(authUser.hospitalId);
       if (hospital) {
-        hospitalFolder = hospital.slug || hospital.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+        const hospitalFolder = hospital.slug || hospital.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+        folderPath = `hospitals/${hospitalFolder}`;
       }
     } else if (customHospitalName) {
-      hospitalFolder = customHospitalName.toLowerCase().trim().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+      const hospitalFolder = customHospitalName.toLowerCase().trim().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+      folderPath = `hospitals/${hospitalFolder}`;
     }
 
-    // Target upload directory: public/uploads/hospitals/[hospitalFolder]
-    const targetDir = path.join(process.cwd(), 'public', 'uploads', 'hospitals', hospitalFolder);
+    // Target upload directory: public/uploads/[folderPath]
+    const targetDir = path.join(process.cwd(), 'public', 'uploads', folderPath);
     await mkdir(targetDir, { recursive: true });
 
     // Sanitize filename & create unique timestamped name
@@ -51,19 +55,19 @@ export async function POST(req: Request) {
 
     // Also sync to standalone public directory if running in Next standalone mode
     try {
-      const standaloneTargetDir = path.join(process.cwd(), '.next', 'standalone', 'public', 'uploads', 'hospitals', hospitalFolder);
+      const standaloneTargetDir = path.join(process.cwd(), '.next', 'standalone', 'public', 'uploads', folderPath);
       await mkdir(standaloneTargetDir, { recursive: true });
       await writeFile(path.join(standaloneTargetDir, uniqueFileName), buffer);
     } catch {}
 
     // Generate public relative URL
-    const publicUrl = `/uploads/hospitals/${hospitalFolder}/${uniqueFileName}`;
+    const publicUrl = `/uploads/${folderPath}/${uniqueFileName}`;
 
     return NextResponse.json({
       message: 'File uploaded successfully',
       url: publicUrl,
       fileName: uniqueFileName,
-      hospitalFolder,
+      folderPath,
     });
   } catch (error) {
     console.error('File upload error:', error);
