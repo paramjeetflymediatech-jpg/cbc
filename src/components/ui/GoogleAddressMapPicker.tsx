@@ -17,11 +17,14 @@ interface GoogleAddressMapPickerProps {
   initialAddress?: string;
   initialCity?: string;
   initialState?: string;
+  initialLat?: number;
+  initialLng?: number;
 }
 
 interface LeafletMap {
   setView: (coords: [number, number], zoom: number) => void;
   on: (event: string, fn: (e: { latlng: { lat: number; lng: number } }) => void) => void;
+  invalidateSize: () => void;
 }
 
 interface LeafletMarker {
@@ -64,6 +67,8 @@ export default function GoogleAddressMapPicker({
   initialAddress = '',
   initialCity = '',
   initialState = '',
+  initialLat,
+  initialLng,
 }: GoogleAddressMapPickerProps) {
   const [searchQuery, setSearchQuery] = useState(initialAddress || `${initialCity} ${initialState}`.trim());
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
@@ -92,8 +97,13 @@ export default function GoogleAddressMapPicker({
     }
   }
 
-  // Auto-geocode initial address / city / state to position map pin on default location
+  // Auto-geocode initial address / city / state to position map pin on hospital location
   useEffect(() => {
+    if (typeof initialLat === 'number' && !isNaN(initialLat) && typeof initialLng === 'number' && !isNaN(initialLng)) {
+      setSelectedCoords({ lat: initialLat, lng: initialLng });
+      return;
+    }
+
     const queryToGeocode = initialAddress || `${initialCity} ${initialState}`.trim();
     if (!queryToGeocode || queryToGeocode.trim() === '') return;
 
@@ -101,30 +111,66 @@ export default function GoogleAddressMapPicker({
     const fetchDefaultCoords = async () => {
       try {
         let res = await fetch(`/api/locations/autocomplete?q=${encodeURIComponent(queryToGeocode.trim())}`);
-        if (res.ok) {
-          let data = await res.json();
-          let match = data.suggestions && data.suggestions.length > 0 ? data.suggestions[0] : null;
+        if (!res.ok) return;
+        let data = await res.json();
+        let match: PlaceSuggestion | null = data.suggestions && data.suggestions.length > 0 ? data.suggestions[0] : null;
 
-          // If match is missing or returned India default fallback (20.5937, 78.9629), try City + State fallback
-          if (!match || (Math.abs(parseFloat(match.lat) - 20.5937) < 0.01 && Math.abs(parseFloat(match.lon) - 78.9629) < 0.01)) {
-            if (initialCity || initialState) {
-              const cityQuery = `${initialCity || ''}, ${initialState || 'Punjab'}, India`.trim();
-              const cityRes = await fetch(`/api/locations/autocomplete?q=${encodeURIComponent(cityQuery)}`);
-              if (cityRes.ok) {
-                const cityData = await cityRes.json();
-                if (cityData.suggestions && cityData.suggestions.length > 0) {
-                  match = cityData.suggestions[0];
+        // If match has place_id but missing lat/lon (e.g. Google Places prediction), fetch details
+        if (match && (!match.lat || isNaN(parseFloat(match.lat)) || !match.lon || isNaN(parseFloat(match.lon)))) {
+          if (match.place_id) {
+            try {
+              const detailsRes = await fetch(`/api/locations/details?place_id=${match.place_id}`);
+              if (detailsRes.ok) {
+                const detailsData = await detailsRes.json();
+                if (detailsData && detailsData.lat && detailsData.lon) {
+                  match.lat = detailsData.lat;
+                  match.lon = detailsData.lon;
                 }
+              }
+            } catch (err) {
+              console.error('Error fetching details for default location:', err);
+            }
+          }
+        }
+
+        // If match is still missing or has default fallback coords (20.5937, 78.9629), try City + State query
+        const isDefaultIndiaCoords =
+          match &&
+          match.lat &&
+          Math.abs(parseFloat(match.lat) - 20.5937) < 0.05 &&
+          Math.abs(parseFloat(match.lon) - 78.9629) < 0.05;
+
+        if (!match || !match.lat || isNaN(parseFloat(match.lat)) || isDefaultIndiaCoords) {
+          if (initialCity || initialState) {
+            const cityQuery = `${initialCity || ''}, ${initialState || ''}, India`.trim();
+            const cityRes = await fetch(`/api/locations/autocomplete?q=${encodeURIComponent(cityQuery)}`);
+            if (cityRes.ok) {
+              const cityData = await cityRes.json();
+              let cityMatch = cityData.suggestions && cityData.suggestions.length > 0 ? cityData.suggestions[0] : null;
+              if (cityMatch && (!cityMatch.lat || isNaN(parseFloat(cityMatch.lat)))) {
+                if (cityMatch.place_id) {
+                  const detailsRes = await fetch(`/api/locations/details?place_id=${cityMatch.place_id}`);
+                  if (detailsRes.ok) {
+                    const detailsData = await detailsRes.json();
+                    if (detailsData && detailsData.lat && detailsData.lon) {
+                      cityMatch.lat = detailsData.lat;
+                      cityMatch.lon = detailsData.lon;
+                    }
+                  }
+                }
+              }
+              if (cityMatch && cityMatch.lat && !isNaN(parseFloat(cityMatch.lat))) {
+                match = cityMatch;
               }
             }
           }
+        }
 
-          if (match && isMounted) {
-            const lat = parseFloat(match.lat);
-            const lng = parseFloat(match.lon);
-            if (!isNaN(lat) && !isNaN(lng)) {
-              setSelectedCoords({ lat, lng });
-            }
+        if (match && match.lat && match.lon && isMounted) {
+          const lat = parseFloat(match.lat);
+          const lng = parseFloat(match.lon);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            setSelectedCoords({ lat, lng });
           }
         }
       } catch (err) {
@@ -137,7 +183,7 @@ export default function GoogleAddressMapPicker({
     return () => {
       isMounted = false;
     };
-  }, [initialAddress, initialCity, initialState]);
+  }, [initialAddress, initialCity, initialState, initialLat, initialLng]);
 
   // Load Leaflet CSS & JS dynamically
   useEffect(() => {
@@ -274,14 +320,7 @@ export default function GoogleAddressMapPicker({
         shadowSize: [37, 34],
       });
 
-      const marker = L.marker([defaultLat, defaultLng], { icon: pinIcon, draggable: true }).addTo(map);
-
-      // DRAG PIN EVENT -> UPDATE MARKER & FETCH ADDRESS
-      marker.on('dragend', async () => {
-        const pos = marker.getLatLng();
-        setSelectedCoords({ lat: pos.lat, lng: pos.lng });
-        await fetchAddressFromCoords(pos.lat, pos.lng);
-      });
+      const marker = L.marker([defaultLat, defaultLng], { icon: pinIcon, draggable: false }).addTo(map);
 
       mapInstanceRef.current = map;
       markerRef.current = marker;
@@ -300,6 +339,11 @@ export default function GoogleAddressMapPicker({
       if (markerRef.current) {
         markerRef.current.setLatLng([selectedCoords.lat, selectedCoords.lng]);
       }
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 200);
     }
   }, [selectedCoords]);
 
@@ -464,7 +508,7 @@ export default function GoogleAddressMapPicker({
         <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
           <span className="flex items-center">
             <MapPin className="w-4 h-4 text-[#b02151] mr-1.5" />
-            Search Address Below or Drag Pin
+            Search Address Below
           </span>
           <button
             type="button"
@@ -555,7 +599,7 @@ export default function GoogleAddressMapPicker({
         </div>
 
         <span className="text-[11px] font-semibold text-gray-500 hidden sm:inline">
-          💡 Drag pin to auto-fill address
+          💡 Location Pin on Map
         </span>
 
         {searchQuery && (

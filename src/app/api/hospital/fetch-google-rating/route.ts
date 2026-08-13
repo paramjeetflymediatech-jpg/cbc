@@ -6,7 +6,7 @@ import { Hospital } from '@/models';
 export async function POST(req: Request) {
   try {
     const authUser = await getAuthUser();
-    if (!authUser || !authUser.hospitalId) {
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -14,7 +14,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { query, placeId, hospitalId } = body;
 
-    const targetHospitalId = authUser.role === 'SUPER_ADMIN' && hospitalId ? Number(hospitalId) : authUser.hospitalId;
+    const isAdmin = authUser.role === 'SUPER_ADMIN' || authUser.role === 'ADMIN';
+    const targetHospitalId = isAdmin && hospitalId ? Number(hospitalId) : (authUser.hospitalId ? Number(authUser.hospitalId) : null);
+
+    if (!targetHospitalId) {
+      return NextResponse.json({ error: 'Hospital ID is required' }, { status: 400 });
+    }
+
     const hospital = await Hospital.findByPk(targetHospitalId);
 
     if (!hospital) {
