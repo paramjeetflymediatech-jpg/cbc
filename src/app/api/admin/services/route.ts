@@ -12,7 +12,13 @@ export async function GET() {
     }
 
     await connectDB();
-    const services = await Service.findAll({ order: [['name', 'ASC']] });
+    const services = await Service.findAll({
+      include: [
+        { model: Service, as: 'parent', required: false, attributes: ['id', 'name', 'slug'] },
+        { model: Service, as: 'subServices', required: false, attributes: ['id', 'name', 'slug'] },
+      ],
+      order: [['name', 'ASC']],
+    });
     return NextResponse.json({ services });
   } catch (error) {
     console.error('Admin GET services error:', error);
@@ -30,7 +36,7 @@ export async function POST(req: Request) {
     await connectDB();
     const body = await req.json();
 
-    const { name, slug, category, shortDescription, description, icon, image, seoTitle, seoDescription, status } = body;
+    const { name, slug, category, parentId, shortDescription, description, icon, image, seoTitle, seoDescription, status } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'Service name is required' }, { status: 400 });
@@ -50,6 +56,7 @@ export async function POST(req: Request) {
       name: name.trim(),
       slug: generatedSlug,
       category: category ? category.trim() : null,
+      parentId: parentId ? Number(parentId) : null,
       shortDescription: shortDescription ? shortDescription.trim() : null,
       description: description ? description.trim() : null,
       icon: icon || null,
@@ -75,7 +82,7 @@ export async function PUT(req: Request) {
 
     await connectDB();
     const body = await req.json();
-    const { id, name, category, shortDescription, description, icon, image, seoTitle, seoDescription, status } = body;
+    const { id, name, category, parentId, shortDescription, description, icon, image, seoTitle, seoDescription, status } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Service ID is required' }, { status: 400 });
@@ -96,6 +103,7 @@ export async function PUT(req: Request) {
     await service.update({
       name: name ? name.trim() : service.name,
       category: category !== undefined ? category : service.category,
+      parentId: parentId !== undefined ? (parentId ? Number(parentId) : null) : service.parentId,
       shortDescription: shortDescription !== undefined ? shortDescription : service.shortDescription,
       description: description !== undefined ? description : service.description,
       icon: icon !== undefined ? icon : service.icon,

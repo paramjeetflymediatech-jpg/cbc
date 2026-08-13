@@ -176,13 +176,13 @@ export default function FilterBar({
     >
       {/* Search Input */}
       <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl">
-        <Search className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
+        <Search className="w-4 h-4 text-gray-600 mr-2 flex-shrink-0" />
         <input
           type="text"
           name="search"
           defaultValue={currentSearch}
           placeholder="Search hospital..."
-          className="w-full text-xs text-gray-900 bg-transparent focus:outline-none placeholder-gray-400 font-medium"
+          className="w-full text-xs text-gray-900 bg-transparent focus:outline-none placeholder-gray-600 font-semibold"
         />
       </div>
 

@@ -1,8 +1,16 @@
-import { connectDB } from './db';
-import { User, Hospital, Service, HospitalService, LeadPackage, State, City, BlogPost } from '@/models';
-import { hashPassword } from './auth';
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+
 
 export async function seedDatabase() {
+  const { connectDB } = await import('./db');
+  const { User, Hospital, Service, HospitalService, LeadPackage, State, City, BlogPost } = await import('@/models');
+  const { hashPassword } = await import('./auth');
+
   await connectDB();
 
   // Force sync State & City tables first
@@ -43,7 +51,15 @@ export async function seedDatabase() {
     description: 'Union Super Speciality Hospital is a premier multi-specialty healthcare institute located in Ludhiana, Punjab. Equipped with state-of-the-art operation theaters, 24/7 ICU & trauma emergency, advanced diagnostic imaging, and highly experienced consultants across Plastic Surgery, Cancer Care, Laparoscopy, Urology, ENT, and Pediatrics.',
     logo: 'https://spcdn.shortpixel.ai/spio/ret_img,q_cdnize,to_auto,s_webp:avif/clinicbychoice.com/wp-content/uploads/2025/02/logocbc.png',
     coverImage: 'https://spcdn.shortpixel.ai/spio/ret_img,q_cdnize,to_auto,s_webp:avif/clinicbychoice.com/wp-content/uploads/2025/02/2902-1024x683.jpg',
-    servicesToLink: ['plastic-surgery', 'cancer-hospital', 'gastroenterology', 'urology', 'ent-surgery', 'pediatrics'],
+    servicesToLink: [
+      { slug: 'cancer-hospital', subServices: 'Breast Cancer Care & Surgery, Head & Neck Cancer, Lung Cancer, Cervical Oncology, Prostate Cancer' },
+      { slug: 'orthopedics', subServices: 'Knee Replacement Surgery, Hip Replacement Surgery, Spine Surgery, Arthroscopy' },
+      { slug: 'plastic-surgery', subServices: 'Reconstructive Surgery, Rhinoplasty, Burn Care, Scar Revision' },
+      { slug: 'gastroenterology', subServices: 'Laparoscopic Surgery, Endoscopy, Liver & Gallbladder Surgery' },
+      { slug: 'urology', subServices: 'Laser Kidney Stone Removal, Prostate Surgery (TURP), Reconstructive Urology' },
+      { slug: 'ent-surgery', subServices: 'Sinus Surgery, Tympanoplasty, Head & Neck Surgery' },
+      { slug: 'pediatrics', subServices: 'Neonatal ICU, Pediatric Surgery, Vaccination Clinic' },
+    ],
   };
 
   const seedDoctorsList = [
@@ -111,8 +127,8 @@ export async function seedDatabase() {
       ],
       rating: 4.9,
       isFeatured: true,
-      isNabhAccredited: null,
-      isVerifiedPartner: null,
+      isNabhAccredited: true,
+      isVerifiedPartner: true,
     });
 
     const userPassHash = await hashPassword('Union123!');
@@ -134,22 +150,24 @@ export async function seedDatabase() {
     }
   }
 
-  // Link services
-  for (const serviceSlug of unionHospitalData.servicesToLink) {
-    const svcObj = await Service.findOne({ where: { slug: serviceSlug } });
+  // Link services with comma-separated sub-services
+  for (const item of unionHospitalData.servicesToLink) {
+    const svcObj = await Service.findOne({ where: { slug: item.slug } });
     if (svcObj) {
-      const existingHs = await HospitalService.findOne({
+      const [hs, created] = await HospitalService.findOrCreate({
         where: { hospitalId: unionHospital.id, serviceId: svcObj.id },
-      });
-      if (!existingHs) {
-        await HospitalService.create({
+        defaults: {
           hospitalId: unionHospital.id,
           serviceId: svcObj.id,
           startingPrice: 35000.0,
           description: `Specialized clinical care & procedure for ${svcObj.name}.`,
           treatmentDetails: 'Comprehensive pre-operative evaluation, expert surgical procedure, and post-operative rehabilitation.',
+          subServices: item.subServices,
           status: 'ACTIVE',
-        });
+        },
+      });
+      if (!created && item.subServices) {
+        await hs.update({ subServices: item.subServices });
       }
     }
   }

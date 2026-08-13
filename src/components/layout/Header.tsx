@@ -8,14 +8,17 @@ import { Menu, X, ChevronDown, Building2 } from 'lucide-react';
 
 interface ServiceItem {
   id: number;
+  parentId?: number | null;
   name: string;
   slug: string;
+  subServices?: ServiceItem[];
 }
 
 export default function Header() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileServicesOpen, setIsMobileServicesOpen] = useState(false);
+  const [expandedMobileParent, setExpandedMobileParent] = useState<number | null>(null);
   const [isServicesOpen, setIsServicesOpen] = useState(false);
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [authUser, setAuthUser] = useState<any>(null);
@@ -41,6 +44,8 @@ export default function Header() {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
+
+  const mainServices = services.filter((s) => !s.parentId);
 
   const handleMouseEnter = () => {
     if (timeoutRef.current) {
@@ -128,9 +133,9 @@ export default function Header() {
                   onMouseLeave={handleMouseLeave}
                 >
                   <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
-                    {services.length > 0 ? (
+                    {mainServices.length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-3.5">
-                        {services.map((svc) => (
+                        {mainServices.map((svc) => (
                           <Link
                             key={svc.id}
                             href={`/services/${svc.slug}`}
@@ -174,7 +179,6 @@ export default function Header() {
           {/* Social Icons & Login CTA */}
           <div className="hidden lg:flex items-center space-x-4">
             <div className="flex items-center space-x-2.5 mr-2">
-              {/* Colorful Facebook Icon */}
               <a
                 href="https://www.facebook.com/clinicbychoice"
                 target="_blank"
@@ -187,7 +191,6 @@ export default function Header() {
                 </svg>
               </a>
 
-              {/* Colorful Instagram Icon */}
               <a
                 href="https://www.instagram.com/clinicbychoice/"
                 target="_blank"
@@ -260,13 +263,13 @@ export default function Header() {
               onClick={() => setIsMobileServicesOpen(!isMobileServicesOpen)}
               className="w-full flex items-center justify-between py-2 text-sm font-bold text-gray-900 hover:text-[#fd1d74]"
             >
-              <span>Our Services ({services.length})</span>
+              <span>Our Services ({mainServices.length})</span>
               <ChevronDown className={`w-4 h-4 text-[#fd1d74] transition-transform ${isMobileServicesOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isMobileServicesOpen && (
               <div className="space-y-1 pl-2 pt-1 pb-2">
-                {services.map((svc) => (
+                {mainServices.map((svc) => (
                   <Link
                     key={svc.id}
                     href={`/services/${svc.slug}`}

@@ -8,6 +8,7 @@ export interface HospitalServiceAttributes {
   startingPrice?: number | null;
   description?: string | null;
   treatmentDetails?: string | null;
+  subServices?: string | null;
   status: 'ACTIVE' | 'INACTIVE';
   createdAt?: Date;
   updatedAt?: Date;
@@ -25,6 +26,7 @@ export class HospitalService
   declare startingPrice: number | null;
   declare description: string | null;
   declare treatmentDetails: string | null;
+  declare subServices: string | null;
   declare status: 'ACTIVE' | 'INACTIVE';
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
@@ -54,6 +56,10 @@ HospitalService.init(
       allowNull: true,
     },
     treatmentDetails: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    subServices: {
       type: DataTypes.TEXT,
       allowNull: true,
     },

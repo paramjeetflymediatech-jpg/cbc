@@ -83,16 +83,28 @@ export default function HospitalCard({ hospital, defaultServiceId }: HospitalCar
             {/* Offered Services Badges */}
             {services.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {services.slice(0, 4).map((hs: any) => (
-                  <span
-                    key={hs.id}
-                    className="text-xs font-medium px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md"
-                  >
-                    {hs.service?.name || 'Medical Care'}
-                  </span>
-                ))}
+                {services.slice(0, 4).map((hs: any) => {
+                  const subList = hs.subServices
+                    ? hs.subServices.split(',').map((s: string) => s.trim()).filter(Boolean)
+                    : [];
+                  return (
+                    <React.Fragment key={hs.id}>
+                      <span className="text-xs font-bold px-2.5 py-1 bg-gray-100 text-gray-800 rounded-md">
+                        {hs.service?.name || 'Medical Care'}
+                      </span>
+                      {subList.slice(0, 3).map((sub: string, subIdx: number) => (
+                        <span
+                          key={subIdx}
+                          className="text-xs font-semibold px-2.5 py-1 bg-pink-50 text-[#ec2c6c] border border-pink-100 rounded-md"
+                        >
+                          {sub}
+                        </span>
+                      ))}
+                    </React.Fragment>
+                  );
+                })}
                 {services.length > 4 && (
-                  <span className="text-xs text-gray-400 self-center">+{services.length - 4} more</span>
+                  <span className="text-xs text-gray-700 self-center font-extrabold">+{services.length - 4} more</span>
                 )}
               </div>
             )}

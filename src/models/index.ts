@@ -50,6 +50,14 @@ export function initAssociations() {
       Service.belongsToMany(Hospital, { through: HospitalService, foreignKey: 'serviceId', otherKey: 'hospitalId', as: 'hospitals' });
     }
 
+    // Service Self-Referential Association (Parent/Sub-Services)
+    if (!Service.associations.parent) {
+      Service.belongsTo(Service, { foreignKey: 'parentId', as: 'parent' });
+    }
+    if (!Service.associations.subServices) {
+      Service.hasMany(Service, { foreignKey: 'parentId', as: 'subServices' });
+    }
+
     // Lead
     if (!Lead.associations.hospital) {
       Lead.belongsTo(Hospital, { foreignKey: 'hospitalId', as: 'hospital' });

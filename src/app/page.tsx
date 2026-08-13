@@ -148,7 +148,7 @@ export default async function HomePage() {
             </div>
 
             {/* Main Quick Search Bar */}
-            <form action="/hospitals" method="GET" className="bg-white/95 backdrop-blur-md p-2.5 rounded-full shadow-2xl flex flex-col sm:flex-row items-center gap-2 w-full max-w-2xl mt-6 border border-white/30">
+            <form action="/hospitals" method="GET" className="bg-white/95 backdrop-blur-md p-2.5 rounded-3xl sm:rounded-full shadow-2xl flex flex-col sm:flex-row items-center gap-2 w-full max-w-2xl mt-6 border border-white/30">
               <div className="flex items-center space-x-2 px-4 py-2 w-full sm:w-auto flex-1">
                 <Search className="w-5 h-5 text-gray-400" />
                 <input

@@ -63,6 +63,8 @@ export async function PUT(req: Request) {
       isNabhAccredited,
       isVerifiedPartner,
       googleRating,
+      googleReviewsCount,
+      googlePlaceId,
       rating,
     } = body;
 
@@ -112,6 +114,8 @@ export async function PUT(req: Request) {
       isNabhAccredited: isNabhAccredited !== undefined ? Boolean(isNabhAccredited) : hospital.isNabhAccredited,
       isVerifiedPartner: isVerifiedPartner !== undefined ? Boolean(isVerifiedPartner) : hospital.isVerifiedPartner,
       googleRating: googleRating !== undefined ? Number(googleRating) : (hospital.googleRating || hospital.rating || 4.8),
+      googleReviewsCount: googleReviewsCount !== undefined ? Number(googleReviewsCount) : hospital.googleReviewsCount,
+      googlePlaceId: googlePlaceId !== undefined ? (googlePlaceId ? String(googlePlaceId).trim() : null) : hospital.googlePlaceId,
       rating: googleRating !== undefined ? Number(googleRating) : (rating !== undefined ? Number(rating) : hospital.rating),
     });
 

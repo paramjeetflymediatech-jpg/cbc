@@ -255,13 +255,13 @@ Hospital.init(
     },
     isNabhAccredited: {
       type: DataTypes.BOOLEAN,
-      allowNull: true,
-      defaultValue: null,
+      allowNull: false,
+      defaultValue: false,
     },
     isVerifiedPartner: {
       type: DataTypes.BOOLEAN,
-      allowNull: true,
-      defaultValue: null,
+      allowNull: false,
+      defaultValue: false,
     },
     googleRating: {
       type: DataTypes.FLOAT,

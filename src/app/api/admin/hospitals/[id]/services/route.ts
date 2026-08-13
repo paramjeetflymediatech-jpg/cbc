@@ -70,7 +70,7 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { serviceId, startingPrice, description, treatmentDetails, status } = body;
+    const { serviceId, startingPrice, description, treatmentDetails, subServices, status } = body;
 
     if (!serviceId) {
       return NextResponse.json({ error: 'Service ID is required' }, { status: 400 });
@@ -84,6 +84,7 @@ export async function POST(
         startingPrice: startingPrice !== undefined && startingPrice !== '' ? Number(startingPrice) : null,
         description: description || null,
         treatmentDetails: treatmentDetails || null,
+        subServices: subServices || null,
         status: status || 'ACTIVE',
       },
     });
@@ -93,6 +94,7 @@ export async function POST(
         startingPrice: startingPrice !== undefined && startingPrice !== '' ? Number(startingPrice) : hs.startingPrice,
         description: description !== undefined ? description : hs.description,
         treatmentDetails: treatmentDetails !== undefined ? treatmentDetails : hs.treatmentDetails,
+        subServices: subServices !== undefined ? subServices : hs.subServices,
         status: status || hs.status,
       });
     }

@@ -8,11 +8,14 @@ import { Stethoscope, ChevronRight, Search, ChevronLeft } from 'lucide-react';
 
 interface ServiceItem {
   id: number;
+  parentId?: number | null;
   name: string;
   slug: string;
   category?: string;
   shortDescription?: string;
   description?: string;
+  subServices?: ServiceItem[];
+  parent?: ServiceItem;
 }
 
 export default function ServicesPage() {
@@ -39,7 +42,8 @@ export default function ServicesPage() {
       !q ||
       svc.name.toLowerCase().includes(q) ||
       (svc.category && svc.category.toLowerCase().includes(q)) ||
-      (svc.shortDescription && svc.shortDescription.toLowerCase().includes(q))
+      (svc.shortDescription && svc.shortDescription.toLowerCase().includes(q)) ||
+      (svc.subServices && svc.subServices.some((sub) => sub.name.toLowerCase().includes(q)))
     );
   });
 
@@ -68,7 +72,7 @@ export default function ServicesPage() {
       <div className="bg-[#101828] text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
           <span className="text-xs font-bold uppercase tracking-wider text-[#ec2c6c] bg-pink-500/10 px-4 py-1.5 rounded-full border border-pink-500/20">
-            {services.length} Accredited Medical Specialties
+            {services.length} Accredited Medical Specialties & Procedures
           </span>
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">Explore Medical Services</h1>
           <p className="text-gray-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
@@ -83,7 +87,7 @@ export default function ServicesPage() {
                 type="text"
                 value={searchQuery}
                 onChange={handleSearchChange}
-                placeholder="Search specialty by name (e.g. Cardiology, Orthopedic, IVF)..."
+                placeholder="Search specialty or procedure (e.g. Oncology, Breast Cancer, Knee Replacement)..."
                 className="w-full pl-12 pr-4 py-3 bg-white text-gray-900 rounded-full text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#fd1d74] shadow-lg"
               />
             </div>
@@ -110,9 +114,8 @@ export default function ServicesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {paginatedServices.map((svc) => (
-              <Link
+              <div
                 key={svc.id}
-                href={`/services/${svc.slug}`}
                 className="bg-white p-7 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between group hover:border-[#fd1d74] transition-all hover:shadow-xl relative overflow-hidden"
               >
                 <div className="space-y-4">
@@ -121,24 +124,62 @@ export default function ServicesPage() {
                   </div>
 
                   <div className="space-y-1">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#b02151] bg-pink-50 px-2.5 py-0.5 rounded-full border border-pink-100">
-                      {svc.category || 'Specialty Care'}
-                    </span>
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#fd1d74] transition-colors pt-1">
-                      {svc.name}
-                    </h3>
+                    <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#b02151] bg-pink-50 px-2.5 py-0.5 rounded-full border border-pink-100">
+                        {svc.category || 'Specialty Care'}
+                      </span>
+                      {svc.parent && (
+                        <span className="text-[10px] font-bold uppercase text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                          Sub of {svc.parent.name}
+                        </span>
+                      )}
+                    </div>
+
+                    <Link href={`/services/${svc.slug}`} className="block">
+                      <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#fd1d74] transition-colors pt-1">
+                        {svc.name}
+                      </h3>
+                    </Link>
                   </div>
 
                   <p className="text-xs text-gray-600 leading-relaxed line-clamp-3 font-medium">
                     {svc.shortDescription || svc.description || 'Find specialized treatments and accredited hospital centers.'}
                   </p>
+
+                  {/* Render Subservices list if present */}
+                  {svc.subServices && svc.subServices.length > 0 && (
+                    <div className="pt-2 border-t border-gray-50 space-y-1.5">
+                      <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
+                        Sub-Services ({svc.subServices.length}):
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {svc.subServices.slice(0, 4).map((sub) => (
+                          <Link
+                            key={sub.id}
+                            href={`/services/${sub.slug}`}
+                            className="text-[11px] font-semibold text-[#b02151] bg-pink-50/70 hover:bg-[#fd1d74] hover:text-white px-2 py-0.5 rounded-md transition-colors"
+                          >
+                            {sub.name}
+                          </Link>
+                        ))}
+                        {svc.subServices.length > 4 && (
+                          <span className="text-[10px] text-gray-400 self-center font-bold">
+                            +{svc.subServices.length - 4} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="pt-6 border-t border-gray-100 flex items-center justify-between text-xs font-extrabold text-[#b02151] group-hover:translate-x-1 transition-transform mt-4">
+                <Link
+                  href={`/services/${svc.slug}`}
+                  className="pt-6 border-t border-gray-100 flex items-center justify-between text-xs font-extrabold text-[#b02151] group-hover:translate-x-1 transition-transform mt-4"
+                >
                   <span>View Hospital Listings</span>
                   <ChevronRight className="w-4 h-4" />
-                </div>
-              </Link>
+                </Link>
+              </div>
             ))}
           </div>
         )}

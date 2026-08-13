@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MapPin, Navigation, Search, Loader2, Compass, Layers, ExternalLink, Map, CheckCircle2 } from 'lucide-react';
-import { cleanLocationName, validateIndiaLocation } from '@/lib/locationUtils';
+import { cleanLocationName, validateIndiaLocation, parseIndianAddress } from '@/lib/locationUtils';
 
 interface GoogleAddressMapPickerProps {
   onAddressSelect: (data: {
@@ -48,6 +48,9 @@ interface PlaceSuggestion {
     city?: string;
     town?: string;
     village?: string;
+    municipality?: string;
+    state_district?: string;
+    city_district?: string;
     county?: string;
     state?: string;
     country?: string;
@@ -88,6 +91,53 @@ export default function GoogleAddressMapPicker({
       setSearchQuery(initialAddress);
     }
   }
+
+  // Auto-geocode initial address / city / state to position map pin on default location
+  useEffect(() => {
+    const queryToGeocode = initialAddress || `${initialCity} ${initialState}`.trim();
+    if (!queryToGeocode || queryToGeocode.trim() === '') return;
+
+    let isMounted = true;
+    const fetchDefaultCoords = async () => {
+      try {
+        let res = await fetch(`/api/locations/autocomplete?q=${encodeURIComponent(queryToGeocode.trim())}`);
+        if (res.ok) {
+          let data = await res.json();
+          let match = data.suggestions && data.suggestions.length > 0 ? data.suggestions[0] : null;
+
+          // If match is missing or returned India default fallback (20.5937, 78.9629), try City + State fallback
+          if (!match || (Math.abs(parseFloat(match.lat) - 20.5937) < 0.01 && Math.abs(parseFloat(match.lon) - 78.9629) < 0.01)) {
+            if (initialCity || initialState) {
+              const cityQuery = `${initialCity || ''}, ${initialState || 'Punjab'}, India`.trim();
+              const cityRes = await fetch(`/api/locations/autocomplete?q=${encodeURIComponent(cityQuery)}`);
+              if (cityRes.ok) {
+                const cityData = await cityRes.json();
+                if (cityData.suggestions && cityData.suggestions.length > 0) {
+                  match = cityData.suggestions[0];
+                }
+              }
+            }
+          }
+
+          if (match && isMounted) {
+            const lat = parseFloat(match.lat);
+            const lng = parseFloat(match.lon);
+            if (!isNaN(lat) && !isNaN(lng)) {
+              setSelectedCoords({ lat, lng });
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error auto-geocoding default location for map:', err);
+      }
+    };
+
+    fetchDefaultCoords();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [initialAddress, initialCity, initialState]);
 
   // Load Leaflet CSS & JS dynamically
   useEffect(() => {
@@ -159,31 +209,7 @@ export default function GoogleAddressMapPicker({
               setSearchQuery(fullAddr);
             }
 
-            let city = cleanLocationName(
-              addrObj.city ||
-              addrObj.town ||
-              addrObj.village ||
-              addrObj.municipality ||
-              addrObj.city_district ||
-              addrObj.suburb ||
-              ''
-            );
-            let district = cleanLocationName(addrObj.county || addrObj.state_district || '');
-            let state = cleanLocationName(addrObj.state || addrObj.state_district || '');
-
-            if (!city || !state) {
-              const parts = fullAddr.split(',').map((p: string) => p.trim());
-              if (!state && parts.length >= 2) {
-                state = parts[parts.length - 2] === 'India' ? parts[parts.length - 3] || '' : parts[parts.length - 2] || '';
-              }
-              if (!city && parts.length >= 3) {
-                city = parts[parts.length - 4] || parts[parts.length - 3] || parts[0];
-              }
-            }
-
-            city = cleanLocationName(city);
-            district = cleanLocationName(district);
-            state = cleanLocationName(state);
+            const { state, district, city } = parseIndianAddress(fullAddr, addrObj);
 
             onAddressSelect({
               address: fullAddr,
@@ -363,30 +389,7 @@ export default function GoogleAddressMapPicker({
       return;
     }
 
-    let city = cleanLocationName(
-      addrObj.city ||
-      addrObj.town ||
-      addrObj.village ||
-      addrObj.county ||
-      addrObj.suburb ||
-      ''
-    );
-    let district = cleanLocationName(addrObj.county || '');
-    let state = cleanLocationName(addrObj.state || '');
-
-    if (!city || !state) {
-      const parts = fullAddr.split(',').map((p) => p.trim());
-      if (!state && parts.length >= 2) {
-        state = parts[parts.length - 2] === 'India' ? parts[parts.length - 3] || '' : parts[parts.length - 2] || '';
-      }
-      if (!city && parts.length >= 3) {
-        city = parts[parts.length - 4] || parts[parts.length - 3] || parts[0];
-      }
-    }
-
-    city = cleanLocationName(city);
-    district = cleanLocationName(district);
-    state = cleanLocationName(state);
+    const { state, district, city } = parseIndianAddress(fullAddr, addrObj);
 
     onAddressSelect({
       address: fullAddr,

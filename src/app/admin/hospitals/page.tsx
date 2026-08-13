@@ -28,6 +28,7 @@ import {
   Sparkles,
   DollarSign,
   Star,
+  RefreshCw,
 } from 'lucide-react';
 
 interface IDoctorReview {
@@ -51,10 +52,12 @@ interface IDoctor {
 
 interface PlatformService {
   id: number;
+  parentId?: number | null;
   name: string;
   slug: string;
   category?: string;
   status: string;
+  parent?: PlatformService;
 }
 
 interface HospitalServiceData {
@@ -64,6 +67,7 @@ interface HospitalServiceData {
   startingPrice?: number | null;
   description?: string | null;
   treatmentDetails?: string | null;
+  subServices?: string | null;
   status: string;
   service?: PlatformService;
 }
@@ -99,6 +103,7 @@ interface HospitalData {
   isVerifiedPartner?: boolean;
   googleRating?: number;
   googleReviewsCount?: number | null;
+  googlePlaceId?: string | null;
   rating?: number;
   leadsRemaining?: number;
   status: string;
@@ -163,6 +168,8 @@ export default function AdminHospitalsPage() {
   const [editIsVerifiedPartner, setEditIsVerifiedPartner] = useState(true);
   const [editGoogleRating, setEditGoogleRating] = useState<number | string>(4.8);
   const [editGoogleReviewsCount, setEditGoogleReviewsCount] = useState<number | string>('');
+  const [editGooglePlaceId, setEditGooglePlaceId] = useState('');
+  const [syncingGoogleRating, setSyncingGoogleRating] = useState(false);
   const [editLeadsRemaining, setEditLeadsRemaining] = useState<number | string>(50);
   const [editStatus, setEditStatus] = useState('APPROVED');
   const [editAccountStatus, setEditAccountStatus] = useState('ACTIVE');
@@ -391,6 +398,7 @@ export default function AdminHospitalsPage() {
   const [svcStartingPrice, setSvcStartingPrice] = useState('');
   const [svcStatus, setSvcStatus] = useState('ACTIVE');
   const [svcDescription, setSvcDescription] = useState('');
+  const [svcSubServices, setSvcSubServices] = useState('');
   const [svcTreatmentDetails, setSvcTreatmentDetails] = useState('');
   const [svcSaving, setSvcSaving] = useState(false);
 
@@ -400,6 +408,7 @@ export default function AdminHospitalsPage() {
     setSvcStartingPrice('');
     setSvcStatus('ACTIVE');
     setSvcDescription('');
+    setSvcSubServices('');
     setSvcTreatmentDetails('');
   };
 
@@ -445,6 +454,7 @@ export default function AdminHospitalsPage() {
     setSvcStartingPrice(hs.startingPrice ? String(hs.startingPrice) : '');
     setSvcStatus(hs.status || 'ACTIVE');
     setSvcDescription(hs.description || '');
+    setSvcSubServices(hs.subServices || '');
     setSvcTreatmentDetails(hs.treatmentDetails || '');
     setShowAddServiceModal(true);
   };
@@ -463,6 +473,7 @@ export default function AdminHospitalsPage() {
           startingPrice: svcStartingPrice,
           status: svcStatus,
           description: svcDescription,
+          subServices: svcSubServices,
           treatmentDetails: svcTreatmentDetails,
         }),
       });
@@ -575,14 +586,26 @@ export default function AdminHospitalsPage() {
   }) => {
     if (data.address) setAddAddress(data.address);
     if (data.state) {
+      const searchedState = data.state.toLowerCase();
       const matchedState = statesList.find((s: StateItem) =>
-        s.name.toLowerCase().includes(data.state.toLowerCase())
+        s.name.toLowerCase() === searchedState ||
+        s.name.toLowerCase().includes(searchedState) ||
+        searchedState.includes(s.name.toLowerCase())
       );
       if (matchedState) {
-        handleAddStateChange(matchedState.name);
+        setAddState(matchedState.name);
+        if (matchedState.cities && matchedState.cities.length > 0) {
+          const cities = matchedState.cities.map((c: { name: string }) => c.name);
+          setCityOptions(data.city && !cities.includes(data.city) ? [data.city, ...cities] : cities);
+        } else if (data.city) {
+          setCityOptions([data.city]);
+        }
+      } else {
+        setAddState(data.state);
       }
     }
     if (data.city) {
+      setCityOptions((prev) => (!prev.includes(data.city) ? [data.city, ...prev] : prev));
       setAddCity(data.city);
     }
   };
@@ -595,14 +618,26 @@ export default function AdminHospitalsPage() {
   }) => {
     if (data.address) setEditAddress(data.address);
     if (data.state) {
+      const searchedState = data.state.toLowerCase();
       const matchedState = statesList.find((s: StateItem) =>
-        s.name.toLowerCase().includes(data.state.toLowerCase())
+        s.name.toLowerCase() === searchedState ||
+        s.name.toLowerCase().includes(searchedState) ||
+        searchedState.includes(s.name.toLowerCase())
       );
       if (matchedState) {
-        handleEditStateChange(matchedState.name);
+        setEditState(matchedState.name);
+        if (matchedState.cities && matchedState.cities.length > 0) {
+          const cities = matchedState.cities.map((c: { name: string }) => c.name);
+          setEditCityOptions(data.city && !cities.includes(data.city) ? [data.city, ...cities] : cities);
+        } else if (data.city) {
+          setEditCityOptions([data.city]);
+        }
+      } else {
+        setEditState(data.state);
       }
     }
     if (data.city) {
+      setEditCityOptions((prev) => (!prev.includes(data.city) ? [data.city, ...prev] : prev));
       setEditCity(data.city);
     }
   };
@@ -629,6 +664,7 @@ export default function AdminHospitalsPage() {
     setEditIsVerifiedPartner(Boolean(h.isVerifiedPartner));
     setEditGoogleRating(h.googleRating || h.rating || 4.8);
     setEditGoogleReviewsCount(h.googleReviewsCount || '');
+    setEditGooglePlaceId(h.googlePlaceId || '');
     setEditLeadsRemaining(h.leadsRemaining ?? 50);
     setEditStatus(h.status || 'APPROVED');
     setEditAccountStatus(h.accountStatus || 'ACTIVE');
@@ -639,6 +675,35 @@ export default function AdminHospitalsPage() {
     const matchedState = statesList.find((s: StateItem) => s.name === (h.state || 'Maharashtra'));
     if (matchedState && matchedState.cities) {
       setEditCityOptions(matchedState.cities.map((c: { name: string }) => c.name));
+    }
+  };
+
+  const handleAdminFetchGoogleRating = async () => {
+    if (!editHospital) return;
+    setSyncingGoogleRating(true);
+    try {
+      const res = await fetch('/api/hospital/fetch-google-rating', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hospitalId: editHospital.id,
+          placeId: editGooglePlaceId ? editGooglePlaceId.trim() : undefined,
+          query: `${editName} ${editCity}`,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.googlePlaceId) setEditGooglePlaceId(data.googlePlaceId);
+        if (data.googleRating) setEditGoogleRating(data.googleRating);
+        if (data.googleReviewsCount !== undefined) setEditGoogleReviewsCount(data.googleReviewsCount);
+        alert(`✅ Live Google Rating fetched & updated: ${data.googleRating} ★ (${data.googleReviewsCount || 0} reviews)`);
+      } else {
+        alert(data.error || 'Failed to fetch Google Rating.');
+      }
+    } catch {
+      alert('Error fetching Google Rating.');
+    } finally {
+      setSyncingGoogleRating(false);
     }
   };
 
@@ -675,6 +740,7 @@ export default function AdminHospitalsPage() {
           isVerifiedPartner: editIsVerifiedPartner,
           googleRating: Number(editGoogleRating),
           googleReviewsCount: editGoogleReviewsCount ? Number(editGoogleReviewsCount) : null,
+          googlePlaceId: editGooglePlaceId ? editGooglePlaceId.trim() : null,
           leadsRemaining: Number(editLeadsRemaining),
           status: editStatus,
           accountStatus: editAccountStatus,
@@ -1563,6 +1629,31 @@ export default function AdminHospitalsPage() {
                       className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-600"
                     />
                   </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                      Google Place ID <span className="text-[10px] text-gray-400 font-normal">(Optional, e.g. ChIJ...)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={editGooglePlaceId}
+                      onChange={(e) => setEditGooglePlaceId(e.target.value)}
+                      placeholder="Paste Google Place ID (e.g. ChIJN1t_tD0uEmsRUv6kJJbx4M)"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono text-gray-900 focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={handleAdminFetchGoogleRating}
+                    disabled={syncingGoogleRating}
+                    className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md flex items-center space-x-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {syncingGoogleRating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                    <span>Auto-Fetch Place ID & Sync Google Rating</span>
+                  </button>
                 </div>
               </div>
 
@@ -2325,9 +2416,16 @@ export default function AdminHospitalsPage() {
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-bold text-gray-900">
-                          {hs.service?.name || `Service #${hs.serviceId}`}
-                        </h4>
+                        <div className="space-y-0.5">
+                          <h4 className="text-sm font-bold text-gray-900">
+                            {hs.service?.name || `Service #${hs.serviceId}`}
+                          </h4>
+                          {hs.service?.parent && (
+                            <span className="inline-block text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
+                              Sub of {hs.service.parent.name}
+                            </span>
+                          )}
+                        </div>
                         <span
                           className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
                             hs.status === 'ACTIVE'
@@ -2346,6 +2444,16 @@ export default function AdminHospitalsPage() {
 
                       {hs.description && (
                         <p className="text-xs text-gray-600 line-clamp-2">{hs.description}</p>
+                      )}
+
+                      {hs.subServices && (
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {hs.subServices.split(',').map((s, idx) => (
+                            <span key={idx} className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md">
+                              {s.trim()}
+                            </span>
+                          ))}
+                        </div>
                       )}
 
                       {hs.treatmentDetails && (
@@ -2403,15 +2511,28 @@ export default function AdminHospitalsPage() {
                           onChange={(e) => setSvcSelectedServiceId(e.target.value)}
                           className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:bg-white"
                         >
-                          {platformServices.map((ps) => {
-                            const isAlreadyLinked =
-                              linkedServices.some((ls) => ls.serviceId === ps.id) &&
-                              ps.id !== Number(svcSelectedServiceId);
+                          {platformServices.filter((ps) => !ps.parentId).map((parent) => {
+                            const subs = platformServices.filter((ps) => ps.parentId === parent.id);
+                            const isParentLinked =
+                              linkedServices.some((ls) => ls.serviceId === parent.id) &&
+                              parent.id !== Number(svcSelectedServiceId);
 
                             return (
-                              <option key={ps.id} value={ps.id} disabled={isAlreadyLinked}>
-                                {ps.name} {ps.category ? `(${ps.category})` : ''}{isAlreadyLinked ? ' — Already Added' : ''}
-                              </option>
+                              <optgroup key={parent.id} label={parent.name}>
+                                <option value={parent.id} disabled={isParentLinked}>
+                                  {parent.name} (General Specialty){isParentLinked ? ' — Already Added' : ''}
+                                </option>
+                                {subs.map((sub) => {
+                                  const isSubLinked =
+                                    linkedServices.some((ls) => ls.serviceId === sub.id) &&
+                                    sub.id !== Number(svcSelectedServiceId);
+                                  return (
+                                    <option key={sub.id} value={sub.id} disabled={isSubLinked}>
+                                      -- {sub.name} {isSubLinked ? ' — Already Added' : ''}
+                                    </option>
+                                  );
+                                })}
+                              </optgroup>
                             );
                           })}
                         </select>
@@ -2439,6 +2560,18 @@ export default function AdminHospitalsPage() {
                         <option value="ACTIVE">ACTIVE</option>
                         <option value="INACTIVE">INACTIVE</option>
                       </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Sub-Services / Procedures (Comma-Separated)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Breast Cancer Care, Head & Neck Cancer, Lung Cancer, Cervical Cancer"
+                        value={svcSubServices}
+                        onChange={(e) => setSvcSubServices(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                      />
+                      <p className="text-[10px] text-gray-400 mt-0.5">Separate multiple sub-services with commas.</p>
                     </div>
 
                     <div>

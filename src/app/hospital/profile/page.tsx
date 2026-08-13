@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Save, Loader2, CheckCircle2, AlertCircle, Trash2, Image as ImageIcon, ExternalLink, Upload } from 'lucide-react';
+import { Save, Loader2, CheckCircle2, AlertCircle, Trash2, Image as ImageIcon, ExternalLink, Upload, RefreshCw } from 'lucide-react';
 
 interface IFAQ {
   question: string;
@@ -60,6 +60,7 @@ export default function HospitalProfilePage() {
   const [isVerifiedPartner, setIsVerifiedPartner] = useState(false);
   const [googleRating, setGoogleRating] = useState<number | string>(4.8);
   const [googleReviewsCount, setGoogleReviewsCount] = useState<number | null>(null);
+  const [googlePlaceId, setGooglePlaceId] = useState('');
   const [fetchingGoogleRating, setFetchingGoogleRating] = useState(false);
 
   // Uploading state
@@ -112,6 +113,7 @@ export default function HospitalProfilePage() {
           setIsVerifiedPartner(Boolean(h.isVerifiedPartner));
           setGoogleRating(h.googleRating || h.rating || 4.8);
           setGoogleReviewsCount(h.googleReviewsCount || null);
+          setGooglePlaceId(h.googlePlaceId || '');
           setFacilities(h.facilities || []);
           setGallery(h.gallery || []);
           setFaqs(h.faqs || []);
@@ -129,16 +131,20 @@ export default function HospitalProfilePage() {
       const res = await fetch('/api/hospital/fetch-google-rating', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: `${name} ${city}` }),
+        body: JSON.stringify({
+          placeId: googlePlaceId ? googlePlaceId.trim() : undefined,
+          query: `${name} ${city}`,
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) {
         setErrorMessage(data.error || 'Failed to fetch Google Rating.');
       } else {
-        setGoogleRating(data.googleRating);
-        setGoogleReviewsCount(data.googleReviewsCount);
-        setMessage(`Live Google Rating fetched & updated to ${data.googleRating} ★ (${data.googleReviewsCount || 0} reviews)!`);
+        if (data.googlePlaceId) setGooglePlaceId(data.googlePlaceId);
+        if (data.googleRating) setGoogleRating(data.googleRating);
+        if (data.googleReviewsCount !== undefined) setGoogleReviewsCount(data.googleReviewsCount);
+        setMessage(`Live Google Rating fetched & updated: ${data.googleRating} ★ (${data.googleReviewsCount || 0} reviews)!`);
       }
     } catch {
       setErrorMessage('Network error fetching live Google Rating.');
@@ -266,6 +272,7 @@ export default function HospitalProfilePage() {
           isNabhAccredited,
           isVerifiedPartner,
           googleRating: Number(googleRating),
+          googlePlaceId: googlePlaceId ? googlePlaceId.trim() : null,
         }),
       });
 
@@ -533,6 +540,19 @@ export default function HospitalProfilePage() {
                 </div>
               </div>
 
+              <div className="space-y-1 sm:col-span-2">
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                  Google Place ID <span className="text-[10px] text-gray-400 font-normal">(Optional, e.g. ChIJ...)</span>
+                </label>
+                <input
+                  type="text"
+                  value={googlePlaceId}
+                  onChange={(e) => setGooglePlaceId(e.target.value)}
+                  placeholder="Paste Google Place ID (e.g. ChIJN1t_tD0uEmsRUv6kJJbx4M)"
+                  className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-mono text-gray-900 focus:outline-none focus:border-[#fd1d74]"
+                />
+              </div>
+
               <div className="flex items-center space-x-2 sm:pt-6">
                 <input
                   type="checkbox"
@@ -558,6 +578,18 @@ export default function HospitalProfilePage() {
                   Verified Partner Badge
                 </label>
               </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleFetchGoogleRating}
+                disabled={fetchingGoogleRating}
+                className="px-4 py-2.5 bg-[#b02151] hover:bg-[#921941] text-white rounded-xl text-xs font-extrabold transition-all shadow-md flex items-center space-x-2 cursor-pointer disabled:opacity-50"
+              >
+                {fetchingGoogleRating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                <span>Auto-Fetch Place ID & Sync Google Rating</span>
+              </button>
             </div>
           </div>
         </div>

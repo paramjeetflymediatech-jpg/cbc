@@ -15,6 +15,7 @@ interface EnquiryModalProps {
   hospitalId: number;
   hospitalName: string;
   defaultServiceId?: number;
+  initialMessage?: string;
   servicesList?: ServiceItem[];
 }
 
@@ -26,6 +27,7 @@ export default function EnquiryModal({
   hospitalId,
   hospitalName,
   defaultServiceId,
+  initialMessage,
   servicesList = EMPTY_SERVICES,
 }: EnquiryModalProps) {
   const [patientName, setPatientName] = useState('');
@@ -50,13 +52,16 @@ export default function EnquiryModal({
       // Modal opened: initialize serviceId to validDefaultId or first available service
       const initial = validDefaultId || (availableServices.length > 0 ? availableServices[0].id : '');
       setServiceId(initial);
+      if (initialMessage !== undefined) {
+        setMessage(initialMessage);
+      }
     } else if (isOpen && !serviceId && availableServices.length > 0) {
       // Services loaded asynchronously after opening
       const initial = validDefaultId || availableServices[0].id;
       setServiceId(initial);
     }
     prevIsOpenRef.current = isOpen;
-  }, [isOpen, validDefaultId, availableServices, serviceId]);
+  }, [isOpen, validDefaultId, availableServices, serviceId, initialMessage]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -178,26 +183,26 @@ export default function EnquiryModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
-      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="bg-[#101828] text-white p-6 flex justify-between items-center border-b border-gray-800">
+        <div className="bg-[#101828] text-white p-5 sm:p-6 flex justify-between items-center border-b border-gray-800 flex-shrink-0">
           <div>
             <span className="text-xs font-semibold text-[#ec2c6c] uppercase tracking-wider">
               Hospital Service Enquiry
             </span>
-            <h3 className="text-xl font-bold text-white mt-0.5">{hospitalName}</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-white mt-0.5">{hospitalName}</h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-white rounded-lg transition-colors"
+            className="p-1 text-gray-400 hover:text-white rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6">
+        <div className="p-5 sm:p-6 overflow-y-auto flex-1">
           {isSuccess ? (
             <div className="text-center py-8 space-y-4">
               <CheckCircle2 className="w-16 h-16 text-[#ec2c6c] mx-auto animate-bounce" />
@@ -223,14 +228,15 @@ export default function EnquiryModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                    Patient Name *
+                    Patient Name * <span className="text-[10px] text-gray-700 font-bold">(Max 50 chars)</span>
                   </label>
                   <input
                     type="text"
                     required
+                    maxLength={50}
                     value={patientName}
                     onChange={(e) => setPatientName(e.target.value)}
-                    placeholder="Full Name"
+                    placeholder="Full Name (Max 50 chars)"
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#ec2c6c]"
                   />
                 </div>

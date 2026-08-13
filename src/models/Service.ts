@@ -3,6 +3,7 @@ import { sequelize } from '@/lib/db';
 
 export interface ServiceAttributes {
   id: number;
+  parentId?: number | null;
   name: string;
   slug: string;
   category?: string | null;
@@ -15,12 +16,15 @@ export interface ServiceAttributes {
   status: 'ACTIVE' | 'INACTIVE';
   createdAt?: Date;
   updatedAt?: Date;
+  parent?: Service;
+  subServices?: Service[];
 }
 
 export type ServiceCreationAttributes = Optional<ServiceAttributes, 'id' | 'status'>;
 
 export class Service extends Model<ServiceAttributes, ServiceCreationAttributes> implements ServiceAttributes {
   declare id: number;
+  declare parentId: number | null;
   declare name: string;
   declare slug: string;
   declare category: string | null;
@@ -33,6 +37,8 @@ export class Service extends Model<ServiceAttributes, ServiceCreationAttributes>
   declare status: 'ACTIVE' | 'INACTIVE';
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
+  declare parent?: Service;
+  declare subServices?: Service[];
 }
 
 Service.init(
@@ -41,6 +47,15 @@ Service.init(
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
+    },
+    parentId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'services',
+        key: 'id',
+      },
+      onDelete: 'SET NULL',
     },
     name: {
       type: DataTypes.STRING(255),

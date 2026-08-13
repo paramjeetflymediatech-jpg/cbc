@@ -63,7 +63,7 @@ export async function connectDB(): Promise<Sequelize | null> {
       await instance.sync();
       await BlogPost.sync();
 
-      // Ensure new hospital columns exist
+      // Ensure new hospital & service columns exist
       try {
         const queryInterface = instance.getQueryInterface();
         const table: any = await queryInterface.describeTable('hospitals');
@@ -82,6 +82,16 @@ export async function connectDB(): Promise<Sequelize | null> {
         }
         if (!table.googleReviewsCount) {
           await instance.query('ALTER TABLE hospitals ADD COLUMN googleReviewsCount INT NULL DEFAULT 0;');
+        }
+
+        const servicesTable: any = await queryInterface.describeTable('services');
+        if (!servicesTable.parentId) {
+          await instance.query('ALTER TABLE services ADD COLUMN parentId INT NULL REFERENCES services(id) ON DELETE SET NULL;');
+        }
+
+        const hsTable: any = await queryInterface.describeTable('hospital_services');
+        if (!hsTable.subServices) {
+          await instance.query('ALTER TABLE hospital_services ADD COLUMN subServices TEXT NULL;');
         }
       } catch (colErr) {
         // Table schema up to date or column already exists

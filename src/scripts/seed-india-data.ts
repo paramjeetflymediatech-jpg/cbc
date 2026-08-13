@@ -715,7 +715,7 @@ export async function seedIndiaStatesCitiesAndServices() {
 
   console.log(` Successfully processed ${stateCount} States, ${distCount} Districts, and ${cityCount} Cities!`);
 
-  console.log(` Starting seeding for ${services27List.length} Medical Services/Specialties...`);
+  console.log(` Starting seeding for ${services27List.length} Parent Medical Services/Specialties...`);
   let serviceCount = 0;
 
   for (const s of services27List) {
@@ -728,7 +728,17 @@ export async function seedIndiaStatesCitiesAndServices() {
     }
   }
 
-  console.log(` Successfully seeded/updated ${services27List.length} Medical Services! (${serviceCount} new added)`);
+  console.log(' Cleaning up legacy sub-services from services table...');
+  const { Op } = await import('sequelize');
+  const { HospitalService } = await import('../models');
+  const childServices = await Service.findAll({ where: { parentId: { [Op.ne]: null } } });
+  const childIds = childServices.map((s) => s.id);
+  if (childIds.length > 0) {
+    await HospitalService.destroy({ where: { serviceId: childIds } });
+    await Service.destroy({ where: { id: childIds } });
+  }
+
+  console.log(` Successfully seeded/updated ${services27List.length} Main Platform Services! (${serviceCount} new added)`);
 }
 
 async function main() {

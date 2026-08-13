@@ -11,6 +11,55 @@ export function cleanLocationName(name?: string | null): string {
   return clean.trim();
 }
 
+/**
+ * Accurately extracts State, District, and City from Indian address strings and geocoding objects.
+ */
+export function parseIndianAddress(
+  fullAddr: string,
+  addrObj?: Record<string, string | undefined>
+): { state: string; district: string; city: string } {
+  let state = addrObj?.state ? cleanLocationName(addrObj.state) : '';
+  let district =
+    addrObj?.state_district || addrObj?.county
+      ? cleanLocationName(addrObj.state_district || addrObj.county)
+      : '';
+  let city =
+    addrObj?.city ||
+    addrObj?.town ||
+    addrObj?.village ||
+    addrObj?.municipality ||
+    addrObj?.city_district ||
+    addrObj?.suburb
+      ? cleanLocationName(
+          addrObj.city ||
+            addrObj.town ||
+            addrObj.village ||
+            addrObj.municipality ||
+            addrObj.city_district ||
+            addrObj.suburb
+        )
+      : '';
+
+  const cleanParts = fullAddr
+    .split(',')
+    .map((p) => p.trim())
+    .filter((p) => p && p.toLowerCase() !== 'india' && !/^\d{6}$/.test(p));
+
+  if (!state && cleanParts.length > 0) {
+    state = cleanLocationName(cleanParts[cleanParts.length - 1]);
+  }
+
+  if (!district && cleanParts.length >= 2) {
+    district = cleanLocationName(cleanParts[cleanParts.length - 2]);
+  }
+
+  if (!city && cleanParts.length >= 2) {
+    city = cleanLocationName(cleanParts[cleanParts.length >= 3 ? cleanParts.length - 3 : cleanParts.length - 2]);
+  }
+
+  return { state, district, city };
+}
+
 const NON_INDIA_COUNTRIES = [
   'pakistan',
   'nepal',

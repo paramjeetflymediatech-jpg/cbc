@@ -133,7 +133,7 @@ export default function GetListedPage() {
     }
   };
 
-  const handleGoogleAddressSelected = (data: {
+  const handleGoogleAddressSelected = async (data: {
     address: string;
     city: string;
     district?: string;
@@ -141,28 +141,110 @@ export default function GetListedPage() {
     country: string;
   }) => {
     if (data.address) setAddress(data.address);
-    if (data.state) {
-      const matchedState = statesList.find(
-        (s: any) =>
-          s.name.toLowerCase().includes(data.state.toLowerCase()) ||
-          data.state.toLowerCase().includes(s.name.toLowerCase())
-      );
-      if (matchedState) {
-        handleStateChange(matchedState.name);
+
+    const searchedState = (data.state || '').toLowerCase().trim();
+    const searchedDistrict = (data.district || '').toLowerCase().trim();
+    const searchedCity = (data.city || '').toLowerCase().trim();
+
+    // 1. Find matching state in statesList
+    const matchedStateObj = statesList.find(
+      (s: any) =>
+        s.name.toLowerCase() === searchedState ||
+        s.name.toLowerCase().includes(searchedState) ||
+        searchedState.includes(s.name.toLowerCase())
+    );
+
+    if (matchedStateObj) {
+      setState(matchedStateObj.name);
+
+      let dists: string[] = [];
+      let stateCities: string[] = [];
+
+      if (matchedStateObj.districts && matchedStateObj.districts.length > 0) {
+        dists = matchedStateObj.districts.map((d: any) => d.name);
       }
-    }
-    if (data.district) {
-      setDistrictOptions((prev) => (!prev.includes(data.district!) ? [data.district!, ...prev] : prev));
-      setDistrict(data.district);
-    }
-    if (data.city) {
-      setCityOptions((prev) => {
-        if (!prev.includes(data.city)) {
-          return [data.city, ...prev];
+
+      // Fetch dynamic districts and cities for this state if missing
+      try {
+        const res = await fetch(`/api/locations?state=${encodeURIComponent(matchedStateObj.name)}`);
+        if (res.ok) {
+          const locData = await res.json();
+          if (locData.districts && Array.isArray(locData.districts)) {
+            const apiDists = locData.districts.map((d: any) => d.name);
+            dists = Array.from(new Set([...dists, ...apiDists]));
+          }
+          if (locData.cities && Array.isArray(locData.cities)) {
+            stateCities = locData.cities.map((c: any) => c.name);
+          }
         }
-        return prev;
-      });
-      setCity(data.city);
+      } catch {}
+
+      // 2. Match district
+      const targetDistName = data.district || data.city || '';
+      let matchedDistName = dists.find(
+        (dName: string) =>
+          dName.toLowerCase() === searchedDistrict ||
+          dName.toLowerCase().includes(searchedDistrict) ||
+          searchedDistrict.includes(dName.toLowerCase()) ||
+          dName.toLowerCase() === searchedCity ||
+          dName.toLowerCase().includes(searchedCity)
+      );
+
+      if (!matchedDistName && targetDistName) {
+        matchedDistName = targetDistName;
+        dists = [targetDistName, ...dists];
+      }
+
+      setDistrictOptions(dists);
+      if (matchedDistName) {
+        setDistrict(matchedDistName);
+      }
+
+      // 3. Match city
+      let cityList: string[] = stateCities;
+      const selectedDistObj = matchedStateObj.districts?.find((d: any) => d.name === matchedDistName);
+      if (selectedDistObj && selectedDistObj.cities && selectedDistObj.cities.length > 0) {
+        cityList = Array.from(new Set([...selectedDistObj.cities.map((c: any) => c.name), ...stateCities]));
+      }
+
+      const targetCityName = data.city || '';
+      let matchedCityName = cityList.find(
+        (cName: string) =>
+          cName.toLowerCase() === searchedCity ||
+          cName.toLowerCase().includes(searchedCity) ||
+          searchedCity.includes(cName.toLowerCase())
+      );
+
+      // Fallback: If searched city is a local area/neighborhood (e.g. Mota Singh Nagar), match district name (e.g. Jalandhar)
+      if (!matchedCityName && matchedDistName) {
+        matchedCityName = cityList.find(
+          (cName: string) =>
+            cName.toLowerCase() === matchedDistName.toLowerCase() ||
+            cName.toLowerCase().includes(matchedDistName.toLowerCase()) ||
+            matchedDistName.toLowerCase().includes(cName.toLowerCase())
+        );
+      }
+
+      if (!matchedCityName && targetCityName) {
+        matchedCityName = targetCityName;
+        cityList = [targetCityName, ...cityList];
+      }
+
+      setCityOptions(cityList);
+      if (matchedCityName) {
+        setCity(matchedCityName);
+      }
+    } else {
+      // Fallback if state not in list
+      if (data.state) setState(data.state);
+      if (data.district) {
+        setDistrictOptions((prev) => (!prev.includes(data.district!) ? [data.district!, ...prev] : prev));
+        setDistrict(data.district);
+      }
+      if (data.city) {
+        setCityOptions((prev) => (!prev.includes(data.city) ? [data.city, ...prev] : prev));
+        setCity(data.city);
+      }
     }
   };
 

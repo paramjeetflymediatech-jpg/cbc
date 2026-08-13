@@ -12,10 +12,17 @@ export async function GET() {
 
     await connectDB();
 
-    const allPlatformServices = await Service.findAll({ where: { status: 'ACTIVE' } });
+    const allPlatformServices = await Service.findAll({
+      where: { status: 'ACTIVE' },
+      include: [
+        { model: Service, as: 'parent', required: false, attributes: ['id', 'name', 'slug'] },
+        { model: Service, as: 'subServices', required: false, attributes: ['id', 'name', 'slug'] },
+      ],
+      order: [['name', 'ASC']],
+    });
     const hospitalServices = await HospitalService.findAll({
       where: { hospitalId: authUser.hospitalId },
-      include: [{ model: Service, as: 'service' }],
+      include: [{ model: Service, as: 'service', include: [{ model: Service, as: 'parent', required: false }] }],
     });
 
     return NextResponse.json({ allPlatformServices, hospitalServices });
@@ -33,7 +40,7 @@ export async function POST(req: Request) {
     }
 
     await connectDB();
-    const { serviceId, startingPrice, description, treatmentDetails, status } = await req.json();
+    const { serviceId, startingPrice, description, treatmentDetails, subServices, status } = await req.json();
 
     if (!serviceId) {
       return NextResponse.json({ error: 'Service ID is required' }, { status: 400 });
@@ -47,6 +54,7 @@ export async function POST(req: Request) {
         startingPrice: startingPrice ? Number(startingPrice) : null,
         description: description || null,
         treatmentDetails: treatmentDetails || null,
+        subServices: subServices || null,
         status: status || 'ACTIVE',
       },
     });
@@ -56,6 +64,7 @@ export async function POST(req: Request) {
         startingPrice: startingPrice !== undefined ? Number(startingPrice) : hs.startingPrice,
         description: description !== undefined ? description : hs.description,
         treatmentDetails: treatmentDetails !== undefined ? treatmentDetails : hs.treatmentDetails,
+        subServices: subServices !== undefined ? subServices : hs.subServices,
         status: status || hs.status,
       });
     }

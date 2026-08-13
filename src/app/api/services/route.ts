@@ -7,7 +7,23 @@ export async function GET() {
     await connectDB();
     const services = await Service.findAll({
       where: { status: 'ACTIVE' },
-      order: [['name', 'ASC']],
+      include: [
+        {
+          model: Service,
+          as: 'subServices',
+          where: { status: 'ACTIVE' },
+          required: false,
+        },
+        {
+          model: Service,
+          as: 'parent',
+          required: false,
+        },
+      ],
+      order: [
+        ['name', 'ASC'],
+        [{ model: Service, as: 'subServices' }, 'name', 'ASC'],
+      ],
     });
     return NextResponse.json({ services });
   } catch (error) {

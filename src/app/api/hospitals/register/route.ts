@@ -93,8 +93,8 @@ export async function POST(req: Request) {
       faqs: [],
       rating: 4.8,
       isFeatured: false,
-      isNabhAccredited: null,
-      isVerifiedPartner: null,
+      isNabhAccredited: false,
+      isVerifiedPartner: false,
     });
 
     const passHash = await hashPassword(password);
