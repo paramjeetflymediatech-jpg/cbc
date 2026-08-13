@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Save, Loader2, CheckCircle2, AlertCircle, Trash2, Image as ImageIcon, ExternalLink, Upload, RefreshCw } from 'lucide-react';
+import GoogleAddressMapPicker from '@/components/ui/GoogleAddressMapPicker';
 
 interface IFAQ {
   question: string;
@@ -152,6 +153,8 @@ export default function HospitalProfilePage() {
       setFetchingGoogleRating(false);
     }
   };
+
+
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetCategory: 'logo' | 'cover' | 'gallery') => {
     const file = e.target.files?.[0];
@@ -597,6 +600,16 @@ export default function HospitalProfilePage() {
         {/* Location Details */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-5">
           <h3 className="text-xs font-extrabold text-[#b02151] uppercase tracking-wider">Location & Address</h3>
+
+          <div className="p-4 bg-slate-50 border border-gray-200 rounded-2xl">
+            <GoogleAddressMapPicker
+              initialAddress={address}
+              initialCity={city}
+              initialState={state}
+              onAddressSelect={handleGoogleAddressSelected}
+            />
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Full Street Address *</label>
             <textarea

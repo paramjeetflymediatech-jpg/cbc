@@ -20,12 +20,39 @@ export async function GET(req: Request) {
           const gData = await gRes.json();
           if (gData.status === 'OK' && Array.isArray(gData.results) && gData.results.length > 0) {
             const topResult = gData.results[0];
+            
+            let city = '';
+            let state = '';
+            let district = '';
+            let admin2 = '';
+            let admin3 = '';
+            let postcode = '';
+            
+            if (topResult.address_components) {
+              for (const comp of topResult.address_components) {
+                if (comp.types.includes('locality')) city = comp.long_name;
+                if (comp.types.includes('administrative_area_level_2')) admin2 = comp.long_name;
+                if (comp.types.includes('administrative_area_level_3')) admin3 = comp.long_name;
+                if (comp.types.includes('administrative_area_level_1')) state = comp.long_name;
+                if (comp.types.includes('postal_code')) postcode = comp.long_name;
+              }
+
+              if (admin2.toLowerCase().includes('division') && admin3) {
+                district = admin3;
+              } else {
+                district = admin3 && !admin2 ? admin3 : admin2;
+              }
+              district = district.replace(/\s+Division$/i, '').trim();
+            }
+
             return NextResponse.json({
               display_name: topResult.formatted_address,
               address: {
                 road: topResult.formatted_address,
-                city: '',
-                state: '',
+                city: city,
+                county: district,
+                state: state,
+                postcode: postcode,
                 country: 'India',
                 country_code: 'in',
               },

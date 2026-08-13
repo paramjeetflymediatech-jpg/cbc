@@ -255,35 +255,26 @@ export default function GoogleAddressMapPicker({
 
       const tileUrl =
         mapType === 'k'
-          ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-          : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+          ? 'http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'
+          : 'http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
 
       L.tileLayer(tileUrl, {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap & Esri World Imagery',
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '© Google Maps',
       }).addTo(map);
 
-      // Custom Pink Map Marker Icon
+      // Custom Google Maps Red Marker Icon
       const pinIcon = L.icon({
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41],
+        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+        shadowUrl: 'https://maps.google.com/mapfiles/ms/icons/msmarker.shadow.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32],
+        shadowSize: [37, 34],
       });
 
       const marker = L.marker([defaultLat, defaultLng], { icon: pinIcon, draggable: true }).addTo(map);
-
-      // CLICK ON MAP EVENT -> UPDATE MARKER & FETCH ADDRESS
-      map.on('click', async (e: { latlng: { lat: number; lng: number } }) => {
-        const clickLat = e.latlng.lat;
-        const clickLng = e.latlng.lng;
-        marker.setLatLng([clickLat, clickLng]);
-        setSelectedCoords({ lat: clickLat, lng: clickLng });
-        await fetchAddressFromCoords(clickLat, clickLng);
-      });
 
       // DRAG PIN EVENT -> UPDATE MARKER & FETCH ADDRESS
       marker.on('dragend', async () => {
@@ -363,16 +354,37 @@ export default function GoogleAddressMapPicker({
     }, 300);
   };
 
-  const handleSelectSuggestion = (place: PlaceSuggestion) => {
-    const lat = parseFloat(place.lat);
-    const lng = parseFloat(place.lon);
-    setSelectedCoords({ lat, lng });
+  const handleSelectSuggestion = async (place: PlaceSuggestion) => {
+    let lat = parseFloat(place.lat);
+    let lng = parseFloat(place.lon);
+    let fullAddr = place.display_name;
+    let addrObj = place.address || {};
 
-    const fullAddr = place.display_name;
+    if (isNaN(lat) || isNaN(lng) || !place.lat) {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/locations/details?place_id=${place.place_id}`);
+        if (res.ok) {
+          const data = await res.json();
+          lat = parseFloat(data.lat);
+          lng = parseFloat(data.lon);
+          // Preserve the original prediction text (fullAddr) instead of overwriting with geocoder's formatted_address
+          addrObj = data.address || addrObj;
+        }
+      } catch (err) {
+        console.error('Error fetching place details:', err);
+      } finally {
+        setSearching(false);
+      }
+    }
+
+    if (!isNaN(lat) && !isNaN(lng)) {
+      setSelectedCoords({ lat, lng });
+    }
+
     setSearchQuery(fullAddr);
     setShowDropdown(false);
 
-    const addrObj = place.address || {};
     const locationCheck = validateIndiaLocation({
       country: addrObj.country,
       countryCode: addrObj.country_code,
@@ -452,7 +464,7 @@ export default function GoogleAddressMapPicker({
         <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
           <span className="flex items-center">
             <MapPin className="w-4 h-4 text-[#b02151] mr-1.5" />
-            Click Map or Search Address Below
+            Search Address Below or Drag Pin
           </span>
           <button
             type="button"
@@ -543,7 +555,7 @@ export default function GoogleAddressMapPicker({
         </div>
 
         <span className="text-[11px] font-semibold text-gray-500 hidden sm:inline">
-          💡 Click map or drag pin to auto-fill address
+          💡 Drag pin to auto-fill address
         </span>
 
         {searchQuery && (
@@ -559,8 +571,8 @@ export default function GoogleAddressMapPicker({
         )}
       </div>
 
-      {/* Interactive Clickable & Draggable Map Canvas */}
-      <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-xs bg-gray-100 relative h-64 w-full z-10">
+      {/* Interactive Draggable Map Canvas */}
+      <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-xs bg-gray-100 relative h-80 w-full z-10">
         <div ref={mapContainerRef} className="w-full h-full" />
         {!leafletReady && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 text-gray-400 text-xs space-y-2">

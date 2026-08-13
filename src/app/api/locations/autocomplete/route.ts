@@ -116,40 +116,30 @@ export async function GET(req: Request) {
 
     const googleApiKey = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyBjsJ5WTXCYZ989GwGOyUmCrcvB3JG_-hU';
 
-    // 1. Try Google Maps Geocoding API FIRST for 100% precise location accuracy
+    // 1. Try Google Places Autocomplete API FIRST for real-time typeahead
     if (googleApiKey) {
-      for (const qVar of queryVariations) {
-        try {
-          const gUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-            qVar
-          )}&components=country:IN&key=${googleApiKey}`;
+      try {
+        const gUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+          rawQuery
+        )}&components=country:in&key=${googleApiKey}`;
 
-          const gRes = await fetch(gUrl);
-          if (gRes.ok) {
-            const gData = await gRes.json();
-            if (gData.status === 'OK' && Array.isArray(gData.results) && gData.results.length > 0) {
-              suggestions = gData.results.map((item: { formatted_address: string; geometry?: { location?: { lat: number; lng: number } }; place_id?: string }, idx: number) => {
-                const loc = item.geometry?.location || { lat: 20.5937, lng: 78.9629 };
-                return {
-                  place_id: item.place_id || `google_${idx}`,
-                  display_name: item.formatted_address,
-                  lat: String(loc.lat),
-                  lon: String(loc.lng),
-                  address: {
-                    road: item.formatted_address,
-                    city: '',
-                    state: '',
-                    country: 'India',
-                    country_code: 'in',
-                  },
-                };
-              });
-              break; // Exact Google Maps location match found!
-            }
+        const gRes = await fetch(gUrl);
+        if (gRes.ok) {
+          const gData = await gRes.json();
+          if (gData.status === 'OK' && Array.isArray(gData.predictions) && gData.predictions.length > 0) {
+            suggestions = gData.predictions.map((item: { description: string; place_id?: string }, idx: number) => {
+              return {
+                place_id: item.place_id || `google_${idx}`,
+                display_name: item.description,
+                lat: '',
+                lon: '',
+                address: {},
+              };
+            });
           }
-        } catch {
-          // continue to next variation or fallback
         }
+      } catch {
+        // Fallback
       }
     }
 

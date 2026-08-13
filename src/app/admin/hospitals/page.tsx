@@ -140,6 +140,7 @@ export default function AdminHospitalsPage() {
   const [addPassword, setAddPassword] = useState('');
   const [addState, setAddState] = useState('Maharashtra');
   const [addCity, setAddCity] = useState('Mumbai');
+  const [addDistrict, setAddDistrict] = useState('');
   const [addAddress, setAddAddress] = useState('');
   const [addWebsite, setAddWebsite] = useState('');
   const [addDescription, setAddDescription] = useState('');
@@ -581,10 +582,12 @@ export default function AdminHospitalsPage() {
   const handleGoogleAddressSelected = (data: {
     address: string;
     city: string;
+    district?: string;
     state: string;
     country: string;
   }) => {
     if (data.address) setAddAddress(data.address);
+    if (data.district) setAddDistrict(data.district);
     if (data.state) {
       const searchedState = data.state.toLowerCase();
       const matchedState = statesList.find((s: StateItem) =>
@@ -613,10 +616,12 @@ export default function AdminHospitalsPage() {
   const handleEditGoogleAddressSelected = (data: {
     address: string;
     city: string;
+    district?: string;
     state: string;
     country: string;
   }) => {
     if (data.address) setEditAddress(data.address);
+    if (data.district) setEditDistrict(data.district);
     if (data.state) {
       const searchedState = data.state.toLowerCase();
       const matchedState = statesList.find((s: StateItem) =>
@@ -876,6 +881,7 @@ export default function AdminHospitalsPage() {
           phone: addPhone,
           password: addPassword,
           city: addCity,
+          district: addDistrict,
           state: addState,
           address: addAddress,
           website: addWebsite,
@@ -895,6 +901,9 @@ export default function AdminHospitalsPage() {
         setAddEmail('');
         setAddPhone('');
         setAddPassword('');
+        setAddCity('Mumbai');
+        setAddDistrict('');
+        setAddState('Maharashtra');
         setAddAddress('');
         setAddWebsite('');
         setAddDescription('');
@@ -1194,6 +1203,17 @@ export default function AdminHospitalsPage() {
                       className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#fd1d74]"
                     />
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">District / Region</label>
+                  <input
+                    type="text"
+                    value={addDistrict}
+                    onChange={(e) => setAddDistrict(e.target.value)}
+                    placeholder="e.g. Central District"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#fd1d74]"
+                  />
                 </div>
               </div>
 
