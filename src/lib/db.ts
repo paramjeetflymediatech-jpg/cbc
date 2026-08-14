@@ -57,11 +57,12 @@ export async function connectDB(): Promise<Sequelize | null> {
 
   cached.initPromise = (async () => {
     try {
-      const { initAssociations, BlogPost } = await import('../models');
+      const { initAssociations, BlogPost, Testimonial } = await import('../models');
       initAssociations();
       await instance.authenticate();
       await instance.sync();
       await BlogPost.sync();
+      await Testimonial.sync();
 
       // Ensure new hospital & service columns exist
       try {

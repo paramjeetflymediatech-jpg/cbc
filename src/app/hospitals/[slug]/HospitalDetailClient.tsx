@@ -547,6 +547,7 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
                             <p className="text-xs text-[#b02151] font-bold">{doc.specialty || doc.qualification}</p>
                             {doc.qualification && <p className="text-xs text-gray-500 font-medium">{doc.qualification}</p>}
                             {doc.experience && <p className="text-xs text-gray-600 font-extrabold">{doc.experience} Experience</p>}
+                            {doc.about && <p className="text-xs text-gray-600 italic bg-pink-50/50 p-2 rounded-lg border border-pink-100 mt-1">&ldquo;{doc.about}&rdquo;</p>}
                             {doc.treatments && doc.treatments.length > 0 && (
                               <div className="pt-1.5">
                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">

@@ -17,6 +17,7 @@ interface DoctorItem {
   qualification?: string;
   experience?: string;
   image?: string;
+  about?: string;
   treatments?: string[];
   reviews?: IDoctorReview[];
   rating?: number;
@@ -38,6 +39,7 @@ export default function HospitalDoctorsPage() {
   const [qualification, setQualification] = useState('');
   const [experience, setExperience] = useState('');
   const [image, setImage] = useState('');
+  const [about, setAbout] = useState('');
   const [treatmentsInput, setTreatmentsInput] = useState('');
 
   const [saving, setSaving] = useState(false);
@@ -68,6 +70,7 @@ export default function HospitalDoctorsPage() {
     setQualification('');
     setExperience('');
     setImage('');
+    setAbout('');
     setTreatmentsInput('');
     setErrorMessage('');
     setMessage('');
@@ -85,6 +88,7 @@ export default function HospitalDoctorsPage() {
     setQualification(doc.qualification || '');
     setExperience(doc.experience || '');
     setImage(doc.image || '');
+    setAbout(doc.about || '');
     setTreatmentsInput((doc.treatments || []).join(', '));
     setErrorMessage('');
     setMessage('');
@@ -142,6 +146,7 @@ export default function HospitalDoctorsPage() {
         qualification,
         experience,
         image,
+        about,
         treatments: parsedTreatments,
       };
 
@@ -320,6 +325,12 @@ export default function HospitalDoctorsPage() {
                       </div>
                     )}
 
+                    {doc.about && (
+                      <div className="p-2.5 bg-pink-50/60 rounded-xl border border-pink-100 text-[11px] text-gray-600 italic">
+                        &ldquo;{doc.about}&rdquo;
+                      </div>
+                    )}
+
                     {doc.treatments && doc.treatments.length > 0 && (
                       <div className="pt-2 border-t border-gray-50">
                         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
@@ -486,6 +497,20 @@ export default function HospitalDoctorsPage() {
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:border-[#ec2c6c]"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                  About Doctor / Testimonial Quote
+                </label>
+                <textarea
+                  rows={3}
+                  value={about}
+                  onChange={(e) => setAbout(e.target.value)}
+                  placeholder="e.g. Listing on Clinic By Choice has transformed our practice. Patients easily find our specialized procedures and book appointments."
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:border-[#ec2c6c]"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">This doctor statement will be displayed in the Homepage Doctor Testimonials Carousel.</p>
               </div>
 
               <div>

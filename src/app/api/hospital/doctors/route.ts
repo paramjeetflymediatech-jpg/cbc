@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, qualification, specialty, experience, image, treatments } = body;
+    const { name, qualification, specialty, experience, image, about, treatments } = body;
 
     if (!name || !specialty) {
       return NextResponse.json({ error: 'Doctor Name and Specialty are required.' }, { status: 400 });
@@ -58,6 +58,7 @@ export async function POST(req: Request) {
       qualification: qualification ? qualification.trim() : '',
       experience: experience ? experience.trim() : '',
       image: image || '',
+      about: about ? about.trim() : '',
       treatments: parsedTreatments,
     };
 
@@ -92,7 +93,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { index, name, qualification, specialty, experience, image, treatments } = body;
+    const { index, name, qualification, specialty, experience, image, about, treatments } = body;
 
     if (index === undefined || index === null || typeof index !== 'number') {
       return NextResponse.json({ error: 'Doctor index is required.' }, { status: 400 });
@@ -126,6 +127,7 @@ export async function PUT(req: Request) {
       qualification: qualification !== undefined ? qualification.trim() : oldDoctor.qualification,
       experience: experience !== undefined ? experience.trim() : oldDoctor.experience,
       image: image !== undefined ? image : oldDoctor.image,
+      about: about !== undefined ? about.trim() : oldDoctor.about,
       treatments: parsedTreatments,
     };
 

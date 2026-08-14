@@ -8,14 +8,15 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 export async function seedDatabase() {
   const { connectDB } = await import('./db');
-  const { User, Hospital, Service, HospitalService, LeadPackage, State, City, BlogPost } = await import('@/models');
+  const { User, Hospital, Service, HospitalService, LeadPackage, State, City, BlogPost, Testimonial } = await import('@/models');
   const { hashPassword } = await import('./auth');
 
   await connectDB();
 
-  // Force sync State & City tables first
+  // Force sync State, City, and Testimonial tables first
   await State.sync();
   await City.sync();
+  await Testimonial.sync();
 
   console.log('Seeding Clinic By Choice database with Union Super Speciality Hospital...');
 
@@ -68,6 +69,7 @@ export async function seedDatabase() {
       qualification: 'MS, MCh (Plastic Surgery)',
       specialty: 'Chief Consultant Plastic & Reconstructive Surgeon',
       experience: '20+ Years',
+      about: 'Listing on Clinic By Choice has brought patients seeking plastic and reconstructive procedures directly to our surgical unit. It is an outstanding platform for specialized medical care.',
       treatments: ['Plastic Surgery', 'Rhinoplasty', 'Reconstructive Surgery', 'Burn Care'],
     },
     {
@@ -75,6 +77,7 @@ export async function seedDatabase() {
       qualification: 'MS, DNB (Surgical Oncology)',
       specialty: 'Senior Consultant Surgical Oncologist',
       experience: '16 Years',
+      about: 'Clinic By Choice has streamlined patient inquiries for complex oncology consultations. Patients from across North India can easily evaluate our surgical oncology services.',
       treatments: ['Tumor Resection', 'Cancer Surgery', 'Chemotherapy Planning'],
     },
     {
@@ -82,6 +85,7 @@ export async function seedDatabase() {
       qualification: 'MD, DNB (Pediatrics)',
       specialty: 'Consultant Pediatrician & Neonatologist',
       experience: '14 Years',
+      about: 'We have seen a significant rise in parents reaching out for specialized pediatric and neonatal care through Clinic By Choice. Truly beneficial for patient outreach.',
       treatments: ['Pediatric Care', 'Neonatal Intensive Care', 'Childhood Vaccinations'],
     },
   ];
@@ -334,5 +338,43 @@ export async function seedDatabase() {
     }
   }
 
-  console.log('Database seeding complete with Union Super Speciality Hospital & Blog Posts!');
+  // Seed Testimonials if empty
+  const testimonialCount = await Testimonial.count();
+  if (testimonialCount === 0) {
+    const defaultSeedTestimonials = [
+      {
+        doctorName: 'Dr Bikramjit Singh Dhillon',
+        hospitalInfo: 'Ludhiana Dental Centre – Ludhiana',
+        quote: 'Registering for Clinic By Choice has done my practice wonders! Patients who would not have found me or my clinic now seek an appointment with us! It has also helped in providing a summary of all the services we offer! So, a number of patients who want any particular service can tell if that is available or not!',
+        image: '/images/indus-1.jpg',
+        rating: 5.0,
+        status: 'ACTIVE' as const,
+        orderIndex: 1,
+      },
+      {
+        doctorName: 'Dr. Vijay Kumar',
+        hospitalInfo: 'VJ’s Clinics – Visakhapatnam',
+        quote: 'Ever since we listed the clinic on Clinic By Choice, we have observed an increased interest and footfall! There are patients from different states seeking treatment from us – people who would not have found us without the help of Clinic By Choice! The best place to list your service if you are offering any specialised treatment!',
+        image: '/images/indus-2.jpg',
+        rating: 5.0,
+        status: 'ACTIVE' as const,
+        orderIndex: 2,
+      },
+      {
+        doctorName: 'Dr Rajinder Singh',
+        hospitalInfo: 'Kalyan Hospital – Ludhiana',
+        quote: 'Putting the service we provide in our clinic on Clinic By Choice has been such a wonderful decision! I have definitely seen the increased patient intake as well as overall interest in our clinic. Good to be providing service to people who need it... Clinic By Choice has increased our patient prospects.',
+        image: '/images/indus-3.jpg',
+        rating: 5.0,
+        status: 'ACTIVE' as const,
+        orderIndex: 3,
+      },
+    ];
+
+    for (const t of defaultSeedTestimonials) {
+      await Testimonial.create(t);
+    }
+  }
+
+  console.log('Database seeding complete with Union Super Speciality Hospital, Blog Posts & Testimonials!');
 }

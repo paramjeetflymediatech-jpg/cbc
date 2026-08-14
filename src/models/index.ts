@@ -12,6 +12,7 @@ import { State } from './State';
 import { District } from './District';
 import { City } from './City';
 import { BlogPost } from './BlogPost';
+import { Testimonial } from './Testimonial';
 
 let isInitialized = false;
 
@@ -138,6 +139,7 @@ export {
   District,
   City,
   BlogPost,
+  Testimonial,
 };
 
 export type { IDoctor, IDoctorReview, IFAQ } from './Hospital';

@@ -15,6 +15,8 @@ export interface IDoctor {
   specialty?: string;
   experience?: string;
   image?: string;
+  about?: string;
+  showOnHomepage?: boolean;
   treatments?: string[];
   reviews?: IDoctorReview[];
   rating?: number;

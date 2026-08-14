@@ -8,7 +8,7 @@ import HomeContactSection from '@/components/ui/HomeContactSection';
 import DoctorTestimonialCarousel from '@/components/ui/DoctorTestimonialCarousel';
 import { Stethoscope, Building2, FileText, Users, Clock, CheckCircle2 } from 'lucide-react';
 import { connectDB } from '@/lib/db';
-import { Service, Hospital, HospitalService } from '@/models';
+import { Service, Hospital, HospitalService, Testimonial } from '@/models';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +20,7 @@ export const metadata = {
 async function getData() {
   try {
     const db = await connectDB();
-    if (!db) return { services: [], hospitals: [] };
+    if (!db) return { services: [], hospitals: [], testimonials: [] };
 
     const services = await Service.findAll({
       where: { status: 'ACTIVE' },
@@ -42,12 +42,18 @@ async function getData() {
       limit: 6,
     });
 
+    const testimonials = await Testimonial.findAll({
+      where: { status: 'ACTIVE' },
+      order: [['orderIndex', 'ASC'], ['createdAt', 'DESC']],
+    });
+
     return {
       services: JSON.parse(JSON.stringify(services)),
       hospitals: JSON.parse(JSON.stringify(hospitals)),
+      testimonials: JSON.parse(JSON.stringify(testimonials)),
     };
   } catch {
-    return { services: [], hospitals: [] };
+    return { services: [], hospitals: [], testimonials: [] };
   }
 }
 
@@ -73,29 +79,34 @@ const defaultTestimonials = [
 ];
 
 export default async function AboutUsPage() {
-  const { services, hospitals } = await getData();
+  const { services, hospitals, testimonials } = await getData();
 
-  // Extract dynamic doctor cards from database hospitals
-  const dynamicDoctorCards = (hospitals || []).flatMap((h: any) => {
-    if (h.doctors && Array.isArray(h.doctors) && h.doctors.length > 0) {
-      return h.doctors.map((doc: any) => ({
-        quote: `"${h.description || 'Listing on Clinic By Choice has helped us connect with patients seeking specialized medical treatment.'}"`,
-        doctorName: doc.name || h.contactPersonName || h.name,
-        hospitalInfo: `${h.name} – ${h.city}`,
-        image: doc.image || h.logo || '/images/indus-1.jpg',
-      }));
+  // 1. Admin Managed Testimonials from Testimonial DB Table
+  const adminDbCards = (testimonials || []).map((t: any) => ({
+    quote: `"${t.quote.replace(/^"|"$/g, '').trim()}"`,
+    doctorName: t.doctorName,
+    hospitalInfo: t.hospitalInfo,
+    image: t.image || '/images/indus-1.jpg',
+  }));
+
+  // 2. Featured Hospital Doctors marked as showOnHomepage: true in admin panel
+  const featuredDoctorCards = (hospitals || []).flatMap((h: any) => {
+    if (h.doctors && Array.isArray(h.doctors)) {
+      return h.doctors
+        .filter((doc: any) => doc.showOnHomepage === true)
+        .map((doc: any) => ({
+          quote: `"${(doc.about || 'Listing our practice on Clinic By Choice has helped us connect with patients seeking specialized medical care.').replace(/^"|"$/g, '').trim()}"`,
+          doctorName: doc.name,
+          hospitalInfo: `${h.name} – ${h.city}`,
+          image: doc.image || h.logo || '/images/indus-1.jpg',
+        }));
     }
-    return [{
-      quote: `"${h.description || 'Listing on Clinic By Choice has helped us connect with patients seeking specialized medical treatment.'}"`,
-      doctorName: h.contactPersonName || h.name,
-      hospitalInfo: `${h.name} – ${h.city}`,
-      image: h.logo || '/images/indus-1.jpg',
-    }];
+    return [];
   });
 
-  const doctorTestimonials = dynamicDoctorCards.length >= 3 
-    ? dynamicDoctorCards
-    : [...dynamicDoctorCards, ...defaultTestimonials];
+  const combinedTestimonials = [...adminDbCards, ...featuredDoctorCards];
+
+  const doctorTestimonials = combinedTestimonials.length > 0 ? combinedTestimonials : defaultTestimonials;
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900">

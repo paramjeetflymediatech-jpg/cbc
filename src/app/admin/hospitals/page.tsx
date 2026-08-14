@@ -45,6 +45,8 @@ interface IDoctor {
   specialty?: string;
   experience?: string;
   image?: string;
+  about?: string;
+  showOnHomepage?: boolean;
   treatments?: string[];
   reviews?: IDoctorReview[];
   rating?: number;
@@ -202,6 +204,8 @@ export default function AdminHospitalsPage() {
   const [docSpecialty, setDocSpecialty] = useState('');
   const [docExperience, setDocExperience] = useState('');
   const [docImage, setDocImage] = useState('');
+  const [docAbout, setDocAbout] = useState('');
+  const [docShowOnHomepage, setDocShowOnHomepage] = useState(false);
   const [docTreatmentsInput, setDocTreatmentsInput] = useState('');
   const [uploadingDocImage, setUploadingDocImage] = useState(false);
   const [docSaving, setDocSaving] = useState(false);
@@ -252,6 +256,8 @@ export default function AdminHospitalsPage() {
     setDocSpecialty('');
     setDocExperience('');
     setDocImage('');
+    setDocAbout('');
+    setDocShowOnHomepage(false);
     setDocTreatmentsInput('');
   };
 
@@ -274,6 +280,8 @@ export default function AdminHospitalsPage() {
     setDocSpecialty(doc.specialty || '');
     setDocExperience(doc.experience || '');
     setDocImage(doc.image || '');
+    setDocAbout(doc.about || '');
+    setDocShowOnHomepage(Boolean(doc.showOnHomepage));
     setDocTreatmentsInput((doc.treatments || []).join(', '));
     setEditingDocIndex(index);
     setShowAddDocModal(true);
@@ -326,6 +334,8 @@ export default function AdminHospitalsPage() {
         specialty: docSpecialty.trim(),
         experience: docExperience.trim(),
         image: docImage || undefined,
+        about: docAbout.trim() || undefined,
+        showOnHomepage: docShowOnHomepage,
         treatments: parsedTreatments,
       };
 
@@ -2320,6 +2330,32 @@ export default function AdminHospitalsPage() {
                           className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500 focus:bg-white"
                         />
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        About Doctor / Testimonial Quote
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder="e.g. Listing on Clinic By Choice has transformed our practice. Patients easily find our specialized procedures."
+                        value={docAbout}
+                        onChange={(e) => setDocAbout(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500 focus:bg-white"
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-2 p-3 bg-pink-50/50 rounded-xl border border-pink-100">
+                      <input
+                        type="checkbox"
+                        id="docShowOnHomepage"
+                        checked={docShowOnHomepage}
+                        onChange={(e) => setDocShowOnHomepage(e.target.checked)}
+                        className="w-4 h-4 text-[#ec2c6c] focus:ring-[#ec2c6c] border-gray-300 rounded"
+                      />
+                      <label htmlFor="docShowOnHomepage" className="text-xs font-bold text-gray-800 cursor-pointer">
+                        Feature this doctor quote in Homepage Testimonials Carousel
+                      </label>
                     </div>
 
                     <div>
