@@ -84,6 +84,9 @@ export async function connectDB(): Promise<Sequelize | null> {
         if (!table.googleReviewsCount) {
           await instance.query('ALTER TABLE hospitals ADD COLUMN googleReviewsCount INT NULL DEFAULT 0;');
         }
+        if (!table.googleReviews) {
+          await instance.query('ALTER TABLE hospitals ADD COLUMN googleReviews JSON NULL;');
+        }
 
         const servicesTable: any = await queryInterface.describeTable('services');
         if (!servicesTable.parentId) {

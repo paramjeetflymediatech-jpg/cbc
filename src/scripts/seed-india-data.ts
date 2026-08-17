@@ -381,7 +381,7 @@ export const services27List = [
   {
     name: 'Cardiology & Heart Care',
     slug: 'cardiology',
-    category: 'Cardiology & Heart Care',
+    category: 'Heart & Vascular',
     shortDescription: 'Interventional cardiology, open-heart surgery, pacemaker implantation, and cardiac emergency care.',
     description: 'Comprehensive cardiac unit providing state-of-the-art angioplasty, bypass surgery (CABG), valve replacement, pediatric cardiology, and 24/7 cardiac ICU emergency care.',
     seoTitle: 'Cardiology & Heart Care Hospitals in India - Clinic By Choice',
@@ -391,7 +391,7 @@ export const services27List = [
   {
     name: 'Oncology & Cancer Care',
     slug: 'cancer-hospital',
-    category: 'Oncology & Cancer Care',
+    category: 'Cancer Care & Oncology',
     shortDescription: 'Medical oncology, surgical oncology, radiation therapy, and targeted immunotherapy.',
     description: 'Advanced cancer center with multidisciplinary tumor boards, chemotherapy suites, PET-CT diagnostics, radiation oncology, and specialized surgical oncology.',
     seoTitle: 'Oncology & Cancer Care Hospitals in India - Clinic By Choice',
@@ -401,7 +401,7 @@ export const services27List = [
   {
     name: 'Orthopedics & Joint Replacement',
     slug: 'orthopedics',
-    category: 'Orthopedics & Musculoskeletal',
+    category: 'Orthopedics & Joint Care',
     shortDescription: 'Total knee & hip replacement, robotic joint surgery, arthroscopy, and fracture care.',
     description: 'Super-specialized orthopedic center for joint replacements, complex trauma repair, sports injuries, arthroscopic surgeries, and spine care.',
     seoTitle: 'Orthopedic & Joint Replacement Hospitals in India - Clinic By Choice',
@@ -411,7 +411,7 @@ export const services27List = [
   {
     name: 'Neurology & Neurosurgery',
     slug: 'neurology',
-    category: 'Neurosciences',
+    category: 'Neurosciences & Mental Health',
     shortDescription: 'Brain surgery, stroke management, epilepsy treatment, and spine surgery.',
     description: 'Dedicated institute for neurological care, brain tumor resections, stroke intervention, deep brain stimulation, and minimally invasive spine procedures.',
     seoTitle: 'Neurology & Neurosurgery Hospitals in India - Clinic By Choice',
@@ -421,7 +421,7 @@ export const services27List = [
   {
     name: 'Gastroenterology & GI Surgery',
     slug: 'gastroenterology',
-    category: 'Digestive Diseases',
+    category: 'General & Critical Care',
     shortDescription: 'Advanced endoscopy, liver disease treatment, GI surgeries, and pancreatitis care.',
     description: 'Comprehensive gastroenterology unit featuring therapeutic endoscopy, ERCP, liver transplantation care, and laparoscopic digestive surgeries.',
     seoTitle: 'Gastroenterology & GI Surgery Hospitals in India - Clinic By Choice',
@@ -431,7 +431,7 @@ export const services27List = [
   {
     name: 'Urology & Kidney Care',
     slug: 'urology',
-    category: 'Urology & Renal Care',
+    category: 'Urology & Kidney Care',
     shortDescription: 'Laser kidney stone removal (RIRC/PCNL), prostate surgery (TURP/HoLEP), and urological oncology.',
     description: 'Advanced urology center offering minimally invasive laser stone treatments, reconstructive urology, prostate enlargement surgery, and pediatric urology.',
     seoTitle: 'Urology & Kidney Stone Hospitals in India - Clinic By Choice',
@@ -441,7 +441,7 @@ export const services27List = [
   {
     name: 'Nephrology & Dialysis Care',
     slug: 'nephrology',
-    category: 'Renal Care & Nephrology',
+    category: 'Urology & Kidney Care',
     shortDescription: 'Chronic kidney disease (CKD) management, hemodialysis, and kidney transplant care.',
     description: 'Round-the-clock hemodialysis unit, peritoneal dialysis services, and comprehensive care for acute kidney injury and end-stage renal disease.',
     seoTitle: 'Nephrology & Dialysis Centers in India - Clinic By Choice',
@@ -451,7 +451,7 @@ export const services27List = [
   {
     name: 'Plastic & Reconstructive Surgery',
     slug: 'plastic-surgery',
-    category: 'Plastic & Reconstructive',
+    category: 'Surgical & Rehabilitation',
     shortDescription: 'Trauma reconstruction, burn care, scar revision, microvascular surgery, and cosmetic procedures.',
     description: 'Comprehensive plastic and reconstructive surgical unit providing specialized trauma repair, skin grafting, cleft lip repair, microvascular surgery, and aesthetic care.',
     seoTitle: 'Plastic & Reconstructive Surgery Hospitals in India - Clinic By Choice',
@@ -461,7 +461,7 @@ export const services27List = [
   {
     name: 'Obstetrics & Gynecology',
     slug: 'gynecology',
-    category: "Women's Health",
+    category: "Reproductive Care & Women's Health",
     shortDescription: 'High-risk pregnancy care, painless delivery, laparoscopic hysterectomy, and PCOD treatment.',
     description: 'Complete women’s health center offering maternity suites, fetal medicine, advanced gynecological laparoscopy, infertility evaluation, and menopause care.',
     seoTitle: 'Obstetrics & Gynecology Hospitals in India - Clinic By Choice',
@@ -471,7 +471,7 @@ export const services27List = [
   {
     name: 'Pediatrics & Child Care',
     slug: 'pediatrics',
-    category: 'Pediatric Care',
+    category: 'Pediatrics & Child Care',
     shortDescription: 'Level III NICU, pediatric surgery, child growth monitoring, and routine vaccinations.',
     description: 'Dedicated mother and child super specialty care unit equipped with neonatal ICUs, pediatric emergency care, adolescent medicine, and pediatric surgeries.',
     seoTitle: 'Pediatrics & Child Care Hospitals in India - Clinic By Choice',
@@ -481,7 +481,7 @@ export const services27List = [
   {
     name: 'ENT & Head Neck Surgery',
     slug: 'ent-surgery',
-    category: 'Surgical Specialty',
+    category: 'Surgical & Rehabilitation',
     shortDescription: 'Sinus surgery, ear surgery, throat treatments, cochlear implants, and voice care.',
     description: 'Microscopic and endoscopic ENT surgical center offering endoscopic sinus surgery, tympanoplasty, vertigo management, and head & neck tumor resections.',
     seoTitle: 'ENT & Head Neck Surgery Hospitals in India - Clinic By Choice',
@@ -491,7 +491,7 @@ export const services27List = [
   {
     name: 'Ophthalmology & Eye Care',
     slug: 'ophthalmology',
-    category: 'Eye Care',
+    category: 'Skin, Dental & Eye Care',
     shortDescription: 'Cataract surgery (Femto/Phaco), LASIK laser eye surgery, glaucoma treatment, and retina care.',
     description: 'Premier eye care hospital providing blade-free LASIK, micro-incision cataract surgery, corneal transplants, glaucoma care, and diabetic retinopathy procedures.',
     seoTitle: 'Ophthalmology & Eye Hospitals in India - Clinic By Choice',
@@ -501,7 +501,7 @@ export const services27List = [
   {
     name: 'Dermatology & Cosmetology',
     slug: 'dermatology',
-    category: 'Skin & Aesthetic Care',
+    category: 'Skin, Dental & Eye Care',
     shortDescription: 'Acne treatment, laser hair removal, anti-aging therapies, psoriasis care, and hair transplants.',
     description: 'Comprehensive skin clinic offering clinical dermatology, dermatopathology, laser skin treatments, anti-aging procedures, and aesthetic cosmetic therapies.',
     seoTitle: 'Dermatology & Skin Care Clinics in India - Clinic By Choice',
@@ -511,7 +511,7 @@ export const services27List = [
   {
     name: 'Pulmonology & Chest Medicine',
     slug: 'pulmonology',
-    category: 'Respiratory Medicine',
+    category: 'General & Critical Care',
     shortDescription: 'Asthma management, COPD care, bronchoscopy, sleep apnea evaluation, and chest infection care.',
     description: 'Specialized respiratory institute providing pulmonary function tests (PFT), sleep laboratory studies, interventional pulmonology, and critical respiratory care.',
     seoTitle: 'Pulmonology & Chest Hospitals in India - Clinic By Choice',
@@ -521,7 +521,7 @@ export const services27List = [
   {
     name: 'Endocrinology & Diabetes',
     slug: 'endocrinology',
-    category: 'Endocrine & Metabolic Care',
+    category: 'General & Critical Care',
     shortDescription: 'Diabetes mellitus management, thyroid disorders, hormonal imbalances, and obesity care.',
     description: 'Expert endocrine center providing specialized care for type 1 & 2 diabetes, thyroid disorders, osteoporosis, adrenal diseases, and growth hormones.',
     seoTitle: 'Endocrinology & Diabetes Clinics in India - Clinic By Choice',
@@ -531,7 +531,7 @@ export const services27List = [
   {
     name: 'Dental & Maxillofacial Surgery',
     slug: 'dental-care',
-    category: 'Dental Sciences',
+    category: 'Skin, Dental & Eye Care',
     shortDescription: 'Dental implants, root canal treatment, jaw realignment surgery, and cosmetic dentistry.',
     description: 'Full-spectrum dental suite offering painless root canals, dental implants, smile design, orthodontics, oral cancer screening, and jaw trauma repair.',
     seoTitle: 'Dental & Maxillofacial Hospitals in India - Clinic By Choice',
@@ -541,7 +541,7 @@ export const services27List = [
   {
     name: 'Rheumatology & Autoimmune Care',
     slug: 'rheumatology',
-    category: 'Autoimmune & Joint Care',
+    category: 'Orthopedics & Joint Care',
     shortDescription: 'Rheumatoid arthritis, lupus (SLE), gout, ankylosing spondylitis, and biologic therapies.',
     description: 'Specialized center for autoimmune rheumatic diseases, biologic targeted therapies, joint inflammation management, and connective tissue disorders.',
     seoTitle: 'Rheumatology & Autoimmune Clinics in India - Clinic By Choice',
@@ -551,7 +551,7 @@ export const services27List = [
   {
     name: 'Vascular & Endovascular Surgery',
     slug: 'vascular-surgery',
-    category: 'Vascular Care',
+    category: 'Heart & Vascular',
     shortDescription: 'Varicose veins laser ablation, diabetic foot care, peripheral artery disease, and aneurysm repair.',
     description: 'Modern vascular center providing endovascular stenting, varicose vein laser ablation (EVLT), aortic aneurysm repair, and diabetic limb salvage surgery.',
     seoTitle: 'Vascular & Endovascular Hospitals in India - Clinic By Choice',
@@ -561,7 +561,7 @@ export const services27List = [
   {
     name: 'General & Laparoscopic Surgery',
     slug: 'general-surgery',
-    category: 'General Surgery',
+    category: 'Surgical & Rehabilitation',
     shortDescription: 'Hernia repair, gallbladder removal, appendectomy, piles/fissure laser treatment, and trauma surgery.',
     description: 'Minimally invasive general surgical unit performing keyhole abdominal procedures, single-incision laparoscopic surgery, and laser proctology.',
     seoTitle: 'General & Laparoscopic Surgery Hospitals in India - Clinic By Choice',
@@ -571,7 +571,7 @@ export const services27List = [
   {
     name: 'Psychiatry & Behavioral Health',
     slug: 'psychiatry',
-    category: 'Mental Health',
+    category: 'Neurosciences & Mental Health',
     shortDescription: 'Depression, anxiety treatment, addiction de-addiction, bipolar disorder, and counseling.',
     description: 'Compassionate behavioral health department offering psychiatric evaluation, psychotherapy, cognitive behavioral therapy (CBT), and de-addiction rehab.',
     seoTitle: 'Psychiatry & Behavioral Health Centers in India - Clinic By Choice',
@@ -581,7 +581,7 @@ export const services27List = [
   {
     name: 'Bariatric & Weight Loss Surgery',
     slug: 'bariatric-surgery',
-    category: 'Bariatric & Metabolic Care',
+    category: 'Surgical & Rehabilitation',
     shortDescription: 'Sleeve gastrectomy, gastric bypass surgery, endoscopic intragastric balloon, and metabolic surgery.',
     description: 'Specialized bariatric surgical center helping patients achieve sustained weight loss, diabetes reversal, and resolution of metabolic syndrome.',
     seoTitle: 'Bariatric & Weight Loss Surgery Hospitals in India - Clinic By Choice',
@@ -591,7 +591,7 @@ export const services27List = [
   {
     name: 'IVF & Reproductive Medicine',
     slug: 'ivf-fertility',
-    category: 'Fertility & Reproductive Care',
+    category: "Reproductive Care & Women's Health",
     shortDescription: 'IVF, IUI, ICSI, egg freezing, male infertility care, and genetic embryo testing (PGT).',
     description: 'High-success fertility clinic equipped with advanced embryology labs, ICSI equipment, blastocyst culture, and comprehensive male/female fertility solutions.',
     seoTitle: 'IVF & Fertility Centers in India - Clinic By Choice',
@@ -601,7 +601,7 @@ export const services27List = [
   {
     name: 'Hematology & Bone Marrow Transplant',
     slug: 'hematology',
-    category: 'Blood & Bone Marrow Care',
+    category: 'Cancer Care & Oncology',
     shortDescription: 'Leukemia treatment, aplastic anemia, thalassemia, lymphoma care, and bone marrow transplants.',
     description: 'Comprehensive hematology & BMT center specializing in blood disorders, autologous and allogeneic bone marrow transplantation, and CAR-T cell therapy.',
     seoTitle: 'Hematology & Bone Marrow Transplant Hospitals in India - Clinic By Choice',
@@ -611,7 +611,7 @@ export const services27List = [
   {
     name: 'Organ Transplantation',
     slug: 'organ-transplant',
-    category: 'Transplant Sciences',
+    category: 'Urology & Kidney Care',
     shortDescription: 'Kidney transplant, liver transplant, heart transplant, and specialized post-transplant ICU care.',
     description: 'State-of-the-art organ transplant institute with sterile isolation ICUs, multi-organ transplant surgeons, and advanced immunosuppression management.',
     seoTitle: 'Organ Transplantation Hospitals in India - Clinic By Choice',
@@ -621,7 +621,7 @@ export const services27List = [
   {
     name: 'Emergency & Critical Care Medicine',
     slug: 'critical-care',
-    category: 'Emergency & ICU',
+    category: 'General & Critical Care',
     shortDescription: '24/7 trauma emergency, mechanical ventilation, sepsis management, and multi-organ care.',
     description: 'Fully equipped intensive care unit (ICU, CCU, HDU) staffed 24/7 by experienced intensivists, trauma specialists, and emergency physicians.',
     seoTitle: '24/7 Emergency & Critical Care Hospitals in India - Clinic By Choice',
@@ -631,7 +631,7 @@ export const services27List = [
   {
     name: 'Physiotherapy & Rehabilitation',
     slug: 'physiotherapy',
-    category: 'Rehabilitation Sciences',
+    category: 'Surgical & Rehabilitation',
     shortDescription: 'Post-stroke rehab, spinal cord rehab, sports injury therapy, and chronic pain management.',
     description: 'Advanced physical therapy and rehabilitation center providing robotic rehab, dry needling, electrotherapy, stroke recovery, and ergonomic rehabilitation.',
     seoTitle: 'Physiotherapy & Rehabilitation Centers in India - Clinic By Choice',
@@ -641,7 +641,7 @@ export const services27List = [
   {
     name: 'Pathology & Advanced Diagnostics',
     slug: 'pathology-diagnostics',
-    category: 'Diagnostics & Imaging',
+    category: 'General & Critical Care',
     shortDescription: '1.5T/3T MRI, 128-slice CT scan, digital mammography, molecular diagnostics, and blood testing.',
     description: 'Comprehensive diagnostic hub delivering fast, reliable clinical pathology, high-resolution radiology imaging, PET-CT scans, and preventative health checks.',
     seoTitle: 'Pathology & Diagnostic Centers in India - Clinic By Choice',
@@ -761,6 +761,6 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) {
   main();
 }

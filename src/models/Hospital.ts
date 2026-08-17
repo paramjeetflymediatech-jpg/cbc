@@ -62,6 +62,7 @@ export interface HospitalAttributes {
   googleRating: number;
   googlePlaceId?: string | null;
   googleReviewsCount?: number | null;
+  googleReviews?: any[] | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -81,6 +82,7 @@ export type HospitalCreationAttributes = Optional<
   | 'googleRating'
   | 'googlePlaceId'
   | 'googleReviewsCount'
+  | 'googleReviews'
   | 'gallery'
   | 'doctors'
   | 'facilities'
@@ -122,6 +124,7 @@ export class Hospital extends Model<HospitalAttributes, HospitalCreationAttribut
   declare googleRating: number;
   declare googlePlaceId: string | null;
   declare googleReviewsCount: number | null;
+  declare googleReviews: any[] | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -278,6 +281,10 @@ Hospital.init(
       type: DataTypes.INTEGER,
       allowNull: true,
       defaultValue: 0,
+    },
+    googleReviews: {
+      type: DataTypes.JSON,
+      allowNull: true,
     },
   },
   {

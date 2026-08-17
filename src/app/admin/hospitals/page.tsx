@@ -711,7 +711,7 @@ export default function AdminHospitalsPage() {
         if (data.googlePlaceId) setEditGooglePlaceId(data.googlePlaceId);
         if (data.googleRating) setEditGoogleRating(data.googleRating);
         if (data.googleReviewsCount !== undefined) setEditGoogleReviewsCount(data.googleReviewsCount);
-        alert(`✅ Live Google Rating fetched & updated: ${data.googleRating} ★ (${data.googleReviewsCount || 0} reviews)`);
+        alert(`✅ Live Google Rating & Reviews fetched & updated: ${data.googleRating} ★ (${data.googleReviewsCount || 0} reviews)`);
       } else {
         alert(data.error || 'Failed to fetch Google Rating.');
       }
@@ -1682,7 +1682,7 @@ export default function AdminHospitalsPage() {
                     className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md flex items-center space-x-2 cursor-pointer disabled:opacity-50"
                   >
                     {syncingGoogleRating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                    <span>Auto-Fetch Place ID & Sync Google Rating</span>
+                    <span>Auto-Fetch Place ID & Sync Google Rating & Reviews</span>
                   </button>
                 </div>
               </div>

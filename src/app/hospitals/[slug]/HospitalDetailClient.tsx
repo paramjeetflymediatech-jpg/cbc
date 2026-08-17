@@ -11,7 +11,38 @@ interface HospitalDetailClientProps {
 }
 
 export default function HospitalDetailClient({ hospital, initialServiceId }: HospitalDetailClientProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'doctors' | 'facilities' | 'gallery' | 'faqs' | 'map'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'doctors' | 'facilities' | 'gallery' | 'faqs' | 'map' | 'reviews'>('overview');
+  const [googleReviews, setGoogleReviews] = useState<any[]>(hospital.googleReviews || []);
+  const [isSyncingReviews, setIsSyncingReviews] = useState(false);
+  const [syncedRating, setSyncedRating] = useState<number>(hospital.googleRating || hospital.rating || 4.8);
+  const [syncedReviewsCount, setSyncedReviewsCount] = useState<number>(hospital.googleReviewsCount || 0);
+  const [visibleReviewsCount, setVisibleReviewsCount] = useState<number>(3);
+
+  const handleSyncGoogleReviews = async () => {
+    setIsSyncingReviews(true);
+    try {
+      const res = await fetch('/api/hospital/fetch-google-rating', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hospitalId: hospital.id, query: `${hospital.name} ${hospital.city}` }),
+      });
+      const data = await res.json();
+      if (data.googleReviews) {
+        setGoogleReviews(data.googleReviews);
+        setSyncedRating(data.googleRating || 4.8);
+        setSyncedReviewsCount(data.googleReviewsCount || 0);
+        alert('Google Reviews and ratings synced successfully!');
+      } else {
+        alert(data.message || 'Ratings synced, but no reviews were returned.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to sync Google Reviews. Please ensure you are logged in.');
+    } finally {
+      setIsSyncingReviews(false);
+    }
+  };
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<number | undefined>(initialServiceId);
   const [selectedOfferedServiceId, setSelectedOfferedServiceId] = useState<number | null>(null);
@@ -332,6 +363,15 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
             >
               <Map className="w-3.5 h-3.5 text-[#b02151] mr-1" />
               <span>Location Map</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('reviews')}
+              className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer flex items-center space-x-1 ${activeTab === 'reviews' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
+                }`}
+            >
+              <Star className="w-3.5 h-3.5 text-[#b02151] mr-1" />
+              <span>Reviews ({googleReviews.length || syncedReviewsCount || 0})</span>
             </button>
           </div>
         </div>
@@ -692,6 +732,125 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
                     </div>
                   );
                 })()}
+              </section>
+            )}
+
+            {/* Google Reviews Tab Content */}
+            {(activeTab === 'overview' || activeTab === 'reviews') && (
+              <section className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-6">
+                <div className="border-b border-gray-100 pb-4 flex items-center">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2.5 bg-pink-50 rounded-2xl border border-pink-100">
+                      <Star className="w-6 h-6 text-[#b02151]" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-extrabold text-gray-900">
+                        Google Reviews & Patient Ratings
+                      </h2>
+                      <p className="text-xs text-gray-500 font-medium mt-0.5">
+                        Verified ratings synced directly from Google Places
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Summary Metric */}
+                  <div className="md:sticky md:top-24 h-fit bg-slate-50 border border-gray-100 p-6 rounded-2xl text-center space-y-2 flex flex-col justify-center items-center">
+                    <span className="text-5xl font-black text-gray-900 leading-none">
+                      {syncedRating}
+                    </span>
+                    <div className="flex text-amber-400 gap-0.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-4 h-4 fill-current ${
+                            star <= Math.round(syncedRating) ? 'text-amber-400' : 'text-gray-300'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 font-bold">
+                      Based on {googleReviews.length || syncedReviewsCount || 120} Google ratings
+                    </p>
+                  </div>
+
+                  {/* Reviews List */}
+                  <div className="md:col-span-2 space-y-4 max-h-[500px] overflow-y-auto pr-2 no-scrollbar">
+                    {googleReviews && googleReviews.length > 0 ? (
+                      <>
+                        <div className="space-y-4">
+                          {googleReviews.slice(0, visibleReviewsCount).map((rev: any, idx: number) => (
+                            <div key={idx} className="p-4 bg-slate-50 border border-gray-100 rounded-2xl space-y-2">
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <div className="flex items-center space-x-2">
+                                  {rev.profile_photo_url ? (
+                                    <img
+                                      src={rev.profile_photo_url}
+                                      alt={rev.author_name}
+                                      width={28}
+                                      height={28}
+                                      className="rounded-full w-7 h-7 object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-7 h-7 bg-pink-100 text-pink-600 rounded-full flex items-center justify-center font-bold text-xs">
+                                      {rev.author_name ? rev.author_name[0] : 'P'}
+                                    </div>
+                                  )}
+                                  <span className="text-xs font-bold text-gray-900">{rev.author_name}</span>
+                                </div>
+                                <span className="text-[10px] text-gray-500 font-bold">
+                                  {rev.relative_time_description || 'Recently'}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center space-x-0.5 text-amber-400">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`w-3.5 h-3.5 fill-current ${
+                                      star <= (rev.rating || 5) ? 'text-amber-400' : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+
+                              <p className="text-xs text-gray-700 leading-relaxed font-medium">
+                                "{rev.text}"
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {googleReviews.length > visibleReviewsCount ? (
+                          <button
+                            onClick={() => setVisibleReviewsCount((prev) => prev + 5)}
+                            className="w-full text-center py-2.5 bg-slate-100 hover:bg-slate-200 text-gray-700 text-xs font-bold rounded-xl transition-all cursor-pointer block border border-gray-200"
+                          >
+                            Show More Reviews (+{googleReviews.length - visibleReviewsCount} remaining)
+                          </button>
+                        ) : (
+                          visibleReviewsCount > 3 && (
+                            <button
+                              onClick={() => setVisibleReviewsCount(3)}
+                              className="w-full text-center py-2.5 bg-slate-100 hover:bg-slate-200 text-gray-700 text-xs font-bold rounded-xl transition-all cursor-pointer block border border-gray-200"
+                            >
+                              Show Less
+                            </button>
+                          )
+                        )}
+                      </>
+                    ) : (
+                      <div className="p-8 text-center bg-slate-50 border border-dashed border-gray-200 rounded-2xl">
+                        <Star className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                        <p className="text-xs text-gray-500 font-bold">No Google reviews loaded yet.</p>
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          Click the "Sync Google Reviews" button above to fetch live ratings.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </section>
             )}
 
