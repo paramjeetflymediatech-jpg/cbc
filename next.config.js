@@ -18,13 +18,18 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: '/hospitals/:service/india',
-        destination: '/services/:service',
+        source: '/services/:service',
+        destination: '/hospitals/:service/india',
         permanent: true,
       },
       {
-        source: '/hospitals/:service/india/',
-        destination: '/services/:service',
+        source: '/service/:service',
+        destination: '/hospitals/:service/india',
+        permanent: true,
+      },
+      {
+        source: '/hospitals/:slug',
+        destination: '/hospital/:slug',
         permanent: true,
       },
     ];

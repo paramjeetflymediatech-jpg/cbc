@@ -9,8 +9,17 @@ import DoctorTestimonialCarousel from '@/components/ui/DoctorTestimonialCarousel
 import { connectDB } from '@/lib/db';
 import { Service, Hospital, HospitalService, BlogPost, Testimonial } from '@/models';
 import { Search, ShieldCheck, Award, Stethoscope, Building2, FileText, Users, Clock, ArrowRight, Calendar } from 'lucide-react';
+import { getPageMetadata } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata() {
+  return await getPageMetadata(
+    '/',
+    'Clinic By Choice - Premier Healthcare & Medical Tourism Platform in India',
+    'Find top accredited hospitals, clinics, and verified medical specialists across India. Compare packages, book consultations, and access premium medical care.'
+  );
+}
 
 async function getData() {
   try {
@@ -82,6 +91,8 @@ const defaultTestimonials = [
 
 export default async function HomePage() {
   const { services, hospitals, blogs, testimonials } = await getData();
+  const { getPageSchemaMarkup } = await import('@/lib/seo');
+  const schemaMarkup = await getPageSchemaMarkup('/');
 
   // 1. Admin Managed Testimonials from Testimonial DB Table
   const adminDbCards = (testimonials || []).map((t: any) => ({
@@ -159,7 +170,7 @@ export default async function HomePage() {
             </div>
 
             {/* Main Quick Search Bar */}
-            <form action="/hospitals" method="GET" className="bg-white/95 backdrop-blur-md p-2.5 rounded-3xl sm:rounded-full shadow-2xl flex flex-col sm:flex-row items-center gap-2 w-full max-w-2xl mt-6 border border-white/30">
+            <form action="/hospital" method="GET" className="bg-white/95 backdrop-blur-md p-2.5 rounded-3xl sm:rounded-full shadow-2xl flex flex-col sm:flex-row items-center gap-2 w-full max-w-2xl mt-6 border border-white/30">
               <div className="flex items-center space-x-2 px-4 py-2 w-full sm:w-auto flex-1">
                 <Search className="w-5 h-5 text-gray-400" />
                 <input
@@ -206,7 +217,7 @@ export default async function HomePage() {
             {services.map((svc: any) => (
               <Link
                 key={svc.id}
-                href={`/services/${svc.slug}`}
+                href={`/hospitals/${svc.slug}/india`}
                 className="flex items-center text-base sm:text-lg font-bold text-gray-800 hover:text-[#fd1d74] transition-colors py-1.5 group"
               >
                 <span className="text-[#fd1d74] font-black text-lg mr-3 group-hover:translate-x-1 transition-transform select-none">
@@ -487,6 +498,17 @@ export default async function HomePage() {
       <FAQSection />
 
       <Footer />
+
+      {schemaMarkup && (
+        schemaMarkup.includes('<script') ? (
+          <span dangerouslySetInnerHTML={{ __html: schemaMarkup }} />
+        ) : (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: schemaMarkup }}
+          />
+        )
+      )}
     </div>
   );
 }

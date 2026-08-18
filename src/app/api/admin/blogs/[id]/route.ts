@@ -69,6 +69,13 @@ export async function PUT(
       tags,
       seoTitle,
       seoDescription,
+      seoKeywords,
+      canonicalUrl,
+      ogImage,
+      ogTitle,
+      ogDescription,
+      robotsIndex,
+      schemaMarkup,
       status,
     } = body;
 
@@ -104,6 +111,13 @@ export async function PUT(
       tags: tags !== undefined ? tags : blog.tags,
       seoTitle: seoTitle !== undefined ? seoTitle : blog.seoTitle,
       seoDescription: seoDescription !== undefined ? seoDescription : blog.seoDescription,
+      seoKeywords: seoKeywords !== undefined ? seoKeywords : blog.seoKeywords,
+      canonicalUrl: canonicalUrl !== undefined ? canonicalUrl : blog.canonicalUrl,
+      ogImage: ogImage !== undefined ? ogImage : blog.ogImage,
+      ogTitle: ogTitle !== undefined ? ogTitle : blog.ogTitle,
+      ogDescription: ogDescription !== undefined ? ogDescription : blog.ogDescription,
+      robotsIndex: robotsIndex !== undefined ? robotsIndex : blog.robotsIndex,
+      schemaMarkup: schemaMarkup !== undefined ? schemaMarkup : blog.schemaMarkup,
       status: status || blog.status,
       publishedAt: isPublishingNew ? new Date() : blog.publishedAt,
     });

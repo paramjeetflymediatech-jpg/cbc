@@ -1,24 +1,24 @@
 import React from 'react';
-import ContactUsClient from './ContactUsClient';
+import ServicePageClient from './ServicePageClient';
 import { getPageMetadata } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata() {
   return await getPageMetadata(
-    '/contact-us',
-    'Contact Us - Clinic By Choice',
-    'Get in touch with Clinic By Choice for any queries, support, or partnership requirements. We are here to help.'
+    '/service',
+    'Explore Medical Services & Treatments - Clinic By Choice',
+    'Browse all accredited medical specialties, procedures, and treatments. Find top specialist hospitals and packages across India.'
   );
 }
 
-export default async function ContactUsPage() {
+export default async function ServicesPage() {
   const { getPageSchemaMarkup } = await import('@/lib/seo');
-  const schemaMarkup = await getPageSchemaMarkup('/contact-us');
+  const schemaMarkup = await getPageSchemaMarkup('/service');
 
   return (
     <>
-      <ContactUsClient />
+      <ServicePageClient />
       {schemaMarkup && (
         schemaMarkup.includes('<script') ? (
           <span dangerouslySetInnerHTML={{ __html: schemaMarkup }} />

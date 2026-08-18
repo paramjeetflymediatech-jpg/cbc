@@ -21,6 +21,11 @@ import { useAuth } from '../context/AuthContext';
 import { useSweetAlert } from '../context/SweetAlertContext';
 import api from '../services/api';
 
+const stripHtml = (html?: string) => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').trim();
+};
+
 interface HospitalDetailScreenProps {
   navigation: any;
   route: any;
@@ -227,7 +232,7 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
             {/* About Box */}
             <View style={styles.card}>
               <Text style={styles.cardHeaderTitle}>About Hospital</Text>
-              <Text style={styles.bodyText}>{hospital.description || 'Leading healthcare provider.'}</Text>
+              <Text style={styles.bodyText}>{stripHtml(hospital.description) || 'Leading healthcare provider.'}</Text>
             </View>
 
             {/* Specialties Box */}

@@ -13,6 +13,8 @@ import { District } from './District';
 import { City } from './City';
 import { BlogPost } from './BlogPost';
 import { Testimonial } from './Testimonial';
+import { Setting } from './Setting';
+import { SeoMetadata } from './SeoMetadata';
 
 let isInitialized = false;
 
@@ -140,6 +142,8 @@ export {
   City,
   BlogPost,
   Testimonial,
+  Setting,
+  SeoMetadata,
 };
 
 export type { IDoctor, IDoctorReview, IFAQ } from './Hospital';

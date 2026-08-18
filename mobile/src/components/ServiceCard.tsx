@@ -3,6 +3,11 @@ import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
 import { Service } from '../types';
 import { colors } from '../theme/colors';
 
+const stripHtml = (html?: string) => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').trim();
+};
+
 interface ServiceCardProps {
   service: Service;
   onPress: () => void;
@@ -40,7 +45,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onPress, vari
 
           {service.description ? (
             <Text style={styles.serviceDesc} numberOfLines={2}>
-              {service.description}
+              {stripHtml(service.description)}
             </Text>
           ) : null}
 

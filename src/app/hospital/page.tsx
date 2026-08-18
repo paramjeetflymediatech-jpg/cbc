@@ -15,14 +15,21 @@ interface PageProps {
   searchParams: Promise<{ state?: string; district?: string; city?: string; search?: string; service?: string }>;
 }
 
-export const metadata = {
-  title: 'Approved Hospitals Directory - Clinic By Choice',
-  description: 'Search top accredited hospitals and clinics in India by State, City, and Medical Specialty on Clinic By Choice.',
-};
+import { getPageMetadata } from '@/lib/seo';
+
+export async function generateMetadata() {
+  return await getPageMetadata(
+    '/hospital',
+    'Approved Hospitals Directory - Clinic By Choice',
+    'Search top accredited hospitals and clinics in India by State, City, and Medical Specialty on Clinic By Choice.'
+  );
+}
 
 export default async function HospitalsPage({ searchParams }: PageProps) {
   const { state, district, city, search, service: serviceSlug } = await searchParams;
   const db = await connectDB();
+  const { getPageSchemaMarkup } = await import('@/lib/seo');
+  const schemaMarkup = await getPageSchemaMarkup('/hospital');
   const { states, districts, cities, locationsMap, stateDistrictMap, districtCityMap } = await getLocationsData();
 
   let parsedHospitals: any[] = [];
@@ -132,7 +139,7 @@ export default async function HospitalsPage({ searchParams }: PageProps) {
               Found <strong className="text-gray-900">{parsedHospitals.length}</strong> verified hospital(s)
             </p>
             {(state || city || search || serviceSlug) && (
-              <a href="/hospitals" className="text-xs font-bold text-[#ec2c6c] hover:underline">
+              <a href="/hospital" className="text-xs font-bold text-[#ec2c6c] hover:underline">
                 Clear Filters
               </a>
             )}
@@ -152,6 +159,17 @@ export default async function HospitalsPage({ searchParams }: PageProps) {
       </main>
 
       <Footer />
+
+      {schemaMarkup && (
+        schemaMarkup.includes('<script') ? (
+          <span dangerouslySetInnerHTML={{ __html: schemaMarkup }} />
+        ) : (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: schemaMarkup }}
+          />
+        )
+      )}
     </div>
   );
 }

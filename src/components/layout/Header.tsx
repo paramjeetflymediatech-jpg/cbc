@@ -115,7 +115,7 @@ export default function Header() {
             >
               <button
                 className={`flex items-center space-x-1.5 text-white text-sm font-semibold transition-colors py-2 border-b-2 ${
-                  isServicesOpen || pathname.startsWith('/services')
+                  isServicesOpen || pathname.startsWith('/service') || pathname.startsWith('/hospitals')
                     ? 'border-white'
                     : 'border-transparent hover:border-white/70'
                 }`}
@@ -138,7 +138,7 @@ export default function Header() {
                         {mainServices.map((svc) => (
                           <Link
                             key={svc.id}
-                            href={`/services/${svc.slug}`}
+                            href={`/hospitals/${svc.slug}/india`}
                             className="flex items-center text-sm font-bold text-gray-800 hover:text-[#fd1d74] transition-colors py-1 group"
                             onClick={handleServiceClick}
                           >
@@ -272,7 +272,7 @@ export default function Header() {
                 {mainServices.map((svc) => (
                   <Link
                     key={svc.id}
-                    href={`/services/${svc.slug}`}
+                    href={`/hospitals/${svc.slug}/india`}
                     className="text-xs font-semibold text-gray-700 hover:text-[#fd1d74] py-1.5 px-2 rounded-md hover:bg-pink-50 flex items-center"
                     onClick={() => {
                       setIsMobileMenuOpen(false);

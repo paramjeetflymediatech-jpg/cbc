@@ -3,6 +3,11 @@ import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
 import { Hospital } from '../types';
 import { colors } from '../theme/colors';
 
+const stripHtml = (html?: string) => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').trim();
+};
+
 interface HospitalCardProps {
   hospital: Hospital;
   onPress: () => void;
@@ -86,7 +91,7 @@ export const HospitalCard: React.FC<HospitalCardProps> = ({
 
         {hospital.description ? (
           <Text style={styles.descriptionText} numberOfLines={2}>
-            {hospital.description}
+            {stripHtml(hospital.description)}
           </Text>
         ) : null}
 

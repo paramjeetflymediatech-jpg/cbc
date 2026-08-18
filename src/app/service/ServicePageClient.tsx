@@ -18,7 +18,12 @@ interface ServiceItem {
   parent?: ServiceItem;
 }
 
-export default function ServicesPage() {
+const stripHtml = (html?: string) => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').trim();
+};
+
+export default function ServicePageClient() {
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -135,7 +140,7 @@ export default function ServicesPage() {
                       )}
                     </div>
 
-                    <Link href={`/services/${svc.slug}`} className="block">
+                    <Link href={`/hospitals/${svc.slug}/india`} className="block">
                       <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#fd1d74] transition-colors pt-1">
                         {svc.name}
                       </h3>
@@ -143,7 +148,7 @@ export default function ServicesPage() {
                   </div>
 
                   <p className="text-xs text-gray-600 leading-relaxed line-clamp-3 font-medium">
-                    {svc.shortDescription || svc.description || 'Find specialized treatments and accredited hospital centers.'}
+                    {svc.shortDescription || stripHtml(svc.description) || 'Find specialized treatments and accredited hospital centers.'}
                   </p>
 
                   {/* Render Subservices list if present */}
@@ -156,7 +161,7 @@ export default function ServicesPage() {
                         {svc.subServices.slice(0, 4).map((sub) => (
                           <Link
                             key={sub.id}
-                            href={`/services/${sub.slug}`}
+                            href={`/hospitals/${sub.slug}/india`}
                             className="text-[11px] font-semibold text-[#b02151] bg-pink-50/70 hover:bg-[#fd1d74] hover:text-white px-2 py-0.5 rounded-md transition-colors"
                           >
                             {sub.name}
@@ -173,7 +178,7 @@ export default function ServicesPage() {
                 </div>
 
                 <Link
-                  href={`/services/${svc.slug}`}
+                  href={`/hospitals/${svc.slug}/india`}
                   className="pt-6 border-t border-gray-100 flex items-center justify-between text-xs font-extrabold text-[#b02151] group-hover:translate-x-1 transition-transform mt-4"
                 >
                   <span>View Hospital Listings</span>

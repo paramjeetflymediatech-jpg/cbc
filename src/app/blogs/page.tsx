@@ -10,10 +10,14 @@ import { Op } from 'sequelize';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: 'Health & Medical Blogs | Clinic By Choice',
-  description: 'Read latest medical articles, health tips, surgical procedure guides, and healthcare insights from expert doctors and surgeons at Clinic By Choice.',
-};
+export async function generateMetadata() {
+  const { getPageMetadata } = await import('@/lib/seo');
+  return getPageMetadata(
+    '/blogs',
+    'Health & Medical Blogs | Clinic By Choice',
+    'Read latest medical articles, health tips, surgical procedure guides, and healthcare insights from expert doctors and surgeons at Clinic By Choice.'
+  );
+}
 
 interface PageProps {
   searchParams: Promise<{ category?: string; search?: string; page?: string }>;
@@ -26,6 +30,8 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
   const offset = (currentPage - 1) * limit;
 
   await connectDB();
+  const { getPageSchemaMarkup } = await import('@/lib/seo');
+  const schemaMarkup = await getPageSchemaMarkup('/blogs');
 
   const where: Record<string | symbol, unknown> = {
     status: 'PUBLISHED',
@@ -404,6 +410,21 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
       </main>
 
       <Footer />
+
+      {schemaMarkup && (
+        schemaMarkup.includes('<script') ? (
+          <span
+            suppressHydrationWarning
+            dangerouslySetInnerHTML={{ __html: schemaMarkup }}
+          />
+        ) : (
+          <script
+            type="application/ld+json"
+            suppressHydrationWarning
+            dangerouslySetInnerHTML={{ __html: schemaMarkup }}
+          />
+        )
+      )}
     </div>
   );
 }

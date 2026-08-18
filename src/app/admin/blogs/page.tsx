@@ -33,6 +33,13 @@ interface BlogPostItem {
   tags?: string | null;
   seoTitle?: string | null;
   seoDescription?: string | null;
+  seoKeywords?: string | null;
+  canonicalUrl?: string | null;
+  ogImage?: string | null;
+  ogTitle?: string | null;
+  ogDescription?: string | null;
+  robotsIndex?: string | null;
+  schemaMarkup?: string | null;
   status: 'DRAFT' | 'PUBLISHED';
   publishedAt?: string | null;
   views: number;
@@ -68,10 +75,18 @@ export default function AdminBlogsPage() {
   const [tags, setTags] = useState('');
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
+  const [seoKeywords, setSeoKeywords] = useState('');
+  const [canonicalUrl, setCanonicalUrl] = useState('');
+  const [ogImage, setOgImage] = useState('');
+  const [ogTitle, setOgTitle] = useState('');
+  const [ogDescription, setOgDescription] = useState('');
+  const [robotsIndex, setRobotsIndex] = useState('index, follow');
+  const [schemaMarkup, setSchemaMarkup] = useState('');
   const [status, setStatus] = useState<'PUBLISHED' | 'DRAFT'>('PUBLISHED');
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingOg, setUploadingOg] = useState(false);
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -103,6 +118,13 @@ export default function AdminBlogsPage() {
     setTags('');
     setSeoTitle('');
     setSeoDescription('');
+    setSeoKeywords('');
+    setCanonicalUrl('');
+    setOgImage('');
+    setOgTitle('');
+    setOgDescription('');
+    setRobotsIndex('index, follow');
+    setSchemaMarkup('');
     setStatus('PUBLISHED');
     setIsModalOpen(true);
   };
@@ -120,6 +142,13 @@ export default function AdminBlogsPage() {
     setTags(blog.tags || '');
     setSeoTitle(blog.seoTitle || '');
     setSeoDescription(blog.seoDescription || '');
+    setSeoKeywords(blog.seoKeywords || '');
+    setCanonicalUrl(blog.canonicalUrl || '');
+    setOgImage(blog.ogImage || '');
+    setOgTitle(blog.ogTitle || '');
+    setOgDescription(blog.ogDescription || '');
+    setRobotsIndex(blog.robotsIndex || 'index, follow');
+    setSchemaMarkup(blog.schemaMarkup || '');
     setStatus(blog.status || 'PUBLISHED');
     setIsModalOpen(true);
   };
@@ -152,6 +181,35 @@ export default function AdminBlogsPage() {
     }
   };
 
+  const handleOgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingOg(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', 'blogs');
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setOgImage(data.url);
+      } else {
+        alert(data.error || 'Failed to upload image');
+      }
+    } catch {
+      alert('Error uploading image file');
+    } finally {
+      setUploadingOg(false);
+      e.target.value = '';
+    }
+  };
+
   const handleSaveBlog = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
@@ -170,6 +228,13 @@ export default function AdminBlogsPage() {
       tags,
       seoTitle,
       seoDescription,
+      seoKeywords,
+      canonicalUrl,
+      ogImage,
+      ogTitle,
+      ogDescription,
+      robotsIndex,
+      schemaMarkup,
       status,
     };
 
@@ -242,7 +307,7 @@ export default function AdminBlogsPage() {
   const paginatedBlogs = filteredBlogs.slice(startIndex, startIndex + pageSize);
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-8 w-full">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -599,7 +664,7 @@ export default function AdminBlogsPage() {
 
                 {image && (
                   <div className="relative h-28 w-48 rounded-xl overflow-hidden border border-gray-200 mt-2">
-                    <Image src={image} alt="Preview" fill className="object-cover" />
+                    <img src={image} alt="Preview" className="w-full h-full object-cover" />
                   </div>
                 )}
               </div>
@@ -660,25 +725,123 @@ export default function AdminBlogsPage() {
               <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
                 <h4 className="text-xs font-bold text-[#ec2c6c] uppercase tracking-wider">SEO Optimization (Optional)</h4>
 
-                <div>
-                  <label className="block text-[11px] font-semibold text-gray-700 uppercase mb-1">SEO Title Tag</label>
-                  <input
-                    type="text"
-                    value={seoTitle}
-                    onChange={(e) => setSeoTitle(e.target.value)}
-                    placeholder="Custom page title for search engines..."
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">SEO Title Tag</label>
+                    <input
+                      type="text"
+                      value={seoTitle}
+                      onChange={(e) => setSeoTitle(e.target.value)}
+                      placeholder="Custom page title for search engines..."
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">Meta Keywords</label>
+                    <input
+                      type="text"
+                      value={seoKeywords}
+                      onChange={(e) => setSeoKeywords(e.target.value)}
+                      placeholder="e.g. medical blog, oncology article, clinicbychoice"
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-gray-700 uppercase mb-1">SEO Meta Description</label>
-                  <input
-                    type="text"
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">SEO Meta Description</label>
+                  <textarea
+                    rows={2}
                     value={seoDescription}
                     onChange={(e) => setSeoDescription(e.target.value)}
                     placeholder="Custom meta description snippet..."
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs leading-relaxed"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">Canonical URL</label>
+                    <input
+                      type="url"
+                      value={canonicalUrl}
+                      onChange={(e) => setCanonicalUrl(e.target.value)}
+                      placeholder="e.g. https://clinicbychoice.com/blogs/..."
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">Robots Status</label>
+                    <select
+                      value={robotsIndex}
+                      onChange={(e) => setRobotsIndex(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-800"
+                    >
+                      <option value="index, follow">Index, Follow (Default)</option>
+                      <option value="noindex, follow">Noindex, Follow</option>
+                      <option value="index, nofollow">Index, Nofollow</option>
+                      <option value="noindex, nofollow">Noindex, Nofollow</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Social Open Graph Overrides */}
+                <div className="border-t border-gray-200 pt-3 space-y-3">
+                  <span className="text-[11px] font-black uppercase text-gray-400 tracking-wider block">Social Sharing (Open Graph)</span>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">OG Title</label>
+                      <input
+                        type="text"
+                        value={ogTitle}
+                        onChange={(e) => setOgTitle(e.target.value)}
+                        placeholder="Custom title for Facebook/LinkedIn shares..."
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">OG Image URL</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={ogImage}
+                          onChange={(e) => setOgImage(e.target.value)}
+                          placeholder="Custom image URL for shares..."
+                          className="flex-1 w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-mono"
+                        />
+                        <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 rounded-lg text-[10px] font-bold flex items-center space-x-1.5 transition-colors border border-gray-200 select-none flex-shrink-0">
+                          {uploadingOg ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#ec2c6c]" /> : <Upload className="w-3.5 h-3.5 text-[#ec2c6c]" />}
+                          <span>Upload</span>
+                          <input type="file" accept="image/*" onChange={handleOgImageUpload} className="hidden" />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">OG Description</label>
+                    <textarea
+                      rows={2}
+                      value={ogDescription}
+                      onChange={(e) => setOgDescription(e.target.value)}
+                      placeholder="Custom description for shares..."
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs leading-relaxed"
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-3">
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">Article Schema Markup (JSON-LD)</label>
+                  <textarea
+                    rows={3}
+                    value={schemaMarkup}
+                    onChange={(e) => setSchemaMarkup(e.target.value)}
+                    placeholder='e.g. { "@context": "https://schema.org", "@type": "NewsArticle", ... }'
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-mono leading-relaxed"
                   />
                 </div>
               </div>

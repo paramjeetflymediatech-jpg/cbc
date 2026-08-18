@@ -12,10 +12,15 @@ import { Service, Hospital, HospitalService, Testimonial } from '@/models';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: 'About Us - Clinic By Choice',
-  description: 'Learn about Clinic By Choice, India premier medical marketplace connecting patients with accredited hospitals.',
-};
+import { getPageMetadata } from '@/lib/seo';
+
+export async function generateMetadata() {
+  return await getPageMetadata(
+    '/about-us',
+    'About Us - Clinic By Choice',
+    'Learn about Clinic By Choice, India premier medical marketplace connecting patients with accredited hospitals.'
+  );
+}
 
 async function getData() {
   try {
@@ -80,6 +85,8 @@ const defaultTestimonials = [
 
 export default async function AboutUsPage() {
   const { services, hospitals, testimonials } = await getData();
+  const { getPageSchemaMarkup } = await import('@/lib/seo');
+  const schemaMarkup = await getPageSchemaMarkup('/about-us');
 
   // 1. Admin Managed Testimonials from Testimonial DB Table
   const adminDbCards = (testimonials || []).map((t: any) => ({
@@ -269,6 +276,17 @@ export default async function AboutUsPage() {
       <FAQSection />
 
       <Footer />
+
+      {schemaMarkup && (
+        schemaMarkup.includes('<script') ? (
+          <span dangerouslySetInnerHTML={{ __html: schemaMarkup }} />
+        ) : (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: schemaMarkup }}
+          />
+        )
+      )}
     </div>
   );
 }

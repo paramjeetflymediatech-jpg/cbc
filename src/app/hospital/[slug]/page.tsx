@@ -2,7 +2,7 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import HospitalDetailClient from '@/app/hospitals/[slug]/HospitalDetailClient';
+import HospitalDetailClient from './HospitalDetailClient';
 import { connectDB } from '@/lib/db';
 import { Hospital, Service, HospitalService } from '@/models';
 
@@ -14,9 +14,19 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
+  const path = `/hospital/${slug.toLowerCase()}`;
   try {
     const db = await connectDB();
     if (!db) return { title: 'Clinic By Choice' };
+
+    // Check custom SEO override first
+    const { SeoMetadata } = await import('@/models/SeoMetadata');
+    const customSeo = await SeoMetadata.findOne({ where: { path } });
+    if (customSeo) {
+      const { buildMetadataFromRecord } = await import('@/lib/seo');
+      return buildMetadataFromRecord(customSeo);
+    }
+
     const hospital = await Hospital.findOne({ where: { slug: slug.toLowerCase() } });
     if (!hospital) return { title: 'Hospital Not Found - Clinic By Choice' };
     return {
@@ -31,6 +41,8 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function HospitalDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const db = await connectDB();
+  const { getPageSchemaMarkup } = await import('@/lib/seo');
+  const schemaMarkup = await getPageSchemaMarkup(`/hospital/${slug.toLowerCase()}`);
   if (!db) notFound();
 
   const hospital = await Hospital.findOne({
@@ -57,6 +69,17 @@ export default async function HospitalDetailPage({ params }: PageProps) {
       <Header />
       <HospitalDetailClient hospital={parsedHospital} />
       <Footer />
+
+      {schemaMarkup && (
+        schemaMarkup.includes('<script') ? (
+          <span dangerouslySetInnerHTML={{ __html: schemaMarkup }} />
+        ) : (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: schemaMarkup }}
+          />
+        )
+      )}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Building2, Stethoscope, ShoppingBag, Users, BookOpen, MapPin, LogOut, Menu, X, Quote } from 'lucide-react';
+import { LayoutDashboard, Building2, Stethoscope, ShoppingBag, Users, BookOpen, MapPin, LogOut, Menu, X, Quote, Globe } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -41,6 +41,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Lead Packages', href: '/admin/packages', icon: ShoppingBag },
     { name: 'Leads & Audit Logs', href: '/admin/leads', icon: Users },
     { name: 'Blog Management', href: '/admin/blogs', icon: BookOpen },
+    { name: 'SEO & Global Scripts', href: '/admin/seo', icon: Globe },
   ];
 
   if (!user) return null;

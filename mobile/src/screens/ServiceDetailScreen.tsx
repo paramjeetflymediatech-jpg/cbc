@@ -14,6 +14,11 @@ import { mockHospitals } from '../data/mockData';
 import { colors } from '../theme/colors';
 import { HospitalCard } from '../components/HospitalCard';
 
+const stripHtml = (html?: string) => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').trim();
+};
+
 interface ServiceDetailScreenProps {
   navigation: any;
   route: any;
@@ -64,7 +69,7 @@ export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ naviga
         <View style={styles.cardBox}>
           <Text style={styles.sectionHeading}>About {service.name}</Text>
           <Text style={styles.descriptionText}>
-            {service.description ||
+            {stripHtml(service.description) ||
               `Find leading hospital departments, expert surgeons, and comprehensive treatment options for ${service.name}.`}
           </Text>
         </View>

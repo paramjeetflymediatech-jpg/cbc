@@ -28,15 +28,38 @@ export async function generateMetadata({ params }: PageProps) {
       return { title: 'Article Not Found | Clinic By Choice' };
     }
 
-    return {
+    const metadata: any = {
       title: blog.seoTitle || `${blog.title} | Clinic By Choice Health Blog`,
       description: blog.seoDescription || blog.excerpt || `Read detailed medical insights on ${blog.title} at Clinic By Choice.`,
-      openGraph: {
-        title: blog.title,
-        description: blog.excerpt || blog.title,
-        images: blog.image ? [blog.image] : [],
-      },
     };
+
+    if (blog.seoKeywords) {
+      metadata.keywords = blog.seoKeywords;
+    }
+
+    if (blog.canonicalUrl) {
+      metadata.alternates = {
+        canonical: blog.canonicalUrl,
+      };
+    }
+
+    if (blog.robotsIndex) {
+      metadata.robots = blog.robotsIndex;
+    }
+
+    // Open Graph
+    const og: any = {};
+    og.title = blog.ogTitle || blog.seoTitle || blog.title;
+    og.description = blog.ogDescription || blog.seoDescription || blog.excerpt || blog.title;
+    
+    const ogImg = blog.ogImage || blog.image;
+    if (ogImg) {
+      og.images = [{ url: ogImg }];
+    }
+
+    metadata.openGraph = og;
+
+    return metadata;
   } catch {
     return { title: 'Health Blog | Clinic By Choice' };
   }
@@ -281,6 +304,21 @@ export default async function BlogDetailPage({ params }: PageProps) {
       </main>
 
       <Footer />
+
+      {blog.schemaMarkup && (
+        blog.schemaMarkup.includes('<script') ? (
+          <span
+            suppressHydrationWarning
+            dangerouslySetInnerHTML={{ __html: blog.schemaMarkup }}
+          />
+        ) : (
+          <script
+            type="application/ld+json"
+            suppressHydrationWarning
+            dangerouslySetInnerHTML={{ __html: blog.schemaMarkup }}
+          />
+        )
+      )}
     </div>
   );
 }

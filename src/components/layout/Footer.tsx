@@ -200,7 +200,7 @@ export default function Footer() {
               {displayList.map((svc: any, idx: number) => (
                 <Link
                   key={svc.id || idx}
-                  href={`/services/${svc.slug}`}
+                  href={`/hospitals/${svc.slug}/india`}
                   className="flex items-center hover:text-[#F04B8B] transition-colors py-1 group"
                 >
                   <span className="text-[#F04B8B] font-black mr-2 text-sm group-hover:translate-x-1 transition-transform select-none">

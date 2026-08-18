@@ -6,6 +6,11 @@ import Image from 'next/image';
 import { MapPin, Star, PhoneCall, ShieldCheck, ArrowRight } from 'lucide-react';
 import EnquiryModal from './EnquiryModal';
 
+const stripHtml = (html?: string) => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').trim();
+};
+
 interface HospitalCardProps {
   hospital: {
     id: number;
@@ -71,13 +76,13 @@ export default function HospitalCard({ hospital, defaultServiceId }: HospitalCar
             </div>
 
             <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#ec2c6c] transition-colors">
-              <Link href={`/hospitals/${hospital.slug}`}>{hospital.name}</Link>
+              <Link href={`/hospital/${hospital.slug}`}>{hospital.name}</Link>
             </h3>
 
             <p className="text-xs text-gray-500 line-clamp-1">{hospital.address}</p>
 
             <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
-              {hospital.description}
+              {stripHtml(hospital.description)}
             </p>
 
             {/* Offered Services Badges */}
@@ -115,7 +120,7 @@ export default function HospitalCard({ hospital, defaultServiceId }: HospitalCar
         <div className="flex flex-col items-start md:items-end justify-center w-full md:w-auto border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6 space-y-3 flex-shrink-0">
           <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 w-full sm:w-auto">
             <Link
-              href={`/hospitals/${hospital.slug}`}
+              href={`/hospital/${hospital.slug}`}
               className="px-5 py-2.5 rounded-full border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-50 text-center transition-colors flex items-center justify-center"
             >
               <span>View Details</span>

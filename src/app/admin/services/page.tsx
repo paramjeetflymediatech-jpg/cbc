@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Stethoscope, Plus, Save, Loader2, CheckCircle2, Search, ChevronLeft, ChevronRight, Edit2, X } from 'lucide-react';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 
 export default function AdminServicesPage() {
   const [services, setServices] = useState<any[]>([]);
@@ -244,6 +245,15 @@ export default function AdminServicesPage() {
             />
           </div>
 
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Full Description</label>
+            <RichTextEditor
+              value={description}
+              onChange={setDescription}
+              placeholder="Enter full specialty details and formatting here..."
+            />
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">SEO Title</label>
@@ -412,7 +422,7 @@ export default function AdminServicesPage() {
       {/* Edit Service Modal Overlay */}
       {editingService && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-4xl w-full p-6 space-y-6 shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <h3 className="text-lg font-bold text-gray-900">
                 Edit Service: <span className="text-[#ec2c6c]">{editingService.name}</span>
@@ -494,11 +504,10 @@ export default function AdminServicesPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Full Description</label>
-                <textarea
-                  rows={3}
+                <RichTextEditor
                   value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm"
+                  onChange={setEditDescription}
+                  placeholder="Enter full specialty details and formatting here..."
                 />
               </div>
 

@@ -14,6 +14,13 @@ export interface BlogPostAttributes {
   tags?: string | null;
   seoTitle?: string | null;
   seoDescription?: string | null;
+  seoKeywords?: string | null;
+  canonicalUrl?: string | null;
+  ogImage?: string | null;
+  ogTitle?: string | null;
+  ogDescription?: string | null;
+  robotsIndex?: string | null;
+  schemaMarkup?: string | null;
   status: 'DRAFT' | 'PUBLISHED';
   publishedAt?: Date | null;
   views: number;
@@ -36,6 +43,13 @@ export class BlogPost extends Model<BlogPostAttributes, BlogPostCreationAttribut
   declare tags: string | null;
   declare seoTitle: string | null;
   declare seoDescription: string | null;
+  declare seoKeywords: string | null;
+  declare canonicalUrl: string | null;
+  declare ogImage: string | null;
+  declare ogTitle: string | null;
+  declare ogDescription: string | null;
+  declare robotsIndex: string | null;
+  declare schemaMarkup: string | null;
   declare status: 'DRAFT' | 'PUBLISHED';
   declare publishedAt: Date | null;
   declare views: number;
@@ -95,6 +109,35 @@ BlogPost.init(
       allowNull: true,
     },
     seoDescription: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    seoKeywords: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    canonicalUrl: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    ogImage: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    ogTitle: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    ogDescription: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    robotsIndex: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      defaultValue: 'index, follow',
+    },
+    schemaMarkup: {
       type: DataTypes.TEXT,
       allowNull: true,
     },
