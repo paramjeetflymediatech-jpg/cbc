@@ -248,7 +248,7 @@ export const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ navigation, ro
                 key={hId}
                 hospital={hosp}
                 onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
-                onEnquirePress={() => navigation.navigate('Enquiry', { preferredHospital: hosp.name })}
+                onEnquirePress={() => navigation.navigate('Enquiry', { preferredHospital: hosp.name, hospitalId: hosp.id })}
                 onBookmarkPress={() => toggleSaveHospital(hId)}
                 isSaved={savedHospitalIds.includes(hId)}
               />

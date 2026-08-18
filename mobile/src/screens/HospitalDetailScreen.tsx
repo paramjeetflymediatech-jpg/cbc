@@ -283,6 +283,7 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
                     onPress={() =>
                       navigation.navigate('Enquiry', {
                         preferredHospital: hospital.name,
+                        hospitalId: hospital.id,
                         treatmentName: tr.name,
                       })
                     }
@@ -325,7 +326,9 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
                       onPress={() =>
                         navigation.navigate('Enquiry', {
                           preferredHospital: hospital.name,
+                          hospitalId: hospital.id,
                           serviceName: hs.service?.name,
+                          serviceId: hs.service?.id,
                         })
                       }
                       activeOpacity={0.8}
@@ -487,7 +490,7 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
 
         <TouchableOpacity
           style={styles.mainCtaBtn}
-          onPress={() => navigation.navigate('Enquiry', { preferredHospital: hospital.name })}
+          onPress={() => navigation.navigate('Enquiry', { preferredHospital: hospital.name, hospitalId: hospital.id })}
           activeOpacity={0.88}
         >
           <Text style={styles.mainCtaText}>Get Free Consultation →</Text>

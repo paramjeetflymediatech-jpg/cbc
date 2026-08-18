@@ -31,6 +31,7 @@ interface AuthContextType {
   userEnquiries: PatientLead[];
   addEnquiry: (lead: Omit<PatientLead, 'id' | 'createdAt' | 'status'>) => Promise<PatientLead>;
   updateUser: (updatedFields: Partial<User>) => Promise<void>;
+  fetchUserEnquiries: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,6 +60,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (storedToken && storedUser) {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
+        setTimeout(() => {
+          fetchUserEnquiries();
+        }, 100);
       } else {
         setUser(null);
         setToken(null);
@@ -79,6 +83,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Error loading persisted auth data:', e);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchUserEnquiries = async () => {
+    try {
+      const res = await api.get('/enquiries');
+      if (res.data && Array.isArray(res.data.leads)) {
+        const mapBackendStatus = (status: string): any => {
+          switch (status) {
+            case 'NEW': return 'Request Received';
+            case 'UNASSIGNED': return 'Submitted';
+            case 'CONTACTED': return 'Contacted';
+            case 'IN_PROGRESS': return 'In Progress';
+            case 'CONVERTED': return 'Completed';
+            default: return 'Cancelled';
+          }
+        };
+
+        const mappedLeads: PatientLead[] = res.data.leads.map((l: any) => ({
+          id: `REQ-${l.id}`,
+          serviceName: l.service?.name || 'General Health',
+          treatmentName: l.message && l.message.includes('Procedure:') ? l.message.split('Procedure: ')[1].split(' |')[0] : (l.message && l.message.includes('Treatment:') ? l.message.split('Treatment: ')[1].split(' |')[0] : ''),
+          patientName: l.patientName,
+          patientPhone: l.phone,
+          patientEmail: l.email,
+          patientAge: l.message && l.message.includes('Age:') ? l.message.split('Age: ')[1].split(' |')[0] : '45',
+          patientGender: l.message && l.message.includes('Gender:') ? l.message.split('Gender: ')[1].split(' |')[0] : 'Male',
+          preferredHospitalName: l.hospital?.name || 'Clinic By Choice',
+          preferredContactTime: l.preferredContactTime || 'Anytime',
+          additionalMessage: l.message || '',
+          status: mapBackendStatus(l.status),
+          createdAt: new Date(l.createdAt).toLocaleDateString('en-US', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }),
+        }));
+        setUserEnquiries(mappedLeads);
+        await AsyncStorage.setItem('user_enquiries', JSON.stringify(mappedLeads));
+      }
+    } catch (e) {
+      console.log('Error fetching user enquiries from API:', e);
     }
   };
 
@@ -118,6 +164,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           setToken(authToken);
           setUser(userObj);
+          setTimeout(() => {
+            fetchUserEnquiries();
+          }, 100);
           return { success: true };
         }
       } catch (apiErr: any) {
@@ -202,6 +251,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Backend signup offline/fallback handled locally');
       }
 
+      setTimeout(() => {
+        fetchUserEnquiries();
+      }, 100);
+
       return { success: true };
     } catch (e) {
       return { success: false, message: 'Registration failed.' };
@@ -212,8 +265,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await AsyncStorage.removeItem('user_token');
       await AsyncStorage.removeItem('user_data');
+      await AsyncStorage.removeItem('user_enquiries');
       setToken(null);
       setUser(null);
+      setUserEnquiries([]);
     } catch (e) {
       console.log('Logout error:', e);
     }
@@ -275,6 +330,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userEnquiries,
         addEnquiry,
         updateUser,
+        fetchUserEnquiries,
       }}
     >
       {children}
@@ -302,6 +358,7 @@ const defaultContext: AuthContextType = {
     createdAt: 'Just now',
   }),
   updateUser: async () => {},
+  fetchUserEnquiries: async () => {},
 };
 
 export const useAuth = () => {

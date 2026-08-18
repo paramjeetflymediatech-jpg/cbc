@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cbc_super_secret_jwt_key_2026';
 export interface TokenPayload {
   userId: string;
   email: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'HOSPITAL';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'HOSPITAL' | 'PATIENT';
   hospitalId?: string;
   name: string;
 }

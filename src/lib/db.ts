@@ -67,6 +67,13 @@ export async function connectDB(): Promise<Sequelize | null> {
       // Ensure new hospital & service columns exist
       try {
         const queryInterface = instance.getQueryInterface();
+        
+        try {
+          await instance.query("ALTER TABLE users MODIFY COLUMN role ENUM('SUPER_ADMIN', 'ADMIN', 'HOSPITAL', 'PATIENT') NOT NULL DEFAULT 'PATIENT';");
+        } catch (uErr) {
+          // Already modified or error
+        }
+
         const table: any = await queryInterface.describeTable('hospitals');
 
         if (!table.isNabhAccredited) {

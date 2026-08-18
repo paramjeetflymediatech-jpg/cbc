@@ -6,14 +6,14 @@ import { Platform } from 'react-native';
 // - Android Emulator uses 10.0.2.2 to refer to host machine's localhost
 // - iOS Simulator uses localhost
 // - Physical device uses your local IP (e.g. 192.168.x.x)
-const DEV_API_URL = Platform.select({
-  android: 'http://10.0.2.2:3000/api',
-  ios: 'http://localhost:3000/api',
-  default: 'http://localhost:3000/api',
-});
+// const DEV_API_URL = Platform.select({
+//   android: 'http://10.0.2.2:3000/api',
+//   ios: 'http://localhost:3000/api',
+//   default: 'http://localhost:3000/api',
+// });
 
-export const API_BASE_URL = DEV_API_URL;
-// export const API_BASE_URL = 'https://cbc.socialflymediatech.com/api';
+// export const API_BASE_URL = DEV_API_URL;
+export const API_BASE_URL = 'https://cbc.socialflymediatech.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

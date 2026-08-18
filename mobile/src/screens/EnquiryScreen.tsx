@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -24,9 +24,18 @@ export const EnquiryScreen: React.FC<EnquiryScreenProps> = ({ navigation, route 
 
   const initialService = route.params?.serviceName || 'Orthopaedics';
   const initialTreatment = route.params?.treatmentName || '';
-  const preferredHospital = route.params?.preferredHospital || 'Max Super Speciality Hospital';
+  const preferredHospital = route.params?.preferredHospital || '';
 
   const [currentStep, setCurrentStep] = useState<number>(1);
+
+  // Dynamic dropdown lists from DB
+  const [dbServices, setDbServices] = useState<{ id: number; name: string }[]>([]);
+  const [dbHospitals, setDbHospitals] = useState<{ id: number; name: string; city: string }[]>([]);
+
+  // Selected IDs
+  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(route.params?.serviceId ? Number(route.params.serviceId) : null);
+  const [selectedHospitalId, setSelectedHospitalId] = useState<number | null>(route.params?.hospitalId ? Number(route.params.hospitalId) : null);
+  const [selectedHospitalName, setSelectedHospitalName] = useState<string>(preferredHospital || 'General Health Desk');
 
   // Form State
   const [serviceName, setServiceName] = useState<string>(initialService);
@@ -47,6 +56,52 @@ export const EnquiryScreen: React.FC<EnquiryScreenProps> = ({ navigation, route 
 
   const servicesList = ['Orthopaedics', 'IVF & Fertility', 'Cardiology', 'Oncology', 'Neurology', 'Dental Surgery', 'Dermatology'];
   const timeSlots = ['Morning (9 AM - 12 PM)', 'Afternoon (12 PM - 4 PM)', 'Evening (4 PM - 7 PM)'];
+
+  useEffect(() => {
+    fetchInitData();
+  }, []);
+
+  const fetchInitData = async () => {
+    try {
+      const [servRes, hospRes] = await Promise.all([
+        api.get('/services'),
+        api.get('/hospitals'),
+      ]);
+
+      let servicesData: { id: number; name: string }[] = [];
+      if (servRes.data && Array.isArray(servRes.data.services)) {
+        servicesData = servRes.data.services.map((s: any) => ({ id: s.id, name: s.name }));
+      }
+      setDbServices(servicesData);
+
+      let hospitalsData: { id: number; name: string; city: string }[] = [];
+      if (hospRes.data && Array.isArray(hospRes.data.hospitals)) {
+        hospitalsData = hospRes.data.hospitals.map((h: any) => ({ id: h.id, name: h.name, city: h.city }));
+      }
+      setDbHospitals(hospitalsData);
+
+      // Auto-resolve Service ID
+      if (route.params?.serviceId) {
+        setSelectedServiceId(Number(route.params.serviceId));
+      } else if (initialService) {
+        const found = servicesData.find((s) => s.name.toLowerCase() === initialService.toLowerCase());
+        if (found) setSelectedServiceId(found.id);
+      }
+      
+      // Auto-resolve Hospital ID
+      if (route.params?.hospitalId) {
+        setSelectedHospitalId(Number(route.params.hospitalId));
+      } else if (preferredHospital) {
+        const found = hospitalsData.find((h) => h.name.toLowerCase() === preferredHospital.toLowerCase());
+        if (found) {
+          setSelectedHospitalId(found.id);
+          setSelectedHospitalName(found.name);
+        }
+      }
+    } catch (err) {
+      console.log('Error loading dynamic dropdowns in Enquiry:', err);
+    }
+  };
 
   const handleNext = () => {
     if (currentStep === 1 && !serviceName) {
@@ -96,7 +151,7 @@ export const EnquiryScreen: React.FC<EnquiryScreenProps> = ({ navigation, route 
         patientEmail,
         patientAge,
         patientGender,
-        preferredHospitalName: preferredHospital,
+        preferredHospitalName: selectedHospitalName,
         preferredContactTime,
         additionalMessage,
       });
@@ -104,12 +159,15 @@ export const EnquiryScreen: React.FC<EnquiryScreenProps> = ({ navigation, route 
       // Post API enquiry call
       try {
         await api.post('/enquiries', {
-          name: patientName,
-          email: patientEmail,
-          phone: patientPhone,
-          service: serviceName,
-          hospital: preferredHospital,
-          message: `Treatment: ${treatmentName || 'General'} | Age: ${patientAge} | Gender: ${patientGender} | Preferred Time: ${preferredContactTime} | ${additionalMessage}`,
+          patientName: patientName.trim(),
+          phone: patientPhone.trim(),
+          email: patientEmail.trim(),
+          city: user?.city || 'Mobile App',
+          serviceId: selectedServiceId || 2, // Default to Orthopaedics (2)
+          hospitalId: selectedHospitalId || 25, // Default to Dr Sonal Jain (25) or fallback
+          message: `Procedure: ${treatmentName || 'General'} | Age: ${patientAge} | Gender: ${patientGender} | Preferred Time: ${preferredContactTime} | ${additionalMessage}`,
+          preferredContactTime: preferredContactTime,
+          isGeneralContact: false,
         });
       } catch (e) {
         console.log('Enquiry API fallback to local storage:', e);
@@ -119,7 +177,7 @@ export const EnquiryScreen: React.FC<EnquiryScreenProps> = ({ navigation, route 
         requestDetails: {
           requestId: newLead.id,
           serviceName,
-          preferredHospital,
+          preferredHospital: selectedHospitalName,
           patientName,
           createdAt: newLead.createdAt,
         },
@@ -147,7 +205,7 @@ export const EnquiryScreen: React.FC<EnquiryScreenProps> = ({ navigation, route 
       {/* Destination Hospital Banner */}
       <View style={styles.hospitalBanner}>
         <Text style={styles.hospitalTag}>DIRECT CONSULTATION ENQUIRY TO</Text>
-        <Text style={styles.hospitalNameText}>🏥 {preferredHospital}</Text>
+        <Text style={styles.hospitalNameText}>🏥 {selectedHospitalName}</Text>
         <Text style={styles.hospitalVerifiedText}>✓ Verified Healthcare Partner</Text>
       </View>
 
@@ -196,22 +254,55 @@ export const EnquiryScreen: React.FC<EnquiryScreenProps> = ({ navigation, route 
         {currentStep === 1 && (
           <View style={styles.stepCard}>
             <Text style={styles.stepTitle}>Select Service & Procedure</Text>
-            <Text style={styles.stepSubtitle}>What medical specialty or treatment are you seeking at {preferredHospital}?</Text>
+            <Text style={styles.stepSubtitle}>What medical specialty or treatment are you seeking?</Text>
 
             <Text style={styles.inputLabel}>Healthcare Service Specialty</Text>
             <View style={styles.optionsWrap}>
-              {servicesList.map((s) => (
+              {(dbServices.length > 0 ? dbServices : servicesList.map((s, idx) => ({ id: idx + 1, name: s }))).map((s) => (
                 <TouchableOpacity
-                  key={s}
-                  style={[styles.optionPill, serviceName === s && styles.optionPillActive]}
-                  onPress={() => setServiceName(s)}
+                  key={s.id}
+                  style={[styles.optionPill, (selectedServiceId === s.id || serviceName === s.name) && styles.optionPillActive]}
+                  onPress={() => {
+                    setSelectedServiceId(s.id);
+                    setServiceName(s.name);
+                  }}
                 >
-                  <Text style={[styles.optionText, serviceName === s && styles.optionTextActive]}>
-                    {s}
+                  <Text style={[styles.optionText, (selectedServiceId === s.id || serviceName === s.name) && styles.optionTextActive]}>
+                    {s.name}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
+
+            {dbHospitals.length > 0 && (
+              <>
+                <Text style={styles.inputLabel}>Preferred Hospital *</Text>
+                <ScrollView style={styles.hospitalSelectScroll} nestedScrollEnabled={true}>
+                  {dbHospitals.map((h) => (
+                    <TouchableOpacity
+                      key={h.id}
+                      style={[
+                        styles.hospitalSelectItem,
+                        selectedHospitalId === h.id && styles.hospitalSelectItemActive,
+                      ]}
+                      onPress={() => {
+                        setSelectedHospitalId(h.id);
+                        setSelectedHospitalName(h.name);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.hospitalSelectText,
+                          selectedHospitalId === h.id && styles.hospitalSelectTextActive,
+                        ]}
+                      >
+                        🏥 {h.name} ({h.city})
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            )}
 
             <Text style={styles.inputLabel}>Specific Treatment / Procedure (Optional)</Text>
             <TextInput
@@ -323,7 +414,7 @@ export const EnquiryScreen: React.FC<EnquiryScreenProps> = ({ navigation, route 
         {currentStep === 3 && (
           <View style={styles.stepCard}>
             <Text style={styles.stepTitle}>Finalize Consultation Request</Text>
-            <Text style={styles.stepSubtitle}>When should {preferredHospital}'s desk contact you?</Text>
+            <Text style={styles.stepSubtitle}>When should {selectedHospitalName}'s desk contact you?</Text>
 
             <Text style={styles.inputLabel}>Preferred Callback Time</Text>
             <View style={styles.optionsWrap}>
@@ -354,7 +445,7 @@ export const EnquiryScreen: React.FC<EnquiryScreenProps> = ({ navigation, route 
             {/* Summary Box */}
             <View style={styles.summaryBox}>
               <Text style={styles.summaryHeading}>Direct Request Summary</Text>
-              <Text style={styles.summaryLine}>• Target Hospital: <Text style={styles.boldVal}>{preferredHospital}</Text></Text>
+              <Text style={styles.summaryLine}>• Target Hospital: <Text style={styles.boldVal}>{selectedHospitalName}</Text></Text>
               <Text style={styles.summaryLine}>• Specialty: <Text style={styles.boldVal}>{serviceName}</Text></Text>
               <Text style={styles.summaryLine}>• Patient: <Text style={styles.boldVal}>{patientName} ({patientEmail})</Text></Text>
               {!user && <Text style={styles.summaryLine}>• Account: <Text style={styles.boldVal}>Will be created automatically ✓</Text></Text>}
@@ -686,5 +777,31 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: colors.textWhite,
+  },
+  hospitalSelectScroll: {
+    maxHeight: 150,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceSecondary,
+    marginVertical: 8,
+  },
+  hospitalSelectItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  hospitalSelectItemActive: {
+    backgroundColor: colors.primaryLight,
+  },
+  hospitalSelectText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  hospitalSelectTextActive: {
+    color: colors.primary,
+    fontWeight: '800',
   },
 });

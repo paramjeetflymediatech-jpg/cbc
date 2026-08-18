@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { connectDB, sequelize } from '@/lib/db';
-import { Hospital, Lead, LeadTransaction, Notification } from '@/models';
+import { Hospital, Lead, LeadTransaction, Notification, Service } from '@/models';
 import { sendEnquiryEmail } from '@/lib/mailer';
+import { verifyToken } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
@@ -183,5 +184,47 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Enquiry submission error:', error);
     return NextResponse.json({ error: 'Server error processing enquiry.' }, { status: 500 });
+  }
+}
+
+export async function GET(req: Request) {
+  try {
+    await connectDB();
+    
+    // Extract authorization header or cbc_token cookie
+    const authHeader = req.headers.get('authorization');
+    let token = '';
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else {
+      // Check cookie
+      const { cookies } = await import('next/headers');
+      const cookieStore = await cookies();
+      token = cookieStore.get('cbc_token')?.value || '';
+    }
+
+    if (!token) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const payload = verifyToken(token);
+    if (!payload || !payload.email) {
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+    }
+
+    // Query leads for this user's email
+    const leads = await Lead.findAll({
+      where: { email: payload.email.toLowerCase().trim() },
+      include: [
+        { model: Hospital, as: 'hospital', attributes: ['id', 'name', 'city', 'location'] },
+        { model: Service, as: 'service', attributes: ['id', 'name'] }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    return NextResponse.json({ leads });
+  } catch (error) {
+    console.error('Fetch enquiries error:', error);
+    return NextResponse.json({ error: 'Server error fetching enquiries' }, { status: 500 });
   }
 }

@@ -83,6 +83,7 @@ export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ naviga
                   onPress={() =>
                     navigation.navigate('Enquiry', {
                       serviceName: service.name,
+                      serviceId: service.id,
                       treatmentName: treatment,
                     })
                   }
@@ -118,7 +119,9 @@ export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ naviga
               onEnquirePress={() =>
                 navigation.navigate('Enquiry', {
                   serviceName: service.name,
+                  serviceId: service.id,
                   preferredHospital: hosp.name,
+                  hospitalId: hosp.id,
                 })
               }
             />

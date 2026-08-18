@@ -6,7 +6,7 @@ export interface UserAttributes {
   name: string;
   email: string;
   passwordHash: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'HOSPITAL';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'HOSPITAL' | 'PATIENT';
   hospitalId?: number | null;
   phone?: string | null;
   status: 'ACTIVE' | 'INACTIVE';
@@ -21,7 +21,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   declare name: string;
   declare email: string;
   declare passwordHash: string;
-  declare role: 'SUPER_ADMIN' | 'ADMIN' | 'HOSPITAL';
+  declare role: 'SUPER_ADMIN' | 'ADMIN' | 'HOSPITAL' | 'PATIENT';
   declare hospitalId: number | null;
   declare phone: string | null;
   declare status: 'ACTIVE' | 'INACTIVE';
@@ -53,9 +53,9 @@ User.init(
       allowNull: false,
     },
     role: {
-      type: DataTypes.ENUM('SUPER_ADMIN', 'ADMIN', 'HOSPITAL'),
+      type: DataTypes.ENUM('SUPER_ADMIN', 'ADMIN', 'HOSPITAL', 'PATIENT'),
       allowNull: false,
-      defaultValue: 'HOSPITAL',
+      defaultValue: 'PATIENT',
     },
     hospitalId: {
       type: DataTypes.INTEGER,
