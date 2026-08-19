@@ -8,6 +8,7 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
+  city?: string;
   role?: string;
   avatarUrl?: string;
   avatarScale?: number;

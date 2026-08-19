@@ -109,6 +109,11 @@ export async function connectDB(): Promise<Sequelize | null> {
         if (!hsTable.subServices) {
           await instance.query('ALTER TABLE hospital_services ADD COLUMN subServices TEXT NULL;');
         }
+
+        const leadsTable: any = await queryInterface.describeTable('leads');
+        if (!leadsTable.userId) {
+          await instance.query('ALTER TABLE leads ADD COLUMN userId INT NULL REFERENCES users(id) ON DELETE SET NULL;');
+        }
       } catch (colErr) {
         // Table schema up to date or column already exists
       }

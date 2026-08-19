@@ -20,7 +20,7 @@ interface EnquiryScreenProps {
 }
 
 export const EnquiryScreen: React.FC<EnquiryScreenProps> = ({ navigation, route }) => {
-  const { user, signup, addEnquiry } = useAuth();
+  const { user, signup, addEnquiry, location } = useAuth();
 
   const initialService = route.params?.serviceName || 'Orthopaedics';
   const initialTreatment = route.params?.treatmentName || '';
@@ -162,7 +162,7 @@ export const EnquiryScreen: React.FC<EnquiryScreenProps> = ({ navigation, route 
           patientName: patientName.trim(),
           phone: patientPhone.trim(),
           email: patientEmail.trim(),
-          city: user?.city || 'Mobile App',
+          city: location || user?.city || 'Mobile App',
           serviceId: selectedServiceId || 2, // Default to Orthopaedics (2)
           hospitalId: selectedHospitalId || 25, // Default to Dr Sonal Jain (25) or fallback
           message: `Procedure: ${treatmentName || 'General'} | Age: ${patientAge} | Gender: ${patientGender} | Preferred Time: ${preferredContactTime} | ${additionalMessage}`,

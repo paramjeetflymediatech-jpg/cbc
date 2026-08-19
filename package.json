@@ -11,7 +11,9 @@
     "seed:india": "npx tsx src/scripts/seed-india-data.ts",
     "db:clean": "npx tsx src/scripts/clean-db.ts",
     "db:reset": "npx tsx src/scripts/clean-db.ts --seed",
-    "create:admin": "npx tsx src/scripts/create-superadmin.ts"
+    "create:admin": "npx tsx src/scripts/create-superadmin.ts",
+    "extract:seo": "npx tsx src/scripts/extract-seo-from-sql.ts",
+    "import:seo": "npx tsx src/scripts/import-seo-data.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -28,6 +30,7 @@
     "react-dom": "19.2.8",
     "recharts": "^3.10.1",
     "sequelize": "^6.37.8",
+    "sweetalert2": "^11.26.25",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

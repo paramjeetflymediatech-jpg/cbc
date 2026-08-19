@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Modal,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { mockUserLeads } from '../data/mockData';
@@ -23,31 +24,27 @@ interface MyRequestsScreenProps {
 }
 
 export const MyRequestsScreen: React.FC<MyRequestsScreenProps> = ({ navigation }) => {
-  const { userEnquiries, isAuthenticated } = useAuth();
+  const { userEnquiries, isAuthenticated, fetchUserEnquiries } = useAuth();
   const { showAlert } = useSweetAlert();
   const [selectedLead, setSelectedLead] = useState<PatientLead | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      showAlert({
-        title: 'Login Required',
-        message: 'Please login first to view your requests.',
-        type: 'warning',
-        confirmText: 'Login',
-        cancelText: 'Cancel',
-        onConfirm: () => navigation.navigate('Auth'),
-        onCancel: () => navigation.navigate('Main', { screen: 'Home' }),
-      });
-    } else if (userEnquiries.length === 0) {
-      showAlert({
-        title: 'No Requests',
-        message: "You haven't submitted any consultation requests yet.",
-        type: 'info',
-        confirmText: 'OK',
-        onConfirm: () => navigation.navigate('Main', { screen: 'Home' }),
-      });
+    if (isAuthenticated) {
+      fetchUserEnquiries();
     }
-  }, [isAuthenticated, userEnquiries, navigation]);
+  }, [isAuthenticated]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchUserEnquiries();
+    } catch {
+      // ignore
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -59,7 +56,13 @@ export const MyRequestsScreen: React.FC<MyRequestsScreenProps> = ({ navigation }
         <Text style={styles.subtitle}>Track your healthcare consultation enquiries & status</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
+      >
         {userEnquiries.length > 0 ? (
           userEnquiries.map((lead) => (
             <View key={lead.id} style={styles.requestCard}>

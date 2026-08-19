@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { connectDB, sequelize } from '@/lib/db';
-import { Hospital, Lead, LeadTransaction, Notification, Service } from '@/models';
+import { Hospital, Lead, LeadTransaction, Notification, Service, User } from '@/models';
 import { sendEnquiryEmail } from '@/lib/mailer';
-import { verifyToken } from '@/lib/auth';
+import { verifyToken, hashPassword } from '@/lib/auth';
+import { Op } from 'sequelize';
+import crypto from 'crypto';
 
 export async function POST(req: Request) {
   try {
@@ -23,6 +25,27 @@ export async function POST(req: Request) {
 
     if (!patientName || !phone || !email) {
       return NextResponse.json({ error: 'Please fill in all required enquiry fields.' }, { status: 400 });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanName = patientName.trim();
+    const cleanPhone = phone.trim();
+
+    // 1. Find or create unique patient user account
+    let patientUser = await User.findOne({ where: { email: cleanEmail } });
+    if (!patientUser) {
+      const generatedPassword = crypto.randomBytes(16).toString('hex');
+      const passHash = await hashPassword(generatedPassword);
+      patientUser = await User.create({
+        name: cleanName,
+        email: cleanEmail,
+        passwordHash: passHash,
+        role: 'PATIENT',
+        phone: cleanPhone || null,
+        status: 'ACTIVE',
+      });
+    } else if (cleanPhone && !patientUser.phone) {
+      await patientUser.update({ phone: cleanPhone });
     }
 
     let targetHospital = null;
@@ -53,9 +76,10 @@ export async function POST(req: Request) {
 
           const lead = await Lead.create(
             {
-              patientName: patientName.trim(),
-              phone: phone.trim(),
-              email: email.trim(),
+              userId: patientUser.id,
+              patientName: cleanName,
+              phone: cleanPhone,
+              email: cleanEmail,
               city: city ? city.trim() : 'Service Enquiry',
               serviceId: serviceId ? Number(serviceId) : 1,
               hospitalId: Number(hospitalId),
@@ -75,7 +99,7 @@ export async function POST(req: Request) {
               leadAmount: -1,
               balanceBefore,
               balanceAfter,
-              description: `Patient enquiry from ${patientName} (${email})`,
+              description: `Patient enquiry from ${cleanName} (${cleanEmail})`,
             },
             { transaction }
           );
@@ -85,7 +109,7 @@ export async function POST(req: Request) {
               recipientType: 'HOSPITAL',
               recipientId: Number(hospitalId),
               title: 'New Patient Service Enquiry Received',
-              message: `New enquiry from ${patientName} for your medical service.`,
+              message: `New enquiry from ${cleanName} for your medical service.`,
               type: 'NEW_LEAD',
               isRead: false,
             },
@@ -94,11 +118,17 @@ export async function POST(req: Request) {
 
           await transaction.commit();
 
+          // Link any other existing unassigned leads for this email to this user
+          await Lead.update(
+            { userId: patientUser.id },
+            { where: { email: cleanEmail, userId: null } }
+          );
+
           // Send lead details email to BOTH Target Hospital AND Super Admin
           sendEnquiryEmail({
-            patientName: patientName.trim(),
-            phone: phone.trim(),
-            email: email.trim(),
+            patientName: cleanName,
+            phone: cleanPhone,
+            email: cleanEmail,
             city: city ? city.trim() : 'Service Enquiry',
             message: message ? message.trim() : '',
             hospitalName: targetHospital.name,
@@ -112,9 +142,10 @@ export async function POST(req: Request) {
       } else {
         // Hospital HAS ZERO lead balance -> Save lead for Super Admin review
         await Lead.create({
-          patientName: patientName.trim(),
-          phone: phone.trim(),
-          email: email.trim(),
+          userId: patientUser.id,
+          patientName: cleanName,
+          phone: cleanPhone,
+          email: cleanEmail,
           city: city ? city.trim() : 'Service Enquiry (Zero Balance)',
           serviceId: serviceId ? Number(serviceId) : 1,
           hospitalId: Number(hospitalId),
@@ -123,6 +154,12 @@ export async function POST(req: Request) {
           status: 'UNASSIGNED',
           notes: [{ content: 'Lead held: Hospital has 0 leads balance. Patient details restricted until package purchase.', author: 'System', createdAt: new Date().toISOString() }],
         });
+
+        // Link any other existing unassigned leads for this email to this user
+        await Lead.update(
+          { userId: patientUser.id },
+          { where: { email: cleanEmail, userId: null } }
+        );
 
         // Notify Hospital about pending lead locked due to zero balance
         await Notification.create({
@@ -136,9 +173,9 @@ export async function POST(req: Request) {
 
         // Send email notification to BOTH Target Hospital AND Super Admin
         sendEnquiryEmail({
-          patientName: patientName.trim(),
-          phone: phone.trim(),
-          email: email.trim(),
+          patientName: cleanName,
+          phone: cleanPhone,
+          email: cleanEmail,
           city: city ? city.trim() : 'Service Enquiry',
           message: message ? message.trim() : '',
           hospitalName: targetHospital.name,
@@ -149,9 +186,10 @@ export async function POST(req: Request) {
       // General Contact Form or Unapproved Hospital -> Send to Super Admin and Hospital if available
       try {
         await Lead.create({
-          patientName: patientName.trim(),
-          phone: phone.trim(),
-          email: email.trim(),
+          userId: patientUser.id,
+          patientName: cleanName,
+          phone: cleanPhone,
+          email: cleanEmail,
           city: city ? city.trim() : 'General Contact',
           serviceId: serviceId ? Number(serviceId) : 1,
           hospitalId: targetHospital ? targetHospital.id : 1,
@@ -160,15 +198,21 @@ export async function POST(req: Request) {
           status: 'NEW',
           notes: [],
         });
+
+        // Link any other existing unassigned leads for this email to this user
+        await Lead.update(
+          { userId: patientUser.id },
+          { where: { email: cleanEmail, userId: null } }
+        );
       } catch (leadErr) {
         console.warn('Fallback general lead creation error:', leadErr);
       }
 
       // Send email to Super Admin and Target Hospital (if found)
       sendEnquiryEmail({
-        patientName: patientName.trim(),
-        phone: phone.trim(),
-        email: email.trim(),
+        patientName: cleanName,
+        phone: cleanPhone,
+        email: cleanEmail,
         city: city ? city.trim() : 'General Contact',
         message: message ? message.trim() : '',
         ...(targetHospital ? { hospitalName: targetHospital.name, hospitalEmail: targetHospital.email } : {}),
@@ -178,6 +222,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         message: 'Thank you for your message. Your enquiry has been submitted successfully.',
+        userId: patientUser.id,
       },
       { status: 201 }
     );
@@ -212,14 +257,32 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    // Query leads for this user's email
-    const leads = await Lead.findAll({
-      where: { email: payload.email.toLowerCase().trim() },
-      include: [
-        { model: Hospital, as: 'hospital', attributes: ['id', 'name', 'city', 'location'] },
-        { model: Service, as: 'service', attributes: ['id', 'name'] }
+    const cleanEmail = payload.email.toLowerCase().trim();
+    const userIdNum = payload.userId ? Number(payload.userId) : null;
+
+    // Query leads for this user by userId OR email
+    const whereCondition: any = {
+      [Op.or]: [
+        ...(userIdNum ? [{ userId: userIdNum }] : []),
+        { email: cleanEmail },
       ],
-      order: [['createdAt', 'DESC']]
+    };
+
+    const leads = await Lead.findAll({
+      where: whereCondition,
+      include: [
+        {
+          model: Hospital,
+          as: 'hospital',
+          attributes: ['id', 'name', 'city', 'location', 'address', 'image', 'phone', 'email', 'rating', 'specialties', 'isNabhAccredited', 'isVerifiedPartner'],
+        },
+        {
+          model: Service,
+          as: 'service',
+          attributes: ['id', 'name', 'slug', 'category', 'image', 'icon'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
     });
 
     return NextResponse.json({ leads });

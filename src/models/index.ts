@@ -68,8 +68,14 @@ export function initAssociations() {
     if (!Lead.associations.service) {
       Lead.belongsTo(Service, { foreignKey: 'serviceId', as: 'service' });
     }
+    if (!Lead.associations.user) {
+      Lead.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    }
     if (!Hospital.associations.leads) {
       Hospital.hasMany(Lead, { foreignKey: 'hospitalId', as: 'leads' });
+    }
+    if (!User.associations.leads) {
+      User.hasMany(Lead, { foreignKey: 'userId', as: 'leads' });
     }
 
     // Hospital Package

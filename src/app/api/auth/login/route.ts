@@ -49,6 +49,13 @@ export async function POST(req: Request) {
       }
     }
 
+    // Attach all unlinked leads with this email to the user account
+    const { Lead } = await import('@/models/Lead');
+    await Lead.update(
+      { userId: user.id },
+      { where: { email: user.email.toLowerCase().trim(), userId: null } }
+    );
+
     const tokenPayload = {
       userId: String(user.id),
       email: user.email,

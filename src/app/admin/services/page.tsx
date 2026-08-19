@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import RichTextEditor from '@/components/ui/RichTextEditor';
+import Swal from 'sweetalert2';
 
 export default function AdminServicesPage() {
   const [services, setServices] = useState<any[]>([]);
@@ -120,6 +121,7 @@ export default function AdminServicesPage() {
       const data = await res.json();
 
       if (res.ok) {
+        const createdName = name;
         setMessage('New medical service created successfully.');
         setName('');
         setSlug('');
@@ -131,11 +133,32 @@ export default function AdminServicesPage() {
         setSeoDescription('');
         setFaqs([]);
         fetchServices();
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Service Created!',
+          text: `"${createdName}" has been successfully added to medical services.`,
+          confirmButtonColor: '#ec2c6c',
+          timer: 2500,
+          timerProgressBar: true,
+        });
       } else {
         setErrorMessage(data.error || 'Failed to create service.');
+        Swal.fire({
+          icon: 'error',
+          title: 'Failed to Create Service',
+          text: data.error || 'Please check the entered service details and try again.',
+          confirmButtonColor: '#ec2c6c',
+        });
       }
     } catch {
       setErrorMessage('Network error while creating service.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Network Error',
+        text: 'Unable to connect to server. Please check your internet connection.',
+        confirmButtonColor: '#ec2c6c',
+      });
     } finally {
       setSaving(false);
     }
@@ -187,21 +210,55 @@ export default function AdminServicesPage() {
       const data = await res.json();
 
       if (res.ok) {
+        const updatedName = editName;
         setMessage(`Service "${editName}" updated successfully.`);
         setEditingService(null);
         fetchServices();
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Service Updated!',
+          text: `"${updatedName}" has been updated successfully.`,
+          confirmButtonColor: '#ec2c6c',
+          timer: 2500,
+          timerProgressBar: true,
+        });
       } else {
         setErrorMessage(data.error || 'Failed to update service.');
+        Swal.fire({
+          icon: 'error',
+          title: 'Failed to Update Service',
+          text: data.error || 'Please review the fields and try again.',
+          confirmButtonColor: '#ec2c6c',
+        });
       }
     } catch {
       setErrorMessage('Network error while updating service.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Network Error',
+        text: 'Unable to connect to server. Please try again.',
+        confirmButtonColor: '#ec2c6c',
+      });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteService = async (id: number, serviceName: string) => {
-    if (!window.confirm(`Are you sure you want to delete the service "${serviceName}"? This action cannot be undone.`)) {
+    const confirmResult = await Swal.fire({
+      title: 'Delete Service?',
+      text: `Are you sure you want to delete "${serviceName}"? This action cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#e11d48',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, Delete It',
+      cancelButtonText: 'Cancel',
+      reverseButtons: true,
+    });
+
+    if (!confirmResult.isConfirmed) {
       return;
     }
 
@@ -217,11 +274,32 @@ export default function AdminServicesPage() {
       if (res.ok) {
         setMessage(data.message || `Service "${serviceName}" deleted successfully.`);
         fetchServices();
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Deleted!',
+          text: `Service "${serviceName}" has been removed.`,
+          confirmButtonColor: '#ec2c6c',
+          timer: 2000,
+          timerProgressBar: true,
+        });
       } else {
         setErrorMessage(data.error || 'Failed to delete service.');
+        Swal.fire({
+          icon: 'error',
+          title: 'Delete Failed',
+          text: data.error || 'Could not delete service.',
+          confirmButtonColor: '#ec2c6c',
+        });
       }
     } catch {
       setErrorMessage('Network error while deleting service.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Network Error',
+        text: 'Unable to connect to server. Please try again.',
+        confirmButtonColor: '#ec2c6c',
+      });
     }
   };
 

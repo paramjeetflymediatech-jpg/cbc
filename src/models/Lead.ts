@@ -9,6 +9,7 @@ export interface ILeadNote {
 
 export interface LeadAttributes {
   id: number;
+  userId?: number | null;
   patientName: string;
   phone: string;
   email: string;
@@ -23,10 +24,11 @@ export interface LeadAttributes {
   updatedAt?: Date;
 }
 
-export type LeadCreationAttributes = Optional<LeadAttributes, 'id' | 'status' | 'notes'>;
+export type LeadCreationAttributes = Optional<LeadAttributes, 'id' | 'status' | 'notes' | 'userId'>;
 
 export class Lead extends Model<LeadAttributes, LeadCreationAttributes> implements LeadAttributes {
   declare id: number;
+  declare userId: number | null;
   declare patientName: string;
   declare phone: string;
   declare email: string;
@@ -47,6 +49,15 @@ Lead.init(
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
+    },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'users',
+        key: 'id',
+      },
+      onDelete: 'SET NULL',
     },
     patientName: {
       type: DataTypes.STRING(150),
