@@ -13,7 +13,9 @@
     "db:reset": "npx tsx src/scripts/clean-db.ts --seed",
     "create:admin": "npx tsx src/scripts/create-superadmin.ts",
     "extract:seo": "npx tsx src/scripts/extract-seo-from-sql.ts",
-    "import:seo": "npx tsx src/scripts/import-seo-data.ts"
+    "import:seo": "npx tsx src/scripts/import-seo-data.ts",
+    "extract:blogs": "npx tsx src/scripts/extract-blogs-from-sql.ts",
+    "import:blogs": "npx tsx src/scripts/import-blogs-data.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

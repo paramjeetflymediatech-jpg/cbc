@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Globe, Code, Plus, Edit, Trash2, Save, Search, Settings, Upload, Loader2 } from 'lucide-react';
+import { Globe, Code, Plus, Edit, Trash2, Save, Search, Settings, Upload, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SeoItem {
   id: number;
@@ -232,11 +232,25 @@ export default function AdminSeoPage() {
     }
   };
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, pageSize]);
+
   const filteredSeoList = seoList.filter(
     (seo) =>
       seo.pageName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       seo.path.toLowerCase().includes(searchQuery.toLowerCase()) ||
       seo.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filteredSeoList.length / pageSize));
+  const paginatedSeoList = filteredSeoList.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
   );
 
   return (
@@ -428,8 +442,8 @@ export default function AdminSeoPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
-                  {filteredSeoList.length > 0 ? (
-                    filteredSeoList.map((seo) => (
+                  {paginatedSeoList.length > 0 ? (
+                    paginatedSeoList.map((seo) => (
                       <tr key={seo.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-6 py-4.5 font-extrabold text-gray-900 max-w-[150px] truncate">
                           {seo.pageName || 'Unnamed Page'}
@@ -482,6 +496,88 @@ export default function AdminSeoPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {filteredSeoList.length > 0 && (
+              <div className="px-6 py-4 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
+                <div className="flex items-center space-x-2">
+                  <span>Showing</span>
+                  <span className="font-bold text-gray-900">
+                    {(currentPage - 1) * pageSize + 1}
+                  </span>
+                  <span>to</span>
+                  <span className="font-bold text-gray-900">
+                    {Math.min(currentPage * pageSize, filteredSeoList.length)}
+                  </span>
+                  <span>of</span>
+                  <span className="font-bold text-gray-900">{filteredSeoList.length}</span>
+                  <span>entries</span>
+
+                  <span className="text-gray-300 mx-2">|</span>
+
+                  <label className="text-gray-500 font-medium">Per page:</label>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 cursor-pointer focus:outline-none focus:border-[#ec2c6c]"
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center space-x-1.5">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+                    title="Previous page"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-gray-600" />
+                  </button>
+
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum = i + 1;
+                      if (totalPages > 5) {
+                        if (currentPage > 3 && currentPage < totalPages - 2) {
+                          pageNum = currentPage - 2 + i;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        }
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            currentPage === pageNum
+                              ? 'bg-[#ec2c6c] text-white shadow-xs'
+                              : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+                    title="Next page"
+                  >
+                    <ChevronRight className="w-4 h-4 text-gray-600" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
