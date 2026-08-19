@@ -312,84 +312,119 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
           )}
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200">
-            <div className="text-xs font-semibold text-gray-500">
-              Showing Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong> ({total} total articles)
-            </div>
+        {/* Pagination Section */}
+        {totalPages > 1 && (() => {
+          const startItem = (currentPage - 1) * limit + 1;
+          const endItem = Math.min(currentPage * limit, total);
 
-            <div className="flex items-center space-x-2">
-              {/* Prev Button */}
-              {currentPage > 1 ? (
-                <Link
-                  href={`/blog?${(() => {
-                    const q = new URLSearchParams();
-                    if (category) q.set('category', category);
-                    if (search) q.set('search', search);
-                    q.set('page', (currentPage - 1).toString());
-                    return q.toString();
-                  })()}`}
-                  className="px-3.5 py-2 bg-white border border-gray-200 text-xs font-extrabold text-gray-700 rounded-xl hover:bg-gray-50 transition-all flex items-center space-x-1 shadow-xs"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>Previous</span>
-                </Link>
-              ) : (
-                <span className="px-3.5 py-2 bg-gray-100 border border-gray-200 text-xs font-extrabold text-gray-400 rounded-xl cursor-not-allowed flex items-center space-x-1 opacity-60">
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>Previous</span>
+          const getPaginationRange = (curr: number, count: number): (number | string)[] => {
+            if (count <= 7) {
+              return Array.from({ length: count }, (_, i) => i + 1);
+            }
+            if (curr <= 4) {
+              return [1, 2, 3, 4, 5, '...', count];
+            }
+            if (curr >= count - 3) {
+              return [1, '...', count - 4, count - 3, count - 2, count - 1, count];
+            }
+            return [1, '...', curr - 1, curr, curr + 1, '...', count];
+          };
+
+          const buildPageUrl = (targetPage: number) => {
+            const q = new URLSearchParams();
+            if (category && category !== 'All') q.set('category', category);
+            if (search) q.set('search', search);
+            if (targetPage > 1) q.set('page', targetPage.toString());
+            const queryString = q.toString();
+            return `/blog${queryString ? `?${queryString}` : ''}`;
+          };
+
+          const paginationItems = getPaginationRange(currentPage, totalPages);
+
+          return (
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-5">
+              {/* Counter Display */}
+              <div className="text-xs sm:text-sm font-semibold text-gray-500 text-center md:text-left">
+                Showing <span className="font-extrabold text-gray-900">{startItem}–{endItem}</span> of{' '}
+                <span className="font-extrabold text-gray-900">{total}</span> articles
+                <span className="hidden sm:inline text-gray-300 mx-2">|</span>
+                <span className="hidden sm:inline text-gray-500">
+                  Page <span className="font-bold text-[#fd1d74]">{currentPage}</span> of {totalPages}
                 </span>
-              )}
-
-              {/* Page Numbers */}
-              <div className="flex items-center space-x-1.5">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
-                  const queryParams = new URLSearchParams();
-                  if (category) queryParams.set('category', category);
-                  if (search) queryParams.set('search', search);
-                  queryParams.set('page', pageNum.toString());
-
-                  return (
-                    <Link
-                      key={pageNum}
-                      href={`/blog?${queryParams.toString()}`}
-                      className={`w-9 h-9 rounded-xl text-xs font-extrabold flex items-center justify-center transition-all ${
-                        currentPage === pageNum
-                          ? 'bg-[#fd1d74] text-white shadow-md'
-                          : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-                      }`}
-                    >
-                      {pageNum}
-                    </Link>
-                  );
-                })}
               </div>
 
-              {/* Next Button */}
-              {currentPage < totalPages ? (
-                <Link
-                  href={`/blog?${(() => {
-                    const q = new URLSearchParams();
-                    if (category) q.set('category', category);
-                    if (search) q.set('search', search);
-                    q.set('page', (currentPage + 1).toString());
-                    return q.toString();
-                  })()}`}
-                  className="px-3.5 py-2 bg-white border border-gray-200 text-xs font-extrabold text-gray-700 rounded-xl hover:bg-gray-50 transition-all flex items-center space-x-1 shadow-xs"
-                >
-                  <span>Next</span>
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
-              ) : (
-                <span className="px-3.5 py-2 bg-gray-100 border border-gray-200 text-xs font-extrabold text-gray-400 rounded-xl cursor-not-allowed flex items-center space-x-1 opacity-60">
-                  <span>Next</span>
-                  <ChevronRight className="w-4 h-4" />
-                </span>
-              )}
+              {/* Navigation Controls */}
+              <div className="flex items-center space-x-1.5 sm:space-x-2">
+                {/* Previous Button */}
+                {currentPage > 1 ? (
+                  <Link
+                    href={buildPageUrl(currentPage - 1)}
+                    className="px-3 sm:px-4 py-2.5 bg-white border border-gray-200 text-xs font-extrabold text-gray-700 rounded-xl hover:bg-pink-50 hover:text-[#fd1d74] hover:border-pink-200 transition-all flex items-center space-x-1.5 shadow-2xs group"
+                    title="Previous Page"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-gray-500 group-hover:text-[#fd1d74] transition-colors" />
+                    <span className="hidden sm:inline">Prev</span>
+                  </Link>
+                ) : (
+                  <span className="px-3 sm:px-4 py-2.5 bg-gray-50 border border-gray-200 text-xs font-extrabold text-gray-300 rounded-xl cursor-not-allowed flex items-center space-x-1.5 opacity-60 select-none">
+                    <ChevronLeft className="w-4 h-4 text-gray-300" />
+                    <span className="hidden sm:inline">Prev</span>
+                  </span>
+                )}
+
+                {/* Page Number Items */}
+                <div className="flex items-center space-x-1 sm:space-x-1.5">
+                  {paginationItems.map((item, idx) => {
+                    if (item === '...') {
+                      return (
+                        <span
+                          key={`dots-${idx}`}
+                          className="w-8 sm:w-10 h-9 sm:h-10 flex items-center justify-center text-xs font-black text-gray-400 select-none"
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+
+                    const pageNum = item as number;
+                    const isActive = currentPage === pageNum;
+
+                    return (
+                      <Link
+                        key={pageNum}
+                        href={buildPageUrl(pageNum)}
+                        className={`w-9 sm:w-10 h-9 sm:h-10 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center transition-all ${
+                          isActive
+                            ? 'bg-gradient-to-r from-[#ec2c6c] to-[#fd1d74] text-white shadow-md scale-105'
+                            : 'bg-white text-gray-700 hover:bg-pink-50 hover:text-[#fd1d74] border border-gray-200 hover:border-pink-200 shadow-2xs'
+                        }`}
+                      >
+                        {pageNum}
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                {/* Next Button */}
+                {currentPage < totalPages ? (
+                  <Link
+                    href={buildPageUrl(currentPage + 1)}
+                    className="px-3 sm:px-4 py-2.5 bg-white border border-gray-200 text-xs font-extrabold text-gray-700 rounded-xl hover:bg-pink-50 hover:text-[#fd1d74] hover:border-pink-200 transition-all flex items-center space-x-1.5 shadow-2xs group"
+                    title="Next Page"
+                  >
+                    <span className="hidden sm:inline">Next</span>
+                    <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-[#fd1d74] transition-colors" />
+                  </Link>
+                ) : (
+                  <span className="px-3 sm:px-4 py-2.5 bg-gray-50 border border-gray-200 text-xs font-extrabold text-gray-300 rounded-xl cursor-not-allowed flex items-center space-x-1.5 opacity-60 select-none">
+                    <span className="hidden sm:inline">Next</span>
+                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Patient Consultation CTA Banner */}
         <div className="bg-gradient-to-r from-[#101828] to-[#1d2939] text-white rounded-3xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl relative overflow-hidden">
