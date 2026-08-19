@@ -15,6 +15,7 @@ import { BlogPost } from './BlogPost';
 import { Testimonial } from './Testimonial';
 import { Setting } from './Setting';
 import { SeoMetadata } from './SeoMetadata';
+import { ServiceLocation } from './ServiceLocation';
 
 let isInitialized = false;
 
@@ -43,6 +44,14 @@ export function initAssociations() {
     }
     if (!Service.associations.hospitalServices) {
       Service.hasMany(HospitalService, { foreignKey: 'serviceId', as: 'hospitalServices' });
+    }
+
+    // Service & ServiceLocation
+    if (!Service.associations.locationDescriptions) {
+      Service.hasMany(ServiceLocation, { foreignKey: 'serviceId', as: 'locationDescriptions' });
+    }
+    if (!ServiceLocation.associations.service) {
+      ServiceLocation.belongsTo(Service, { foreignKey: 'serviceId', as: 'service' });
     }
 
     // Many-to-Many Direct Association
@@ -137,6 +146,7 @@ export {
   Hospital,
   Service,
   HospitalService,
+  ServiceLocation,
   Lead,
   LeadPackage,
   HospitalPackage,

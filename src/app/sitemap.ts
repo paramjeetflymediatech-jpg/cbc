@@ -57,6 +57,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           changeFrequency: 'weekly',
           priority: 0.85,
         });
+
+        const topCitySlugs = [
+          'ludhiana',
+          'delhi',
+          'mumbai',
+          'bengaluru',
+          'hyderabad',
+          'chennai',
+          'kolkata',
+          'chandigarh',
+          'pune',
+          'jaipur',
+          'amritsar',
+          'jalandhar',
+          'mohali',
+          'patiala',
+          'ahmedabad',
+          'lucknow',
+        ];
+        for (const citySlug of topCitySlugs) {
+          routes.push({
+            url: `${baseUrl}/hospitals/${service.slug}/${citySlug}`,
+            lastModified: service.updatedAt ? new Date(service.updatedAt) : new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.8,
+          });
+        }
       }
     }
 
