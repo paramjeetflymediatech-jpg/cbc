@@ -14,9 +14,29 @@ import { mockHospitals } from '../data/mockData';
 import { colors } from '../theme/colors';
 import { HospitalCard } from '../components/HospitalCard';
 
-const stripHtml = (html?: string) => {
+/**
+ * Converts HTML from the rich-text editor to clean plain text.
+ * Block-level elements (p, h1-h6, li, br, div, blockquote) are converted to
+ * newlines so words don't smash together after tag removal.
+ */
+const stripHtml = (html?: string): string => {
   if (!html) return '';
-  return html.replace(/<[^>]*>/g, '').trim();
+  return html
+    // Replace common block / line-break tags with a newline
+    .replace(/<\/(p|h[1-6]|li|div|blockquote|tr)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    // Strip all remaining tags
+    .replace(/<[^>]*>/g, '')
+    // Decode common HTML entities
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    // Collapse multiple blank lines to at most two
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 };
 
 interface ServiceDetailScreenProps {

@@ -3,9 +3,25 @@ import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
 import { Service } from '../types';
 import { colors } from '../theme/colors';
 
-const stripHtml = (html?: string) => {
+/**
+ * Converts HTML from the rich-text editor to clean plain text.
+ * Block-level elements are converted to newlines so words don't
+ * smash together after tag removal.
+ */
+const stripHtml = (html?: string): string => {
   if (!html) return '';
-  return html.replace(/<[^>]*>/g, '').trim();
+  return html
+    .replace(/<\/(p|h[1-6]|li|div|blockquote|tr)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 };
 
 interface ServiceCardProps {

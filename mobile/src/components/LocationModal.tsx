@@ -12,7 +12,8 @@ import {
   PermissionsAndroid,
   Alert,
 } from 'react-native';
-import Geolocation from '@react-native-community/geolocation';
+// Geolocation is lazy-loaded inside the handler to prevent a module-level crash
+// when the native pod is not yet linked (i.e. after npm install but before pod install + rebuild).
 import api from '../services/api';
 import { colors } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
@@ -150,6 +151,21 @@ export const LocationModal: React.FC<LocationModalProps> = ({ visible, onClose }
 
   const handleDetectCurrentLocation = async () => {
     setDetectingGps(true);
+
+    // Lazy require — avoids crashing the whole component tree when the native
+    // module is missing (i.e. pod install has not been run yet).
+    let Geolocation: typeof import('@react-native-community/geolocation').default;
+    try {
+      Geolocation = require('@react-native-community/geolocation').default;
+    } catch {
+      setDetectingGps(false);
+      Alert.alert(
+        'Not Available',
+        'Location detection is not available. Please make sure the app is fully built with native modules linked.',
+      );
+      return;
+    }
+
     const hasPermission = await requestLocationPermission();
     if (!hasPermission) {
       setDetectingGps(false);
