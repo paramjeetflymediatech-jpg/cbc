@@ -29,7 +29,7 @@ interface PageProps {
   searchParams: Promise<{ state?: string; district?: string; city?: string; search?: string }>;
 }
 
-export function formatCityName(citySlug: string): string {
+function formatCityName(citySlug: string): string {
   if (!citySlug) return '';
   const decoded = decodeURIComponent(citySlug).toLowerCase().replace(/-/g, ' ');
   return decoded
