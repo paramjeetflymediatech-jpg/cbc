@@ -112,7 +112,7 @@ export default async function BlogDetailPage({ params }: PageProps) {
           <nav className="flex items-center space-x-2 text-xs font-semibold text-gray-400">
             <Link href="/" className="hover:text-white">Home</Link>
             <span>/</span>
-            <Link href="/blogs" className="hover:text-white">Blogs</Link>
+            <Link href="/blog" className="hover:text-white">Blogs</Link>
             <span>/</span>
             <span className="text-[#ec2c6c] truncate max-w-[200px] sm:max-w-md">{blog.title}</span>
           </nav>
@@ -163,7 +163,7 @@ export default async function BlogDetailPage({ params }: PageProps) {
             </div>
 
             <Link
-              href="/blogs"
+              href="/blog"
               className="inline-flex items-center space-x-1.5 text-xs font-bold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 px-3.5 py-2 rounded-xl border border-white/10 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -262,7 +262,7 @@ export default async function BlogDetailPage({ params }: PageProps) {
                       key={rel.id}
                       className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col group"
                     >
-                      <Link href={`/blogs/${rel.slug}`} className="relative h-40 w-full bg-gray-100 block overflow-hidden">
+                      <Link href={`/blog/${rel.slug}`} className="relative h-40 w-full bg-gray-100 block overflow-hidden">
                         <Image
                           src={
                             rel.image ||
@@ -279,7 +279,7 @@ export default async function BlogDetailPage({ params }: PageProps) {
                           <span className="text-[10px] font-bold uppercase tracking-wider text-[#ec2c6c] bg-pink-50 px-2.5 py-0.5 rounded-full">
                             {rel.category || 'Health'}
                           </span>
-                          <Link href={`/blogs/${rel.slug}`}>
+                          <Link href={`/blog/${rel.slug}`}>
                             <h5 className="font-bold text-gray-900 text-sm group-hover:text-[#ec2c6c] transition-colors leading-snug line-clamp-2">
                               {rel.title}
                             </h5>
@@ -287,7 +287,7 @@ export default async function BlogDetailPage({ params }: PageProps) {
                         </div>
 
                         <Link
-                          href={`/blogs/${rel.slug}`}
+                          href={`/blog/${rel.slug}`}
                           className="text-xs font-bold text-[#ec2c6c] flex items-center space-x-1 hover:translate-x-1 transition-transform pt-2"
                         >
                           <span>Read Article</span>

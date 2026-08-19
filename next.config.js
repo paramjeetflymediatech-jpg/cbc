@@ -32,6 +32,16 @@ const nextConfig = {
         destination: '/hospital/:slug',
         permanent: true,
       },
+      {
+        source: '/blogs',
+        destination: '/blog',
+        permanent: true,
+      },
+      {
+        source: '/blogs/:slug*',
+        destination: '/blog/:slug*',
+        permanent: true,
+      },
     ];
   },
 };

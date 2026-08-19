@@ -432,7 +432,7 @@ export default function AdminBlogsPage() {
                       </div>
                       <div className="min-w-0">
                         <h4 className="font-bold text-gray-900 text-sm line-clamp-1">{b.title}</h4>
-                        <p className="text-xs text-gray-500 font-mono mt-0.5 truncate">/blogs/{b.slug}</p>
+                        <p className="text-xs text-gray-500 font-mono mt-0.5 truncate">/blog/{b.slug}</p>
                         <span className="text-[11px] text-gray-400 mt-1 block">
                           {b.publishedAt
                             ? `Published ${new Date(b.publishedAt).toLocaleDateString()}`
@@ -467,7 +467,7 @@ export default function AdminBlogsPage() {
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end space-x-2">
                       <Link
-                        href={`/blogs/${b.slug}`}
+                        href={`/blog/${b.slug}`}
                         target="_blank"
                         className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                         title="Preview Public Page"
@@ -767,7 +767,7 @@ export default function AdminBlogsPage() {
                       type="url"
                       value={canonicalUrl}
                       onChange={(e) => setCanonicalUrl(e.target.value)}
-                      placeholder="e.g. https://clinicbychoice.com/blogs/..."
+                      placeholder="e.g. https://clinicbychoice.com/blog/..."
                       className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs"
                     />
                   </div>

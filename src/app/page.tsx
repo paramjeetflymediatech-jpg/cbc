@@ -409,7 +409,7 @@ export default async function HomePage() {
               </div>
 
               <Link
-                href="/blogs"
+                href="/blog"
                 className="inline-flex items-center space-x-2 text-sm font-extrabold text-[#fd1d74] hover:text-[#d41f5a] transition-all hover:translate-x-1"
               >
                 <span>View All Articles</span>
@@ -423,7 +423,7 @@ export default async function HomePage() {
                   key={b.id}
                   className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group"
                 >
-                  <Link href={`/blogs/${b.slug}`} className="relative h-48 w-full bg-gray-100 block overflow-hidden">
+                  <Link href={`/blog/${b.slug}`} className="relative h-48 w-full bg-gray-100 block overflow-hidden">
                     <Image
                       src={
                         b.image ||
@@ -462,7 +462,7 @@ export default async function HomePage() {
                         </span>
                       </div>
 
-                      <Link href={`/blogs/${b.slug}`}>
+                      <Link href={`/blog/${b.slug}`}>
                         <h3 className="text-lg font-bold text-gray-900 group-hover:text-[#fd1d74] transition-colors leading-snug line-clamp-2">
                           {b.title}
                         </h3>
@@ -479,7 +479,7 @@ export default async function HomePage() {
                       </span>
 
                       <Link
-                        href={`/blogs/${b.slug}`}
+                        href={`/blog/${b.slug}`}
                         className="font-extrabold text-[#fd1d74] flex items-center space-x-1 hover:translate-x-1 transition-transform"
                       >
                         <span>Read More</span>

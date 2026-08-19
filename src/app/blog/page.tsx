@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata() {
   const { getPageMetadata } = await import('@/lib/seo');
   return getPageMetadata(
-    '/blogs',
+    '/blog',
     'Health & Medical Blogs | Clinic By Choice',
     'Read latest medical articles, health tips, surgical procedure guides, and healthcare insights from expert doctors and surgeons at Clinic By Choice.'
   );
@@ -31,7 +31,7 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
 
   await connectDB();
   const { getPageSchemaMarkup } = await import('@/lib/seo');
-  const schemaMarkup = await getPageSchemaMarkup('/blogs');
+  const schemaMarkup = await getPageSchemaMarkup('/blog');
 
   const where: Record<string | symbol, unknown> = {
     status: 'PUBLISHED',
@@ -103,7 +103,7 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
           </p>
 
           {/* Search Form */}
-          <form action="/blogs" method="GET" className="max-w-2xl flex flex-col sm:flex-row gap-2 pt-2">
+          <form action="/blog" method="GET" className="max-w-2xl flex flex-col sm:flex-row gap-2 pt-2">
             {category && category !== 'All' && <input type="hidden" name="category" value={category} />}
             <div className="relative flex-1">
               <Search className="w-5 h-5 text-gray-400 absolute left-4 top-3.5" />
@@ -134,7 +134,7 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
             if (cat !== 'All') queryParams.set('category', cat);
             if (search) queryParams.set('search', search);
 
-            const linkUrl = `/blogs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+            const linkUrl = `/blog${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
             return (
               <Link
@@ -183,7 +183,7 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
                   </span>
                 </div>
 
-                <Link href={`/blogs/${featuredBlog.slug}`}>
+                <Link href={`/blog/${featuredBlog.slug}`}>
                   <h2 className="text-2xl lg:text-3xl font-extrabold text-gray-900 group-hover:text-[#fd1d74] transition-colors leading-snug">
                     {featuredBlog.title}
                   </h2>
@@ -203,7 +203,7 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
                 </div>
 
                 <Link
-                  href={`/blogs/${featuredBlog.slug}`}
+                  href={`/blog/${featuredBlog.slug}`}
                   className="inline-flex items-center space-x-2 text-sm font-extrabold text-[#fd1d74] hover:translate-x-1 transition-transform"
                 >
                   <span>Read Article</span>
@@ -221,7 +221,7 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
               {search ? `Search Results for "${search}"` : category && category !== 'All' ? `${category} Articles` : 'All Medical Articles'} ({total})
             </h3>
             {(search || (category && category !== 'All')) && (
-              <Link href="/blogs" className="text-xs font-bold text-[#fd1d74] hover:underline">
+              <Link href="/blog" className="text-xs font-bold text-[#fd1d74] hover:underline">
                 Clear Filters
               </Link>
             )}
@@ -234,7 +234,7 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
                   key={blog.id}
                   className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group"
                 >
-                  <Link href={`/blogs/${blog.slug}`} className="relative h-48 w-full bg-gray-100 block overflow-hidden">
+                  <Link href={`/blog/${blog.slug}`} className="relative h-48 w-full bg-gray-100 block overflow-hidden">
                     <Image
                       src={
                         blog.image ||
@@ -273,7 +273,7 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
                         </span>
                       </div>
 
-                      <Link href={`/blogs/${blog.slug}`}>
+                      <Link href={`/blog/${blog.slug}`}>
                         <h4 className="text-lg font-bold text-gray-900 group-hover:text-[#fd1d74] transition-colors leading-snug line-clamp-2">
                           {blog.title}
                         </h4>
@@ -290,7 +290,7 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
                       </span>
 
                       <Link
-                        href={`/blogs/${blog.slug}`}
+                        href={`/blog/${blog.slug}`}
                         className="font-extrabold text-[#fd1d74] hover:translate-x-1 transition-transform flex items-center space-x-1"
                       >
                         <span>Read More</span>
@@ -323,7 +323,7 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
               {/* Prev Button */}
               {currentPage > 1 ? (
                 <Link
-                  href={`/blogs?${(() => {
+                  href={`/blog?${(() => {
                     const q = new URLSearchParams();
                     if (category) q.set('category', category);
                     if (search) q.set('search', search);
@@ -353,7 +353,7 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
                   return (
                     <Link
                       key={pageNum}
-                      href={`/blogs?${queryParams.toString()}`}
+                      href={`/blog?${queryParams.toString()}`}
                       className={`w-9 h-9 rounded-xl text-xs font-extrabold flex items-center justify-center transition-all ${
                         currentPage === pageNum
                           ? 'bg-[#fd1d74] text-white shadow-md'
@@ -369,7 +369,7 @@ export default async function BlogsIndexPage({ searchParams }: PageProps) {
               {/* Next Button */}
               {currentPage < totalPages ? (
                 <Link
-                  href={`/blogs?${(() => {
+                  href={`/blog?${(() => {
                     const q = new URLSearchParams();
                     if (category) q.set('category', category);
                     if (search) q.set('search', search);
