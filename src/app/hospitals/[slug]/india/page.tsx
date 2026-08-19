@@ -8,7 +8,7 @@ import FilterBar from '@/components/ui/FilterBar';
 import { connectDB } from '@/lib/db';
 import { Service, Hospital, HospitalService } from '@/models';
 import { Op } from 'sequelize';
-import { Stethoscope, ChevronRight, Layers } from 'lucide-react';
+import { Stethoscope, ChevronRight, Layers, HelpCircle } from 'lucide-react';
 
 import { getLocationsData } from '@/lib/locations';
 
@@ -298,11 +298,51 @@ export default async function ServiceDetailPage({ params, searchParams }: PagePr
               </div>
             );
           })()}
+          {/* Service FAQs Section */}
+          {service.faqs && Array.isArray(service.faqs) && service.faqs.length > 0 && (
+            <div className="bg-white rounded-3xl p-6 sm:p-10 lg:p-12 shadow-sm border border-gray-100 mt-12 w-full space-y-6">
+              <div className="border-b border-gray-100 pb-4">
+                <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-[#ec2c6c] mb-1">
+                  <HelpCircle className="w-4 h-4" />
+                  <span>Frequently Asked Questions</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#101828]">
+                  FAQs about {service.name} Care & Treatments
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Common questions and answers regarding procedures, doctor consultation, and recovery.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {service.faqs.map((faq: any, idx: number) => (
+                  <details
+                    key={idx}
+                    className="group bg-gray-50/70 hover:bg-pink-50/40 rounded-2xl border border-gray-200/80 p-5 transition-all open:bg-white open:shadow-sm open:border-pink-200"
+                  >
+                    <summary className="font-extrabold text-sm sm:text-base text-gray-900 cursor-pointer list-none flex items-center justify-between gap-4 select-none">
+                      <span className="flex items-center space-x-2.5">
+                        <span className="text-[#ec2c6c] font-black text-xs sm:text-sm">Q{idx + 1}.</span>
+                        <span>{faq.question}</span>
+                      </span>
+                      <span className="text-gray-400 group-open:rotate-180 group-open:text-[#ec2c6c] transition-transform flex-shrink-0 text-sm">
+                        ▼
+                      </span>
+                    </summary>
+                    <div className="mt-3.5 pt-3.5 border-t border-gray-100 text-sm text-gray-700 leading-relaxed pl-6 sm:pl-7">
+                      {faq.answer}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
       <Footer />
 
+      {/* SEO Schema Markup */}
       {schemaMarkup && (
         schemaMarkup.includes('<script') ? (
           <span dangerouslySetInnerHTML={{ __html: schemaMarkup }} />
@@ -312,6 +352,27 @@ export default async function ServiceDetailPage({ params, searchParams }: PagePr
             dangerouslySetInnerHTML={{ __html: schemaMarkup }}
           />
         )
+      )}
+
+      {/* FAQPage Structured Data Schema */}
+      {service.faqs && Array.isArray(service.faqs) && service.faqs.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: service.faqs.map((f: any) => ({
+                '@type': 'Question',
+                name: f.question,
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: f.answer,
+                },
+              })),
+            }),
+          }}
+        />
       )}
     </div>
   );

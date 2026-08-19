@@ -13,6 +13,7 @@ export interface ServiceAttributes {
   image?: string | null;
   seoTitle?: string | null;
   seoDescription?: string | null;
+  faqs?: Array<{ question: string; answer: string }> | null;
   status: 'ACTIVE' | 'INACTIVE';
   createdAt?: Date;
   updatedAt?: Date;
@@ -34,6 +35,7 @@ export class Service extends Model<ServiceAttributes, ServiceCreationAttributes>
   declare image: string | null;
   declare seoTitle: string | null;
   declare seoDescription: string | null;
+  declare faqs: Array<{ question: string; answer: string }> | null;
   declare status: 'ACTIVE' | 'INACTIVE';
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
@@ -92,6 +94,10 @@ Service.init(
     },
     seoDescription: {
       type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    faqs: {
+      type: DataTypes.JSON,
       allowNull: true,
     },
     status: {

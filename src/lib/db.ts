@@ -101,6 +101,9 @@ export async function connectDB(): Promise<Sequelize | null> {
         if (!servicesTable.parentId) {
           await instance.query('ALTER TABLE services ADD COLUMN parentId INT NULL REFERENCES services(id) ON DELETE SET NULL;');
         }
+        if (!servicesTable.faqs) {
+          await instance.query('ALTER TABLE services ADD COLUMN faqs JSON NULL;');
+        }
 
         const hsTable: any = await queryInterface.describeTable('hospital_services');
         if (!hsTable.subServices) {

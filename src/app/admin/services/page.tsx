@@ -1,7 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Stethoscope, Plus, Save, Loader2, CheckCircle2, Search, ChevronLeft, ChevronRight, Edit2, X } from 'lucide-react';
+import {
+  Stethoscope,
+  Plus,
+  Save,
+  Loader2,
+  CheckCircle2,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Edit2,
+  Trash2,
+  HelpCircle,
+  AlertCircle,
+  X,
+} from 'lucide-react';
 import RichTextEditor from '@/components/ui/RichTextEditor';
 
 export default function AdminServicesPage() {
@@ -22,10 +36,14 @@ export default function AdminServicesPage() {
   const [description, setDescription] = useState('');
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
+  const [faqs, setFaqs] = useState<{ question: string; answer: string }[]>([]);
+  const [newFaqQ, setNewFaqQ] = useState('');
+  const [newFaqA, setNewFaqA] = useState('');
 
   // Edit Modal state
   const [editingService, setEditingService] = useState<any | null>(null);
   const [editName, setEditName] = useState('');
+  const [editSlug, setEditSlug] = useState('');
   const [editCategory, setEditCategory] = useState('');
   const [editParentId, setEditParentId] = useState<number | string>('');
   const [editShortDescription, setEditShortDescription] = useState('');
@@ -33,9 +51,13 @@ export default function AdminServicesPage() {
   const [editSeoTitle, setEditSeoTitle] = useState('');
   const [editSeoDescription, setEditSeoDescription] = useState('');
   const [editStatus, setEditStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
+  const [editFaqs, setEditFaqs] = useState<{ question: string; answer: string }[]>([]);
+  const [newEditFaqQ, setNewEditFaqQ] = useState('');
+  const [newEditFaqA, setNewEditFaqA] = useState('');
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const fetchServices = () => {
     fetch('/api/admin/services')
@@ -50,9 +72,32 @@ export default function AdminServicesPage() {
     fetchServices();
   }, []);
 
+  const handleAddFaq = () => {
+    if (!newFaqQ.trim() || !newFaqA.trim()) return;
+    setFaqs([...faqs, { question: newFaqQ.trim(), answer: newFaqA.trim() }]);
+    setNewFaqQ('');
+    setNewFaqA('');
+  };
+
+  const handleRemoveFaq = (index: number) => {
+    setFaqs(faqs.filter((_, idx) => idx !== index));
+  };
+
+  const handleAddEditFaq = () => {
+    if (!newEditFaqQ.trim() || !newEditFaqA.trim()) return;
+    setEditFaqs([...editFaqs, { question: newEditFaqQ.trim(), answer: newEditFaqA.trim() }]);
+    setNewEditFaqQ('');
+    setNewEditFaqA('');
+  };
+
+  const handleRemoveEditFaq = (index: number) => {
+    setEditFaqs(editFaqs.filter((_, idx) => idx !== index));
+  };
+
   const handleCreateService = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
+    setErrorMessage('');
     setSaving(true);
 
     try {
@@ -68,8 +113,11 @@ export default function AdminServicesPage() {
           description,
           seoTitle,
           seoDescription,
+          faqs,
         }),
       });
+
+      const data = await res.json();
 
       if (res.ok) {
         setMessage('New medical service created successfully.');
@@ -81,10 +129,13 @@ export default function AdminServicesPage() {
         setDescription('');
         setSeoTitle('');
         setSeoDescription('');
+        setFaqs([]);
         fetchServices();
+      } else {
+        setErrorMessage(data.error || 'Failed to create service.');
       }
     } catch {
-      // ignore
+      setErrorMessage('Network error while creating service.');
     } finally {
       setSaving(false);
     }
@@ -93,6 +144,7 @@ export default function AdminServicesPage() {
   const handleOpenEdit = (svc: any) => {
     setEditingService(svc);
     setEditName(svc.name || '');
+    setEditSlug(svc.slug || '');
     setEditCategory(svc.category || '');
     setEditParentId(svc.parentId || '');
     setEditShortDescription(svc.shortDescription || '');
@@ -100,6 +152,9 @@ export default function AdminServicesPage() {
     setEditSeoTitle(svc.seoTitle || '');
     setEditSeoDescription(svc.seoDescription || '');
     setEditStatus(svc.status || 'ACTIVE');
+    setEditFaqs(Array.isArray(svc.faqs) ? svc.faqs : []);
+    setNewEditFaqQ('');
+    setNewEditFaqA('');
   };
 
   const handleUpdateService = async (e: React.FormEvent) => {
@@ -107,6 +162,7 @@ export default function AdminServicesPage() {
     if (!editingService) return;
 
     setMessage('');
+    setErrorMessage('');
     setSaving(true);
 
     try {
@@ -116,25 +172,56 @@ export default function AdminServicesPage() {
         body: JSON.stringify({
           id: editingService.id,
           name: editName,
+          slug: editSlug,
           category: editCategory,
           parentId: editParentId ? Number(editParentId) : null,
           shortDescription: editShortDescription,
           description: editDescription,
           seoTitle: editSeoTitle,
           seoDescription: editSeoDescription,
+          faqs: editFaqs,
           status: editStatus,
         }),
       });
+
+      const data = await res.json();
 
       if (res.ok) {
         setMessage(`Service "${editName}" updated successfully.`);
         setEditingService(null);
         fetchServices();
+      } else {
+        setErrorMessage(data.error || 'Failed to update service.');
       }
     } catch {
-      // ignore
+      setErrorMessage('Network error while updating service.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteService = async (id: number, serviceName: string) => {
+    if (!window.confirm(`Are you sure you want to delete the service "${serviceName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setMessage('');
+    setErrorMessage('');
+
+    try {
+      const res = await fetch(`/api/admin/services?id=${id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        setMessage(data.message || `Service "${serviceName}" deleted successfully.`);
+        fetchServices();
+      } else {
+        setErrorMessage(data.error || 'Failed to delete service.');
+      }
+    } catch {
+      setErrorMessage('Network error while deleting service.');
     }
   };
 
@@ -173,8 +260,15 @@ export default function AdminServicesPage() {
 
       {message && (
         <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl flex items-center space-x-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           <span>{message}</span>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-800 text-sm rounded-xl flex items-center space-x-2">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+          <span>{errorMessage}</span>
         </div>
       )}
 
@@ -278,6 +372,67 @@ export default function AdminServicesPage() {
             </div>
           </div>
 
+          {/* FAQ Builder Section in Create Form */}
+          <div className="pt-2 border-t border-gray-100 space-y-3">
+            <div className="flex items-center space-x-2 text-xs font-bold uppercase text-gray-700 tracking-wider">
+              <HelpCircle className="w-4 h-4 text-[#ec2c6c]" />
+              <span>Service FAQs (Frequently Asked Questions) ({faqs.length})</span>
+            </div>
+
+            <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-3">
+              <div className="grid grid-cols-1 gap-2.5">
+                <input
+                  type="text"
+                  value={newFaqQ}
+                  onChange={(e) => setNewFaqQ(e.target.value)}
+                  placeholder="FAQ Question (e.g. What is the recovery time for knee replacement?)"
+                  className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold"
+                />
+                <textarea
+                  rows={2}
+                  value={newFaqA}
+                  onChange={(e) => setNewFaqA(e.target.value)}
+                  placeholder="FAQ Answer details..."
+                  className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-normal"
+                />
+              </div>
+
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={handleAddFaq}
+                  disabled={!newFaqQ.trim() || !newFaqA.trim()}
+                  className="px-4 py-1.5 bg-[#ec2c6c] hover:bg-[#fd1d74] text-white text-xs font-bold rounded-xl transition-all disabled:opacity-40 cursor-pointer shadow-xs"
+                >
+                  + Add FAQ
+                </button>
+              </div>
+            </div>
+
+            {faqs.length > 0 && (
+              <div className="space-y-2">
+                {faqs.map((faq, idx) => (
+                  <div key={idx} className="p-3.5 bg-white border border-gray-200 rounded-xl space-y-1 shadow-xs">
+                    <div className="flex items-start justify-between">
+                      <h5 className="font-extrabold text-gray-900 text-xs flex-1">
+                        Q{idx + 1}: {faq.question}
+                      </h5>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFaq(idx)}
+                        className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        title="Remove FAQ"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed">{faq.answer}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="pt-2">
             <button
               type="submit"
@@ -324,6 +479,7 @@ export default function AdminServicesPage() {
                 <th className="p-4">Slug</th>
                 <th className="p-4">Parent Specialty</th>
                 <th className="p-4">Category</th>
+                <th className="p-4">FAQs</th>
                 <th className="p-4">Status</th>
                 <th className="p-4 text-right">Actions</th>
               </tr>
@@ -343,20 +499,42 @@ export default function AdminServicesPage() {
                     )}
                   </td>
                   <td className="p-4 text-xs font-semibold text-gray-600">{s.category || 'General'}</td>
+                  <td className="p-4 text-xs">
+                    {s.faqs && Array.isArray(s.faqs) && s.faqs.length > 0 ? (
+                      <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold border border-indigo-100">
+                        {s.faqs.length} FAQs
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">0</span>
+                    )}
+                  </td>
                   <td className="p-4">
                     <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
                       {s.status}
                     </span>
                   </td>
                   <td className="p-4 text-right">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEdit(s)}
-                      className="px-3 py-1 bg-gray-100 hover:bg-[#ec2c6c] hover:text-white text-gray-700 text-xs font-extrabold rounded-lg transition-colors inline-flex items-center space-x-1"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                      <span>Edit</span>
-                    </button>
+                    <div className="flex items-center justify-end space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(s)}
+                        className="px-2.5 py-1 bg-gray-100 hover:bg-[#ec2c6c] hover:text-white text-gray-700 text-xs font-extrabold rounded-lg transition-colors inline-flex items-center space-x-1 cursor-pointer"
+                        title="Edit service details"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteService(s.id, s.name)}
+                        className="px-2.5 py-1 bg-red-50 hover:bg-red-600 hover:text-white text-red-600 text-xs font-extrabold rounded-lg transition-colors inline-flex items-center space-x-1 cursor-pointer border border-red-100 hover:border-red-600"
+                        title="Delete service"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -382,7 +560,7 @@ export default function AdminServicesPage() {
                 type="button"
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-bold text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-40 flex items-center space-x-1"
+                className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-bold text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-40 flex items-center space-x-1 cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span>Prev</span>
@@ -394,7 +572,7 @@ export default function AdminServicesPage() {
                     key={pageNum}
                     type="button"
                     onClick={() => handlePageChange(pageNum)}
-                    className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
+                    className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       currentPage === pageNum
                         ? 'bg-[#ec2c6c] text-white shadow-xs'
                         : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
@@ -409,7 +587,7 @@ export default function AdminServicesPage() {
                 type="button"
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-bold text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-40 flex items-center space-x-1"
+                className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-bold text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-40 flex items-center space-x-1 cursor-pointer"
               >
                 <span>Next</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -430,14 +608,14 @@ export default function AdminServicesPage() {
               <button
                 type="button"
                 onClick={() => setEditingService(null)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg"
+                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleUpdateService} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Service Name *</label>
                   <input
@@ -445,7 +623,19 @@ export default function AdminServicesPage() {
                     required
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Slug (URL identifier)</label>
+                  <input
+                    type="text"
+                    required
+                    value={editSlug}
+                    onChange={(e) => setEditSlug(e.target.value)}
+                    placeholder="e.g. orthopedics"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono text-[#ec2c6c]"
                   />
                 </div>
 
@@ -455,6 +645,7 @@ export default function AdminServicesPage() {
                     type="text"
                     value={editCategory}
                     onChange={(e) => setEditCategory(e.target.value)}
+                    placeholder="e.g. Oncology & Cancer Care"
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm"
                   />
                 </div>
@@ -533,11 +724,72 @@ export default function AdminServicesPage() {
                 </div>
               </div>
 
+              {/* FAQ Builder Section in Edit Modal */}
+              <div className="pt-2 border-t border-gray-100 space-y-3">
+                <div className="flex items-center space-x-2 text-xs font-bold uppercase text-gray-700 tracking-wider">
+                  <HelpCircle className="w-4 h-4 text-[#ec2c6c]" />
+                  <span>Service FAQs ({editFaqs.length})</span>
+                </div>
+
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-3">
+                  <div className="grid grid-cols-1 gap-2.5">
+                    <input
+                      type="text"
+                      value={newEditFaqQ}
+                      onChange={(e) => setNewEditFaqQ(e.target.value)}
+                      placeholder="FAQ Question (e.g. What is the recovery time for knee replacement?)"
+                      className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold"
+                    />
+                    <textarea
+                      rows={2}
+                      value={newEditFaqA}
+                      onChange={(e) => setNewEditFaqA(e.target.value)}
+                      placeholder="FAQ Answer details..."
+                      className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-normal"
+                    />
+                  </div>
+
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      onClick={handleAddEditFaq}
+                      disabled={!newEditFaqQ.trim() || !newEditFaqA.trim()}
+                      className="px-4 py-1.5 bg-[#ec2c6c] hover:bg-[#fd1d74] text-white text-xs font-bold rounded-xl transition-all disabled:opacity-40 cursor-pointer shadow-xs"
+                    >
+                      + Add FAQ
+                    </button>
+                  </div>
+                </div>
+
+                {editFaqs.length > 0 && (
+                  <div className="space-y-2">
+                    {editFaqs.map((faq, idx) => (
+                      <div key={idx} className="p-3.5 bg-slate-50 border border-gray-200 rounded-xl space-y-1 shadow-xs">
+                        <div className="flex items-start justify-between">
+                          <h5 className="font-extrabold text-gray-900 text-xs flex-1">
+                            Q{idx + 1}: {faq.question}
+                          </h5>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEditFaq(idx)}
+                            className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            title="Remove FAQ"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-600 leading-relaxed">{faq.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setEditingService(null)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-200"
+                  className="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-200 cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -545,7 +797,7 @@ export default function AdminServicesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="cbc-btn-primary text-xs shadow-md flex items-center space-x-1.5 py-2 px-5"
+                  className="cbc-btn-primary text-xs shadow-md flex items-center space-x-1.5 py-2 px-5 cursor-pointer"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   <span>Save Changes</span>
