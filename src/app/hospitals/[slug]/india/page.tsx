@@ -45,36 +45,21 @@ export async function generateMetadata({ params }: PageProps) {
   }
 }
 
-function parseAlternatingSections(html: string) {
-  if (!html) return null;
-
-  const imgRegex = /<img\b([^>]*)>/gi;
-  const sections: { text: string; imgAttrsStr: string | null }[] = [];
-  
-  let lastIndex = 0;
-  let match;
-  
-  while ((match = imgRegex.exec(html)) !== null) {
-    const textBlock = html.substring(lastIndex, match.index).trim();
-    const imgAttrsStr = match[1];
-    
-    sections.push({
-      text: textBlock,
-      imgAttrsStr: imgAttrsStr,
-    });
-    
-    lastIndex = imgRegex.lastIndex;
-  }
-  
-  const remainingText = html.substring(lastIndex).trim();
-  if (remainingText || sections.length === 0) {
-    sections.push({
-      text: remainingText,
-      imgAttrsStr: null,
-    });
-  }
-  
-  return sections;
+/**
+ * Sanitizes rich text / HTML content before rendering.
+ * Strips hardcoded inline heights and container constraints that get copied
+ * from external page builders (like Elementor or WordPress).
+ */
+function cleanEditorHtml(html?: string): string {
+  if (!html) return '';
+  return html
+    // Remove fixed inline heights (e.g., height: 51px; height: 110.391px;)
+    .replace(/height\s*:\s*[\d.]+(?:px|rem|em|vh|pt);?/gi, '')
+    // Remove hardcoded line-heights that conflict with responsive font sizes
+    .replace(/line-height\s*:\s*[\d.]+(?:px|pt);?/gi, '')
+    // Remove fixed container width overrides (e.g. width: 88%;)
+    .replace(/width\s*:\s*\d+%;?/gi, '')
+    .trim();
 }
 
 export default async function ServiceDetailPage({ params, searchParams }: PageProps) {
@@ -290,88 +275,26 @@ export default async function ServiceDetailPage({ params, searchParams }: PagePr
 
           {/* Service Full Description Content Section */}
           {(() => {
-            const sections = parseAlternatingSections(service.description || '');
-            if (!sections) return null;
+            if (!service.description) return null;
+            const cleanedHtml = cleanEditorHtml(service.description);
+            const hasText = cleanedHtml.replace(/<[^>]*>/g, '').trim().length > 0;
+            if (!hasText) return null;
 
             return (
-              <div className="space-y-12 mt-12 w-full">
-                {sections.map((section, idx) => {
-                  const isEven = idx % 2 === 0;
-
-                  // If there is no image in this section, render it full width
-                  if (!section.imgAttrsStr) {
-                    // Check if the text is actually empty to prevent rendering empty boxes
-                    const hasText = section.text.replace(/<[^>]*>/g, '').trim().length > 0;
-                    if (!hasText) return null;
-
-                    return (
-                      <div key={idx} className="bg-white rounded-3xl p-6 sm:p-10 shadow-md border border-gray-100 w-full">
-                        <article
-                          className="prose prose-lg max-w-none text-gray-800 space-y-6 leading-relaxed font-normal
-                            [&_h2]:text-2xl [&_h2]:font-extrabold [&_h2]:text-gray-900 [&_h2]:mt-6 [&_h2]:mb-4 [&_h2]:border-b [&_h2]:border-pink-100 [&_h2]:pb-2 [&_h2]:text-[#101828]
-                            [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-[#ec2c6c] [&_h3]:mt-5 [&_h3]:mb-3
-                            [&_p]:text-gray-700 [&_p]:leading-relaxed [&_p]:text-[#344054]
-                            [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_li]:text-gray-700
-                            [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2"
-                          dangerouslySetInnerHTML={{ __html: section.text }}
-                        />
-                      </div>
-                    );
-                  }
-
-                  // Parse image src and alt attributes
-                  const srcMatch = /src\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(section.imgAttrsStr);
-                  const src = srcMatch ? (srcMatch[1] ?? srcMatch[2] ?? srcMatch[3]) : '';
-                  const altMatch = /alt\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(section.imgAttrsStr);
-                  const alt = altMatch ? (altMatch[1] ?? altMatch[2] ?? altMatch[3]) : '';
-
-                  const hasText = section.text.replace(/<[^>]*>/g, '').trim().length > 0;
-
-                  return (
-                    <div
-                      key={idx}
-                      className="bg-white rounded-3xl p-6 sm:p-10 shadow-md border border-gray-100 w-full grid grid-cols-1 lg:grid-cols-12 gap-10 items-center"
-                    >
-                      {/* Image Column (col-span-5) */}
-                      {src && (
-                        <div
-                          className={`lg:col-span-5 relative min-h-[320px] lg:min-h-[420px] rounded-2xl overflow-hidden bg-gray-50 flex items-center justify-center ${
-                            isEven ? 'lg:order-first' : 'lg:order-last'
-                          }`}
-                        >
-                          <img
-                            src={src}
-                            alt={alt || 'Service illustration'}
-                            className="w-full h-full object-contain absolute inset-0 p-2"
-                          />
-                        </div>
-                      )}
-
-                      {/* Text Column (col-span-7) */}
-                      <div
-                        className={`flex flex-col justify-center ${
-                          src ? 'lg:col-span-7' : 'lg:col-span-12'
-                        }`}
-                      >
-                        {hasText ? (
-                          <article
-                            className="prose prose-lg max-w-none text-gray-800 space-y-6 leading-relaxed font-normal
-                              [&_h2]:text-2xl [&_h2]:font-extrabold [&_h2]:text-gray-900 [&_h2]:mt-6 [&_h2]:mb-4 [&_h2]:border-b [&_h2]:border-pink-100 [&_h2]:pb-2 [&_h2]:text-[#101828]
-                              [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-[#ec2c6c] [&_h3]:mt-5 [&_h3]:mb-3
-                              [&_p]:text-gray-700 [&_p]:leading-relaxed [&_p]:text-[#344054]
-                              [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_li]:text-gray-700
-                              [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2"
-                            dangerouslySetInnerHTML={{ __html: section.text }}
-                          />
-                        ) : (
-                          <div className="text-gray-400 italic text-sm">
-                            Platform details.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="bg-white rounded-3xl p-6 sm:p-10 lg:p-12 shadow-sm border border-gray-100 mt-12 w-full overflow-hidden">
+                <article
+                  className="prose prose-lg max-w-none text-gray-800 space-y-6 leading-relaxed font-normal
+                    [&_*]:max-w-full [&_*]:break-words
+                    [&_div]:h-auto! [&_div]:min-h-0! [&_div]:max-h-none! [&_div]:w-auto!
+                    [&_h2]:text-2xl sm:[&_h2]:text-3xl [&_h2]:font-extrabold [&_h2]:text-[#101828] [&_h2]:mt-8 [&_h2]:mb-4 [&_h2]:border-b [&_h2]:border-pink-100 [&_h2]:pb-2.5
+                    [&_h3]:text-xl sm:[&_h3]:text-2xl [&_h3]:font-bold [&_h3]:text-[#ec2c6c] [&_h3]:mt-6 [&_h3]:mb-3
+                    [&_p]:text-gray-700 [&_p]:leading-relaxed [&_p]:text-base [&_p]:mb-4
+                    [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_ul]:mb-4 [&_li]:text-gray-700
+                    [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2 [&_ol]:mb-4
+                    [&_blockquote]:border-l-4 [&_blockquote]:border-[#ec2c6c] [&_blockquote]:bg-pink-50/60 [&_blockquote]:p-4 [&_blockquote]:rounded-r-2xl [&_blockquote]:italic [&_blockquote]:font-medium [&_blockquote]:text-gray-800
+                    [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-2xl [&_img]:my-6 [&_img]:shadow-md [&_img]:mx-auto [&_img]:block"
+                  dangerouslySetInnerHTML={{ __html: cleanedHtml }}
+                />
               </div>
             );
           })()}
