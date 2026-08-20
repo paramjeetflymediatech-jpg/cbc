@@ -58,8 +58,13 @@ export async function sendEmail(options: SendEmailOptions) {
       return { success: true, simulated: true };
     }
 
+    // For Gmail SMTP, envelope from must match authenticated account to pass SPF & avoid spam filtering
+    const isGmail = SMTP_HOST.toLowerCase().includes('gmail.com');
+    const effectiveFrom = isGmail && SMTP_USER ? `"Clinic By Choice" <${SMTP_USER}>` : SMTP_FROM;
+
     const info = await transporter.sendMail({
-      from: SMTP_FROM,
+      from: effectiveFrom,
+      replyTo: 'info@clinicbychoice.com',
       to: toField,
       bcc: bccField,
       subject: options.subject,
@@ -67,7 +72,7 @@ export async function sendEmail(options: SendEmailOptions) {
       html: options.html,
     });
 
-    console.log('[MAILER] Email sent successfully via BCC to:', bccField || toField, 'MessageId:', info.messageId);
+    console.log('[MAILER] Email sent successfully to:', toField, 'BCC:', bccField, 'MessageId:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('[MAILER] Error sending email:', error);

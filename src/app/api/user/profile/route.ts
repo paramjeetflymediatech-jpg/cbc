@@ -60,7 +60,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'User account not found' }, { status: 404 });
     }
 
-    const { name, phone, currentPassword, newPassword } = await req.json();
+    const { name, phone, avatar, address, city, state, pincode, currentPassword, newPassword } = await req.json();
 
     const updates: Partial<User> = {};
 
@@ -69,6 +69,21 @@ export async function PUT(req: Request) {
     }
     if (phone !== undefined) {
       updates.phone = phone ? phone.trim() : null;
+    }
+    if (avatar !== undefined) {
+      updates.avatar = avatar ? avatar.trim() : null;
+    }
+    if (address !== undefined) {
+      updates.address = address ? address.trim() : null;
+    }
+    if (city !== undefined) {
+      updates.city = city ? city.trim() : null;
+    }
+    if (state !== undefined) {
+      updates.state = state ? state.trim() : null;
+    }
+    if (pincode !== undefined) {
+      updates.pincode = pincode ? pincode.trim() : null;
     }
 
     // Password change request
@@ -107,6 +122,11 @@ export async function PUT(req: Request) {
         name: user.name,
         email: user.email,
         phone: user.phone,
+        avatar: user.avatar,
+        address: user.address,
+        city: user.city,
+        state: user.state,
+        pincode: user.pincode,
         role: user.role,
       },
     });

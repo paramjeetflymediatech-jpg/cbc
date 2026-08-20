@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Building2, Stethoscope, ShoppingBag, Users, BookOpen, MapPin, LogOut, Menu, X, Quote, Globe } from 'lucide-react';
+import { LayoutDashboard, Building2, Stethoscope, ShoppingBag, Users, BookOpen, MapPin, LogOut, Menu, X, Quote, Globe, UserCheck } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -34,6 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { name: 'Admin Overview', href: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Users Directory', href: '/admin/users', icon: UserCheck },
     { name: 'Hospitals Approval', href: '/admin/hospitals', icon: Building2 },
     { name: 'Homepage Testimonials', href: '/admin/testimonials', icon: Quote },
     { name: 'Location Master', href: '/admin/locations', icon: MapPin },

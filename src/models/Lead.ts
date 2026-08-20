@@ -20,6 +20,7 @@ export interface LeadAttributes {
   preferredContactTime?: string | null;
   status: 'NEW' | 'CONTACTED' | 'IN_PROGRESS' | 'CONVERTED' | 'LOST' | 'CANCELLED' | 'UNASSIGNED' | 'EXPIRED';
   notes?: ILeadNote[] | null;
+  deletedByUser?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -39,6 +40,7 @@ export class Lead extends Model<LeadAttributes, LeadCreationAttributes> implemen
   declare preferredContactTime: string | null;
   declare status: 'NEW' | 'CONTACTED' | 'IN_PROGRESS' | 'CONVERTED' | 'LOST' | 'CANCELLED' | 'UNASSIGNED' | 'EXPIRED';
   declare notes: ILeadNote[] | null;
+  declare deletedByUser: boolean;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -99,6 +101,11 @@ Lead.init(
     notes: {
       type: DataTypes.JSON,
       allowNull: true,
+    },
+    deletedByUser: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
     },
   },
   {

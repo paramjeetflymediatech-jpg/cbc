@@ -26,6 +26,8 @@ export async function POST(req: Request) {
 
     if (category.startsWith('blogs')) {
       folderPath = 'blogs';
+    } else if (category === 'avatar' || category === 'profile' || authUser.role === 'PATIENT') {
+      folderPath = 'avatars';
     } else if (authUser.role === 'HOSPITAL' && authUser.hospitalId) {
       await connectDB();
       const hospital = await Hospital.findByPk(authUser.hospitalId);

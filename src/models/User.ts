@@ -9,12 +9,20 @@ export interface UserAttributes {
   role: 'SUPER_ADMIN' | 'ADMIN' | 'HOSPITAL' | 'PATIENT';
   hospitalId?: number | null;
   phone?: string | null;
+  avatar?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
   status: 'ACTIVE' | 'INACTIVE';
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-export type UserCreationAttributes = Optional<UserAttributes, 'id' | 'status' | 'hospitalId' | 'phone'>;
+export type UserCreationAttributes = Optional<
+  UserAttributes,
+  'id' | 'status' | 'hospitalId' | 'phone' | 'avatar' | 'address' | 'city' | 'state' | 'pincode'
+>;
 
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   declare id: number;
@@ -24,6 +32,11 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   declare role: 'SUPER_ADMIN' | 'ADMIN' | 'HOSPITAL' | 'PATIENT';
   declare hospitalId: number | null;
   declare phone: string | null;
+  declare avatar: string | null;
+  declare address: string | null;
+  declare city: string | null;
+  declare state: string | null;
+  declare pincode: string | null;
   declare status: 'ACTIVE' | 'INACTIVE';
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
@@ -63,6 +76,26 @@ User.init(
     },
     phone: {
       type: DataTypes.STRING(30),
+      allowNull: true,
+    },
+    avatar: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    address: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    city: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    state: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    pincode: {
+      type: DataTypes.STRING(20),
       allowNull: true,
     },
     status: {
