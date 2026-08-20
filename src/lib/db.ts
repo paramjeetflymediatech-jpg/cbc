@@ -61,11 +61,6 @@ export async function connectDB(): Promise<Sequelize | null> {
       initAssociations();
       await instance.authenticate();
       await instance.sync();
-      await BlogPost.sync({ alter: true });
-      await Testimonial.sync();
-      await Setting.sync({ alter: true });
-      await SeoMetadata.sync({ alter: true });
-      await ServiceLocation.sync({ alter: true });
 
       // Ensure new hospital & service columns exist
       try {

@@ -43,7 +43,11 @@ async function migrate() {
       console.log(`ℹ️ Column 'deletedByUser' already exists in 'leads' table`);
     }
 
-    console.log('\n🎉 Database schema migration completed successfully!');
+    // 3. Clean up any redundant duplicate indexes
+    const { cleanDuplicateIndexes } = await import('./clean-duplicate-indexes');
+    await cleanDuplicateIndexes();
+
+    console.log('\n🎉 Database schema migration & index cleanup completed successfully!');
     process.exit(0);
   } catch (error) {
     console.error('❌ Migration failed:', error);

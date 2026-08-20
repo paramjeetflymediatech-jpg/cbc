@@ -17,7 +17,8 @@
     "extract:blogs": "npx tsx src/scripts/extract-blogs-from-sql.ts",
     "import:blogs": "npx tsx src/scripts/import-blogs-data.ts",
     "clean:seo": "npx tsx src/scripts/clean-seo-entities.ts",
-    "db:migrate": "npx tsx src/scripts/migrate-new-fields.ts"
+    "db:migrate": "npx tsx src/scripts/migrate-new-fields.ts",
+    "db:clean-keys": "npx tsx src/scripts/clean-duplicate-indexes.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
