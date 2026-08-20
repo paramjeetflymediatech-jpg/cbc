@@ -15,7 +15,8 @@
     "extract:seo": "npx tsx src/scripts/extract-seo-from-sql.ts",
     "import:seo": "npx tsx src/scripts/import-seo-data.ts",
     "extract:blogs": "npx tsx src/scripts/extract-blogs-from-sql.ts",
-    "import:blogs": "npx tsx src/scripts/import-blogs-data.ts"
+    "import:blogs": "npx tsx src/scripts/import-blogs-data.ts",
+    "clean:seo": "npx tsx src/scripts/clean-seo-entities.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

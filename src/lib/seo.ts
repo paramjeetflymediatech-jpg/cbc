@@ -2,14 +2,83 @@ import React from 'react';
 import { connectDB } from './db';
 import { Metadata } from 'next';
 
+/**
+ * Strips HTML entity codes (e.g. &amp;, &quot;, &#039;, &nbsp;, &ndash;, etc.)
+ * and unescapes double/triple-encoded entities to produce clean, plain SEO text.
+ */
+export function cleanSeoText(text?: string | null): string {
+  if (!text) return '';
+
+  let cleaned = String(text);
+
+  // Unescape HTML entities (recursive up to 3 passes for double-encoded entities like &amp;amp;)
+  for (let i = 0; i < 3; i++) {
+    cleaned = cleaned
+      .replace(/&amp;/gi, '&')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#039;|&apos;|&#39;/gi, "'")
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&mdash;|&#8212;/gi, '—')
+      .replace(/&ndash;|&#8211;/gi, '–')
+      .replace(/&hellip;|&#8230;/gi, '...')
+      .replace(/&#8216;|&#8217;/gi, "'")
+      .replace(/&#8220;|&#8221;/gi, '"')
+      .replace(/&#038;/gi, '&');
+  }
+
+  // Strip unwanted HTML tags if present
+  cleaned = cleaned.replace(/<[^>]*>/g, ' ');
+
+  // Normalize excessive whitespaces
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+  return cleaned;
+}
+
+/**
+ * Cleans all SEO-related text fields on an object.
+ */
+export function cleanSeoRecord<T extends Record<string, any>>(record: T): T {
+  if (!record || typeof record !== 'object') return record;
+  const result: any = { ...record };
+
+  const textFields = [
+    'title',
+    'seoTitle',
+    'ogTitle',
+    'pageName',
+    'description',
+    'seoDescription',
+    'ogDescription',
+    'excerpt',
+    'keywords',
+    'seoKeywords',
+    'serviceTitle',
+    'shortDescription',
+  ];
+
+  for (const field of textFields) {
+    if (typeof result[field] === 'string') {
+      result[field] = cleanSeoText(result[field]);
+    }
+  }
+
+  return result;
+}
+
 export function buildMetadataFromRecord(seo: any): Metadata {
+  const cleanTitle = cleanSeoText(seo.title);
+  const cleanDescription = cleanSeoText(seo.description);
+
   const metadata: Metadata = {
-    title: seo.title,
-    description: seo.description,
+    title: cleanTitle,
+    description: cleanDescription,
   };
 
   if (seo.keywords) {
-    metadata.keywords = seo.keywords;
+    metadata.keywords = cleanSeoText(seo.keywords);
   }
 
   if (seo.canonicalUrl && seo.canonicalUrl.trim() !== '') {
@@ -25,11 +94,17 @@ export function buildMetadataFromRecord(seo: any): Metadata {
   // Set up Open Graph properties
   const og: any = {};
   if (seo.ogTitle && seo.ogTitle.trim() !== '') {
-    og.title = seo.ogTitle.trim();
+    og.title = cleanSeoText(seo.ogTitle);
+  } else if (cleanTitle) {
+    og.title = cleanTitle;
   }
+
   if (seo.ogDescription && seo.ogDescription.trim() !== '') {
-    og.description = seo.ogDescription.trim();
+    og.description = cleanSeoText(seo.ogDescription);
+  } else if (cleanDescription) {
+    og.description = cleanDescription;
   }
+
   if (seo.ogImage && seo.ogImage.trim() !== '') {
     og.images = [{ url: seo.ogImage.trim() }];
   }

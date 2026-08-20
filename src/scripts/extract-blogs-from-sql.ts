@@ -148,49 +148,78 @@ export async function extractBlogs() {
       if (imgMatch) imageUrl = imgMatch[1];
     }
 
-    const cleanTitle = (seo.title || post.title || '')
-      .replace(/#site_title/g, 'Clinic By Choice')
-      .replace(/#tagline/g, 'Medical Tourism & Healthcare in India')
-      .replace(/#post_title/g, post.title)
-      .replace(/#separator_sa/g, '-')
-      .replace(/#sep/g, '|')
-      .trim();
+function cleanSeoText(text?: string | null): string {
+  if (!text) return '';
+  let cleaned = String(text);
+  for (let i = 0; i < 3; i++) {
+    cleaned = cleaned
+      .replace(/&amp;/gi, '&')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#039;|&apos;|&#39;/gi, "'")
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&mdash;|&#8212;/gi, '—')
+      .replace(/&ndash;|&#8211;/gi, '–')
+      .replace(/&hellip;|&#8230;/gi, '...')
+      .replace(/&#8216;|&#8217;/gi, "'")
+      .replace(/&#8220;|&#8221;/gi, '"')
+      .replace(/&#038;/gi, '&');
+  }
+  cleaned = cleaned.replace(/<[^>]*>/g, ' ');
+  return cleaned.replace(/\s+/g, ' ').trim();
+}
 
-    const cleanDesc = (seo.description || post.excerpt || '')
-      .replace(/#site_title/g, 'Clinic By Choice')
-      .replace(/#tagline/g, 'Medical Tourism & Healthcare in India')
-      .replace(/#post_title/g, post.title)
-      .replace(/#separator_sa/g, '-')
-      .replace(/#sep/g, '|')
-      .trim();
+    const cleanTitle = cleanSeoText(
+      (seo.title || post.title || '')
+        .replace(/#site_title/g, 'Clinic By Choice')
+        .replace(/#tagline/g, 'Medical Tourism & Healthcare in India')
+        .replace(/#post_title/g, post.title)
+        .replace(/#separator_sa/g, '-')
+        .replace(/#sep/g, '|')
+        .trim()
+    );
+
+    const cleanDesc = cleanSeoText(
+      (seo.description || post.excerpt || '')
+        .replace(/#site_title/g, 'Clinic By Choice')
+        .replace(/#tagline/g, 'Medical Tourism & Healthcare in India')
+        .replace(/#post_title/g, post.title)
+        .replace(/#separator_sa/g, '-')
+        .replace(/#sep/g, '|')
+        .trim()
+    );
+
+    const cleanBlogTitle = cleanSeoText(post.title);
+    const cleanExcerpt = cleanSeoText(post.excerpt || cleanDesc.slice(0, 200));
 
     const wordCount = post.content.replace(/<[^>]*>/g, '').split(/\s+/).length;
     const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
     finalBlogs.push({
       wordpressId: id,
-      title: post.title,
+      title: cleanBlogTitle,
       slug: post.slug,
-      excerpt: post.excerpt || cleanDesc.slice(0, 200),
+      excerpt: cleanExcerpt,
       content: post.content,
       image: imageUrl || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80',
-      category: categoryMap.get(id) || 'Medical Guide',
+      category: cleanSeoText(categoryMap.get(id) || 'Medical Guide'),
       author: 'Clinic By Choice Medical Editorial Board',
       readTime: `${readTimeMinutes} min read`,
-      tags: categoryMap.get(id) || 'Healthcare, Treatments, India',
-      seoTitle: cleanTitle || `${post.title} | Clinic By Choice`,
-      seoDescription: cleanDesc || post.title,
-      seoKeywords: seo.keywords || `${post.title.toLowerCase()}, clinic by choice`,
+      tags: cleanSeoText(categoryMap.get(id) || 'Healthcare, Treatments, India'),
+      seoTitle: cleanTitle || `${cleanBlogTitle} | Clinic By Choice`,
+      seoDescription: cleanDesc || cleanBlogTitle,
+      seoKeywords: cleanSeoText(seo.keywords || `${cleanBlogTitle.toLowerCase()}, clinic by choice`),
       canonicalUrl: seo.canonicalUrl || `https://clinicbychoice.com/blog/${post.slug}`,
       ogImage: imageUrl || 'https://clinicbychoice.com/images/og/default.jpg',
-      ogTitle: seo.ogTitle || cleanTitle || post.title,
-      ogDescription: seo.ogDescription || cleanDesc || post.title,
+      ogTitle: cleanSeoText(seo.ogTitle || cleanTitle || cleanBlogTitle),
+      ogDescription: cleanSeoText(seo.ogDescription || cleanDesc || cleanBlogTitle),
       robotsIndex: 'index, follow',
       schemaMarkup: JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'BlogPosting',
-        headline: post.title,
-        description: cleanDesc || post.title,
+        headline: cleanBlogTitle,
+        description: cleanDesc || cleanBlogTitle,
         image: imageUrl || 'https://clinicbychoice.com/images/og/default.jpg',
         datePublished: post.date,
         author: {

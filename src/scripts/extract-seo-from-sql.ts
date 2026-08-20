@@ -137,6 +137,28 @@ function mapSlugToNextJsPath(slug: string, postType: string): string | null {
   return `/hospital/${slug}`;
 }
 
+function cleanSeoText(text?: string | null): string {
+  if (!text) return '';
+  let cleaned = String(text);
+  for (let i = 0; i < 3; i++) {
+    cleaned = cleaned
+      .replace(/&amp;/gi, '&')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#039;|&apos;|&#39;/gi, "'")
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&mdash;|&#8212;/gi, '—')
+      .replace(/&ndash;|&#8211;/gi, '–')
+      .replace(/&hellip;|&#8230;/gi, '...')
+      .replace(/&#8216;|&#8217;/gi, "'")
+      .replace(/&#8220;|&#8221;/gi, '"')
+      .replace(/&#038;/gi, '&');
+  }
+  cleaned = cleaned.replace(/<[^>]*>/g, ' ');
+  return cleaned.replace(/\s+/g, ' ').trim();
+}
+
 export async function extractSeoFromSql() {
   const sqlPath = path.resolve('/Users/flymedia/Downloads/clinicbychoice_wp_rwcjs.sql');
   if (!fs.existsSync(sqlPath)) {
@@ -248,27 +270,31 @@ export async function extractSeoFromSql() {
       .replace(/#sep/g, '|')
       .trim();
 
-    const finalTitle = cleanTitle || `${post.title} | Clinic By Choice`;
-    const finalDesc = cleanDesc || `Explore ${post.title} with Clinic By Choice. Compare premier hospitals, top doctors, and affordable healthcare in India.`;
+    const finalTitle = cleanSeoText(cleanTitle || `${post.title} | Clinic By Choice`);
+    const finalDesc = cleanSeoText(cleanDesc || `Explore ${post.title} with Clinic By Choice. Compare premier hospitals, top doctors, and affordable healthcare in India.`);
+    const cleanKeywords = cleanSeoText(seo.keywords || `${post.title.toLowerCase()}, clinic by choice, hospitals in india`);
+    const cleanOgTitle = cleanSeoText(seo.ogTitle || finalTitle);
+    const cleanOgDescription = cleanSeoText(seo.ogDescription || finalDesc);
+    const cleanPageName = cleanSeoText(post.title);
 
     const seoRecord = {
       postId: post.id,
       postType: post.type,
-      pageName: post.title,
+      pageName: cleanPageName,
       slug: post.slug,
       path: cleanPath,
       title: finalTitle,
       description: finalDesc,
-      keywords: seo.keywords || `${post.title.toLowerCase()}, clinic by choice, hospitals in india`,
+      keywords: cleanKeywords,
       canonicalUrl: seo.canonicalUrl || `https://clinicbychoice.com${cleanPath}`,
-      ogTitle: seo.ogTitle || finalTitle,
-      ogDescription: seo.ogDescription || finalDesc,
+      ogTitle: cleanOgTitle,
+      ogDescription: cleanOgDescription,
       ogImage: seo.ogImageUrl || 'https://clinicbychoice.com/images/og/default.jpg',
       robotsIndex: seo.robotsNoIndex ? 'noindex, nofollow' : 'index, follow',
       schemaMarkup: JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'MedicalWebPage',
-        name: post.title,
+        name: cleanPageName,
         url: `https://clinicbychoice.com${cleanPath}`,
         description: finalDesc,
       }, null, 2),
@@ -280,7 +306,7 @@ export async function extractSeoFromSql() {
       servicesSeoList.push({
         slug: post.slug,
         path: cleanPath,
-        name: post.title,
+        name: cleanPageName,
         seoTitle: finalTitle,
         seoDescription: finalDesc,
       });
