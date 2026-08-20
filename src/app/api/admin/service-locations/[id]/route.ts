@@ -36,6 +36,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const {
       cityName,
       stateName,
+      serviceTitle,
       shortDescription,
       description,
       seoTitle,
@@ -54,6 +55,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       cityName: cityName ? cityName.trim() : location.cityName,
       citySlug,
       stateName: stateName !== undefined ? stateName : location.stateName,
+      serviceTitle: serviceTitle !== undefined ? serviceTitle : location.serviceTitle,
       shortDescription: shortDescription !== undefined ? shortDescription : location.shortDescription,
       description: description !== undefined ? description : location.description,
       seoTitle: seoTitle !== undefined ? seoTitle : location.seoTitle,

@@ -115,6 +115,15 @@ export async function connectDB(): Promise<Sequelize | null> {
         if (!leadsTable.userId) {
           await instance.query('ALTER TABLE leads ADD COLUMN userId INT NULL REFERENCES users(id) ON DELETE SET NULL;');
         }
+
+        try {
+          const slTable: any = await queryInterface.describeTable('service_locations');
+          if (slTable && !slTable.serviceTitle) {
+            await instance.query('ALTER TABLE service_locations ADD COLUMN serviceTitle VARCHAR(500) NULL;');
+          }
+        } catch {
+          // service_locations table may not exist yet or column already exists
+        }
       } catch (colErr) {
         // Table schema up to date or column already exists
       }

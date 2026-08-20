@@ -67,22 +67,46 @@ export async function generateMetadata({ params }: PageProps) {
         },
       });
 
-      if (serviceLocation && serviceLocation.seoTitle) {
-        return {
-          title: serviceLocation.seoTitle,
-          description:
-            serviceLocation.seoDescription ||
-            `Find top accredited ${serviceName} hospitals, clinics, and doctors in ${cityName}.`,
-          keywords: serviceLocation.seoKeywords || `${serviceName.toLowerCase()} in ${cityName.toLowerCase()}`,
-          alternates: {
-            canonical: `https://clinicbychoice.com/hospitals/${slug.toLowerCase()}/${cityParam.toLowerCase()}`,
-          },
-          openGraph: {
+      if (serviceLocation) {
+        if (serviceLocation.seoTitle) {
+          return {
             title: serviceLocation.seoTitle,
-            description: serviceLocation.seoDescription || `Find top accredited ${serviceName} hospitals in ${cityName}.`,
-            url: `https://clinicbychoice.com/hospitals/${slug.toLowerCase()}/${cityParam.toLowerCase()}`,
-          },
-        };
+            description:
+              serviceLocation.seoDescription ||
+              `Find top accredited ${serviceName} hospitals, clinics, and doctors in ${cityName}.`,
+            keywords: serviceLocation.seoKeywords || `${serviceName.toLowerCase()} in ${cityName.toLowerCase()}`,
+            alternates: {
+              canonical: `https://clinicbychoice.com/hospitals/${slug.toLowerCase()}/${cityParam.toLowerCase()}`,
+            },
+            openGraph: {
+              title: serviceLocation.seoTitle,
+              description: serviceLocation.seoDescription || `Find top accredited ${serviceName} hospitals in ${cityName}.`,
+              url: `https://clinicbychoice.com/hospitals/${slug.toLowerCase()}/${cityParam.toLowerCase()}`,
+            },
+          };
+        }
+
+        if (serviceLocation.serviceTitle) {
+          return {
+            title: `${serviceLocation.serviceTitle} | Clinic By Choice`,
+            description:
+              serviceLocation.seoDescription ||
+              serviceLocation.shortDescription ||
+              `Find top accredited ${serviceName} hospitals, clinics, and doctors in ${cityName}.`,
+            keywords: serviceLocation.seoKeywords || `${serviceName.toLowerCase()} in ${cityName.toLowerCase()}`,
+            alternates: {
+              canonical: `https://clinicbychoice.com/hospitals/${slug.toLowerCase()}/${cityParam.toLowerCase()}`,
+            },
+            openGraph: {
+              title: serviceLocation.serviceTitle,
+              description:
+                serviceLocation.seoDescription ||
+                serviceLocation.shortDescription ||
+                `Find top accredited ${serviceName} hospitals in ${cityName}.`,
+              url: `https://clinicbychoice.com/hospitals/${slug.toLowerCase()}/${cityParam.toLowerCase()}`,
+            },
+          };
+        }
       }
     }
 
@@ -322,7 +346,7 @@ export default async function CityServiceDetailPage({ params, searchParams }: Pa
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight">
-            {service.name} in {cityName}
+            {serviceLocation?.serviceTitle || `${service.name} in ${cityName}`}
           </h1>
 
           <p className="text-gray-300 text-sm sm:text-base max-w-3xl leading-relaxed font-medium">

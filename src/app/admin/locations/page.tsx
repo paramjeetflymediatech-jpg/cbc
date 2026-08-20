@@ -59,6 +59,7 @@ interface ServiceLocationItem {
   id: number;
   serviceId: number;
   serviceSlug?: string;
+  serviceTitle?: string;
   cityName: string;
   citySlug: string;
   stateName?: string;
@@ -106,6 +107,7 @@ export default function AdminLocationsPage() {
     serviceId: number | '';
     cityName: string;
     stateName: string;
+    serviceTitle: string;
     shortDescription: string;
     description: string;
     seoTitle: string;
@@ -117,6 +119,7 @@ export default function AdminLocationsPage() {
     serviceId: '',
     cityName: '',
     stateName: '',
+    serviceTitle: '',
     shortDescription: '',
     description: '',
     seoTitle: '',
@@ -312,6 +315,7 @@ export default function AdminLocationsPage() {
       serviceId: servicesList.length > 0 ? servicesList[0].id : '',
       cityName: '',
       stateName: states.length > 0 ? states[0].name : '',
+      serviceTitle: '',
       shortDescription: '',
       description: '',
       seoTitle: '',
@@ -329,6 +333,7 @@ export default function AdminLocationsPage() {
       serviceId: item.serviceId,
       cityName: item.cityName,
       stateName: item.stateName || '',
+      serviceTitle: item.serviceTitle || '',
       shortDescription: item.shortDescription || '',
       description: item.description || '',
       seoTitle: item.seoTitle || '',
@@ -648,6 +653,11 @@ export default function AdminLocationsPage() {
                       <tr key={loc.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="font-extrabold text-gray-900">{loc.service?.name || loc.serviceSlug}</div>
+                          {loc.serviceTitle && (
+                            <div className="text-[11px] font-semibold text-[#ec2c6c] truncate max-w-xs" title={loc.serviceTitle}>
+                              Heading: {loc.serviceTitle}
+                            </div>
+                          )}
                           <div className="text-[11px] text-gray-400 font-mono">/hospitals/{serviceSlug}</div>
                         </td>
                         <td className="px-6 py-4">
@@ -1043,6 +1053,23 @@ export default function AdminLocationsPage() {
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-[#ec2c6c]"
                   />
                 </div>
+              </div>
+
+              {/* Service Title / Banner Heading */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                  Banner Title / Custom Heading (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={serviceLocForm.serviceTitle}
+                  onChange={(e) => setServiceLocForm({ ...serviceLocForm, serviceTitle: e.target.value })}
+                  placeholder="e.g. Best Dermatologists in Ludhiana (defaults to '{Service} in {City}')"
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#ec2c6c]"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Custom heading displayed as the main title on the banner of the city page (e.g. /hospitals/dermatologist/ludhiana).
+                </p>
               </div>
 
               {/* Short Description */}

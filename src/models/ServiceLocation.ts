@@ -5,6 +5,7 @@ export interface ServiceLocationAttributes {
   id: number;
   serviceId: number;
   serviceSlug?: string;
+  serviceTitle?: string;
   cityName: string;
   citySlug: string;
   stateName?: string;
@@ -29,6 +30,7 @@ export class ServiceLocation
   declare id: number;
   declare serviceId: number;
   declare serviceSlug?: string;
+  declare serviceTitle?: string;
   declare cityName: string;
   declare citySlug: string;
   declare stateName?: string;
@@ -61,6 +63,10 @@ ServiceLocation.init(
     },
     serviceSlug: {
       type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    serviceTitle: {
+      type: DataTypes.STRING(500),
       allowNull: true,
     },
     cityName: {
