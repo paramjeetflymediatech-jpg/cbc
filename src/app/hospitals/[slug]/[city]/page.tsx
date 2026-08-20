@@ -494,51 +494,34 @@ export default async function CityServiceDetailPage({ params, searchParams }: Pa
               </div>
             )}
 
-            {/* Dynamic City-Specific Description Content Section */}
-            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xs border border-gray-100 space-y-4">
-              <div className="text-gray-700 space-y-4 leading-relaxed text-sm sm:text-base font-normal">
-                {/* Custom Database City Description if present */}
-                {serviceLocation?.description ? (
-                  <article
-                    className="prose prose-lg max-w-none text-gray-800 space-y-4 leading-relaxed font-normal
-                      [&_*]:max-w-full [&_*]:break-words
-                      [&_h2]:text-2xl sm:[&_h2]:text-3xl [&_h2]:font-extrabold [&_h2]:text-[#101828] [&_h2]:mt-6 [&_h2]:mb-3
-                      [&_h3]:text-lg sm:[&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-[#ec2c6c] [&_h3]:mt-4 [&_h3]:mb-2
-                      [&_p]:text-gray-700 [&_p]:leading-relaxed [&_p]:text-base [&_p]:mb-3
-                      [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-1.5 [&_ul]:mb-3 [&_li]:text-gray-700
-                      [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-1.5 [&_ol]:mb-3"
-                    dangerouslySetInnerHTML={{ __html: cleanEditorHtml(serviceLocation.description) }}
-                  />
-                ) : (
-                  <>
-                    <h3 className="text-lg font-black text-gray-900">
-                      About {service.name} Care in {cityName}
-                    </h3>
-                    <p>
-                      Patients seeking <strong>{service.name}</strong> in <strong>{cityName}</strong> have access to qualified specialists, advanced diagnostics, and dedicated clinical facilities. Compare hospital accreditation, doctor profiles, and treatment capabilities to make an informed healthcare choice.
-                    </p>
-                    <p>
-                      At <strong>Clinic By Choice</strong>, we assist patients in finding verified hospitals, booking appointments with leading consultants, and securing free second opinions.
-                    </p>
-                  </>
-                )}
+            {/* City-Specific or Inherited Service Clinical Description Section */}
+            {(() => {
+              const locDescRaw = serviceLocation?.description ? cleanEditorHtml(serviceLocation.description) : '';
+              const hasLocDesc = locDescRaw && locDescRaw.replace(/<[^>]*>/g, '').trim().length > 0;
 
-                {/* Inherited Service Details if available and no custom city desc */}
-                {!serviceLocation?.description && service.description && (() => {
-                  const cleanedHtml = cleanEditorHtml(service.description);
-                  if (cleanedHtml.replace(/<[^>]*>/g, '').trim().length === 0) return null;
-                  return (
-                    <div className="pt-4 border-t border-gray-100">
-                      <h4 className="text-base font-bold text-gray-900 mb-2">Service Overview</h4>
-                      <article
-                        className="prose prose-sm max-w-none text-gray-700 space-y-3 leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: cleanedHtml }}
-                      />
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
+              const serviceDescRaw = service.description ? cleanEditorHtml(service.description) : '';
+              const hasServiceDesc = serviceDescRaw && serviceDescRaw.replace(/<[^>]*>/g, '').trim().length > 0;
+
+              const htmlContent = hasLocDesc ? locDescRaw : hasServiceDesc ? serviceDescRaw : null;
+              if (!htmlContent) return null;
+
+              return (
+                <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xs border border-gray-100 space-y-4">
+                  <div className="text-gray-700 space-y-4 leading-relaxed text-sm sm:text-base font-normal">
+                    <article
+                      className="prose prose-lg max-w-none text-gray-800 space-y-4 leading-relaxed font-normal
+                        [&_*]:max-w-full [&_*]:break-words
+                        [&_h2]:text-2xl sm:[&_h2]:text-3xl [&_h2]:font-extrabold [&_h2]:text-[#101828] [&_h2]:mt-6 [&_h2]:mb-3
+                        [&_h3]:text-lg sm:[&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-[#ec2c6c] [&_h3]:mt-4 [&_h3]:mb-2
+                        [&_p]:text-gray-700 [&_p]:leading-relaxed [&_p]:text-base [&_p]:mb-3
+                        [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-1.5 [&_ul]:mb-3 [&_li]:text-gray-700
+                        [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-1.5 [&_ol]:mb-3"
+                      dangerouslySetInnerHTML={{ __html: htmlContent }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* City FAQs Section */}
             {allFaqs.length > 0 && (
