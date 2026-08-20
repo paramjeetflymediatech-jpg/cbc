@@ -345,28 +345,13 @@ export default async function CityServiceDetailPage({ params, searchParams }: Pa
 
   const hospitals = Array.from(uniqueHospitalsMap.values());
 
-  // Dynamic city-specific FAQs
-  const defaultCityFaqs = [
-    {
-      question: `Which are the best ${service.name} hospitals in ${cityName}?`,
-      answer: `The best ${service.name} hospitals in ${cityName} feature accredited surgical facilities, experienced specialists, state-of-the-art diagnostic units, and personalized patient care.`,
-    },
-    {
-      question: `How can I book an appointment for ${service.name} in ${cityName}?`,
-      answer: `You can directly submit an appointment inquiry through the hospital cards or contact our medical helpline at +91-9888484310 for free case evaluation in ${cityName}.`,
-    },
-    {
-      question: `Does Clinic By Choice provide free second opinions in ${cityName}?`,
-      answer: `Yes, Clinic By Choice offers complimentary second opinions from senior specialist doctors in ${cityName} and across India.`,
-    },
-  ];
-
+  // Dynamic city-specific FAQs (Only show if explicitly added to this Location Service)
   const allFaqs =
-    serviceLocation?.faqs && Array.isArray(serviceLocation.faqs) && serviceLocation.faqs.length > 0
-      ? serviceLocation.faqs
-      : service.faqs && Array.isArray(service.faqs) && service.faqs.length > 0
-        ? service.faqs
-        : defaultCityFaqs;
+    serviceLocation?.faqs && Array.isArray(serviceLocation.faqs)
+      ? serviceLocation.faqs.filter(
+          (f: any) => f && f.question && f.question.trim() !== '' && f.answer && f.answer.trim() !== ''
+        )
+      : [];
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
