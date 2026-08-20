@@ -494,16 +494,12 @@ export default async function CityServiceDetailPage({ params, searchParams }: Pa
               </div>
             )}
 
-            {/* City-Specific or Inherited Service Clinical Description Section */}
+            {/* City-Specific Location Service Description Section (Only shown if custom description is added) */}
             {(() => {
-              const locDescRaw = serviceLocation?.description ? cleanEditorHtml(serviceLocation.description) : '';
+              if (!serviceLocation?.description) return null;
+              const locDescRaw = cleanEditorHtml(serviceLocation.description);
               const hasLocDesc = locDescRaw && locDescRaw.replace(/<[^>]*>/g, '').trim().length > 0;
-
-              const serviceDescRaw = service.description ? cleanEditorHtml(service.description) : '';
-              const hasServiceDesc = serviceDescRaw && serviceDescRaw.replace(/<[^>]*>/g, '').trim().length > 0;
-
-              const htmlContent = hasLocDesc ? locDescRaw : hasServiceDesc ? serviceDescRaw : null;
-              if (!htmlContent) return null;
+              if (!hasLocDesc) return null;
 
               return (
                 <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xs border border-gray-100 space-y-4">
@@ -516,7 +512,7 @@ export default async function CityServiceDetailPage({ params, searchParams }: Pa
                         [&_p]:text-gray-700 [&_p]:leading-relaxed [&_p]:text-base [&_p]:mb-3
                         [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-1.5 [&_ul]:mb-3 [&_li]:text-gray-700
                         [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-1.5 [&_ol]:mb-3"
-                      dangerouslySetInnerHTML={{ __html: htmlContent }}
+                      dangerouslySetInnerHTML={{ __html: locDescRaw }}
                     />
                   </div>
                 </div>
