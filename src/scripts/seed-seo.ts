@@ -17,7 +17,7 @@ async function main() {
 
     console.log('Clearing existing SEO and Setting test records...');
     await SeoMetadata.destroy({ where: {} });
-    
+
     // Seed settings keys
     console.log('Seeding global settings...');
     await Setting.upsert({ key: 'google_analytics_id', value: 'G-DUMMY12345' });
@@ -32,7 +32,7 @@ async function main() {
         'logo': 'https://clinicbychoice.com/images/logoblac.png',
         'contactPoint': {
           '@type': 'ContactPoint',
-          'telephone': '+91-81462-69537',
+          'telephone': '+91-9888484310',
           'contactType': 'customer service'
         }
       }, null, 2)
@@ -42,7 +42,7 @@ async function main() {
 
     // Seed SEO metadata overrides
     console.log('Seeding SEO page metadata overrides...');
-    
+
     await SeoMetadata.create({
       pageName: 'Homepage Override',
       path: '/',

@@ -59,10 +59,24 @@ export async function generateMetadata({ params }: PageProps) {
     const serviceName = service ? service.name : formatCityName(slug);
 
     if (service) {
+      const cleanCitySlug = cityParam.toLowerCase().trim();
       const serviceLocation = await ServiceLocation.findOne({
         where: {
-          serviceId: service.id,
-          citySlug: cityParam.toLowerCase(),
+          [Op.or]: [
+            { serviceId: service.id },
+            { serviceSlug: service.slug.toLowerCase() },
+            { serviceSlug: slug.toLowerCase() },
+          ],
+          [Op.and]: [
+            {
+              [Op.or]: [
+                { citySlug: cleanCitySlug },
+                { citySlug: cleanCitySlug.replace(/-city$/, '') },
+                { citySlug: `${cleanCitySlug}-city` },
+                { cityName: { [Op.like]: `%${cityName}%` } },
+              ],
+            },
+          ],
           status: 'ACTIVE',
         },
       });
@@ -173,10 +187,24 @@ export default async function CityServiceDetailPage({ params, searchParams }: Pa
   }
 
   // Fetch custom database ServiceLocation content for this city + service
+  const cleanCitySlug = cityParam.toLowerCase().trim();
   const serviceLocation = await ServiceLocation.findOne({
     where: {
-      serviceId: service.id,
-      citySlug: cityParam.toLowerCase(),
+      [Op.or]: [
+        { serviceId: service.id },
+        { serviceSlug: service.slug.toLowerCase() },
+        { serviceSlug: slug.toLowerCase() },
+      ],
+      [Op.and]: [
+        {
+          [Op.or]: [
+            { citySlug: cleanCitySlug },
+            { citySlug: cleanCitySlug.replace(/-city$/, '') },
+            { citySlug: `${cleanCitySlug}-city` },
+            { cityName: { [Op.like]: `%${cityName}%` } },
+          ],
+        },
+      ],
       status: 'ACTIVE',
     },
   });
@@ -208,6 +236,19 @@ export default async function CityServiceDetailPage({ params, searchParams }: Pa
     ],
   });
 
+  // Fetch all active custom ServiceLocation records for this service to populate sidebar locations
+  const activeServiceLocations = await ServiceLocation.findAll({
+    where: {
+      [Op.or]: [
+        { serviceId: { [Op.in]: targetServiceIds } },
+        { serviceSlug: service.slug.toLowerCase() },
+      ],
+      status: 'ACTIVE',
+    },
+    attributes: ['cityName', 'citySlug', 'stateName'],
+    raw: true,
+  });
+
   // Calculate unique hospitals and count only for cities that actually have hospitals
   const cityCountMap = new Map<string, { cityName: string; citySlug: string; stateName?: string; count: number }>();
   const seenAllIndiaIds = new Set<number>();
@@ -233,7 +274,23 @@ export default async function CityServiceDetailPage({ params, searchParams }: Pa
     }
   });
 
-  const availableCities = Array.from(cityCountMap.values()).sort((a, b) => b.count - a.count);
+  // Only show locations in the sidebar if an active ServiceLocation has been created for this service
+  const availableCities: Array<{ cityName: string; citySlug: string; stateName?: string; count: number }> = [];
+
+  activeServiceLocations.forEach((sl: any) => {
+    if (sl.citySlug) {
+      const cSlug = sl.citySlug.toLowerCase().trim();
+      const existing = cityCountMap.get(cSlug) || cityCountMap.get(cSlug.replace(/-city$/, '')) || cityCountMap.get(`${cSlug}-city`);
+      availableCities.push({
+        cityName: sl.cityName || existing?.cityName || formatCityName(cSlug),
+        citySlug: cSlug,
+        stateName: sl.stateName || existing?.stateName,
+        count: existing ? existing.count : 0,
+      });
+    }
+  });
+
+  availableCities.sort((a, b) => b.count - a.count || a.cityName.localeCompare(b.cityName));
   const totalAllIndiaHospitals = seenAllIndiaIds.size;
 
   // 2. Query hospitals ONLY inside the current selected city
@@ -296,7 +353,7 @@ export default async function CityServiceDetailPage({ params, searchParams }: Pa
     },
     {
       question: `How can I book an appointment for ${service.name} in ${cityName}?`,
-      answer: `You can directly submit an appointment inquiry through the hospital cards or contact our medical helpline at +91-81462-69537 for free case evaluation in ${cityName}.`,
+      answer: `You can directly submit an appointment inquiry through the hospital cards or contact our medical helpline at +91-9888484310 for free case evaluation in ${cityName}.`,
     },
     {
       question: `Does Clinic By Choice provide free second opinions in ${cityName}?`,
@@ -308,8 +365,8 @@ export default async function CityServiceDetailPage({ params, searchParams }: Pa
     serviceLocation?.faqs && Array.isArray(serviceLocation.faqs) && serviceLocation.faqs.length > 0
       ? serviceLocation.faqs
       : service.faqs && Array.isArray(service.faqs) && service.faqs.length > 0
-      ? service.faqs
-      : defaultCityFaqs;
+        ? service.faqs
+        : defaultCityFaqs;
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -555,22 +612,20 @@ export default async function CityServiceDetailPage({ params, searchParams }: Pa
                       <Link
                         key={c.citySlug}
                         href={`/hospitals/${service.slug}/${c.citySlug}`}
-                        className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-bold border transition-all ${
-                          isCurrent
-                            ? 'bg-[#ec2c6c] text-white border-[#ec2c6c] shadow-xs'
-                            : 'bg-white hover:bg-pink-50/50 hover:border-pink-200 text-gray-800 border-gray-100'
-                        }`}
+                        className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-bold border transition-all ${isCurrent
+                          ? 'bg-[#ec2c6c] text-white border-[#ec2c6c] shadow-xs'
+                          : 'bg-white hover:bg-pink-50/50 hover:border-pink-200 text-gray-800 border-gray-100'
+                          }`}
                       >
                         <span className="flex items-center space-x-2 truncate">
                           <MapPin className={`w-3.5 h-3.5 flex-shrink-0 ${isCurrent ? 'text-white' : 'text-[#ec2c6c]'}`} />
                           <span className="truncate">{c.cityName}</span>
                         </span>
                         <span
-                          className={`text-[11px] px-2 py-0.5 rounded-full font-bold ml-2 flex-shrink-0 ${
-                            isCurrent
-                              ? 'bg-white/20 text-white'
-                              : 'bg-gray-100 text-gray-600'
-                          }`}
+                          className={`text-[11px] px-2 py-0.5 rounded-full font-bold ml-2 flex-shrink-0 ${isCurrent
+                            ? 'bg-white/20 text-white'
+                            : 'bg-gray-100 text-gray-600'
+                            }`}
                         >
                           {c.count} {c.count === 1 ? 'Hospital' : 'Hospitals'}
                         </span>
@@ -618,11 +673,11 @@ export default async function CityServiceDetailPage({ params, searchParams }: Pa
                   Book Free Consultation
                 </Link>
                 <a
-                  href="tel:+918146269537"
+                  href="tel:+919888484310"
                   className="flex items-center justify-center space-x-1.5 text-center w-full bg-white/10 hover:bg-white/20 text-white font-bold py-2.5 px-4 rounded-xl text-xs border border-white/15 transition-all"
                 >
                   <PhoneCall className="w-3.5 h-3.5 text-pink-400" />
-                  <span>Call: +91-81462-69537</span>
+                  <span>Call: +91-9888484310</span>
                 </a>
               </div>
             </div>

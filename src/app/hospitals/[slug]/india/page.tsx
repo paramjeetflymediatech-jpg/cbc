@@ -6,7 +6,7 @@ import Footer from '@/components/layout/Footer';
 import HospitalCard from '@/components/ui/HospitalCard';
 import FilterBar from '@/components/ui/FilterBar';
 import { connectDB } from '@/lib/db';
-import { Service, Hospital, HospitalService } from '@/models';
+import { Service, Hospital, HospitalService, ServiceLocation } from '@/models';
 import { Op } from 'sequelize';
 import {
   Stethoscope,
@@ -138,6 +138,19 @@ export default async function ServiceHospitalsIndiaPage({ params, searchParams }
     ],
   });
 
+  // Fetch all active custom ServiceLocation records for this service to populate sidebar locations
+  const activeServiceLocations = await ServiceLocation.findAll({
+    where: {
+      [Op.or]: [
+        { serviceId: { [Op.in]: targetServiceIds } },
+        { serviceSlug: service.slug.toLowerCase() },
+      ],
+      status: 'ACTIVE',
+    },
+    attributes: ['cityName', 'citySlug', 'stateName'],
+    raw: true,
+  });
+
   // Calculate unique hospitals and count only for cities that actually have hospitals
   const cityCountMap = new Map<string, { cityName: string; citySlug: string; stateName?: string; count: number }>();
   const seenAllIndiaIds = new Set<number>();
@@ -163,7 +176,23 @@ export default async function ServiceHospitalsIndiaPage({ params, searchParams }
     }
   });
 
-  const availableCities = Array.from(cityCountMap.values()).sort((a, b) => b.count - a.count);
+  // Only show locations in the sidebar if an active ServiceLocation has been created for this service
+  const availableCities: Array<{ cityName: string; citySlug: string; stateName?: string; count: number }> = [];
+
+  activeServiceLocations.forEach((sl: any) => {
+    if (sl.citySlug) {
+      const cSlug = sl.citySlug.toLowerCase().trim();
+      const existing = cityCountMap.get(cSlug) || cityCountMap.get(cSlug.replace(/-city$/, '')) || cityCountMap.get(`${cSlug}-city`);
+      availableCities.push({
+        cityName: sl.cityName || existing?.cityName || cSlug,
+        citySlug: cSlug,
+        stateName: sl.stateName || existing?.stateName,
+        count: existing ? existing.count : 0,
+      });
+    }
+  });
+
+  availableCities.sort((a, b) => b.count - a.count || a.cityName.localeCompare(b.cityName));
   const totalAllIndiaHospitals = seenAllIndiaIds.size;
 
   // 2. Filter conditions based on user search parameters
@@ -494,11 +523,11 @@ export default async function ServiceHospitalsIndiaPage({ params, searchParams }
                   Book Free Consultation
                 </Link>
                 <a
-                  href="tel:+918146269537"
+                  href="tel:+919888484310"
                   className="flex items-center justify-center space-x-1.5 text-center w-full bg-white/10 hover:bg-white/20 text-white font-bold py-2.5 px-4 rounded-xl text-xs border border-white/15 transition-all"
                 >
                   <PhoneCall className="w-3.5 h-3.5 text-pink-400" />
-                  <span>Call: +91-81462-69537</span>
+                  <span>Call: +91-9888484310</span>
                 </a>
               </div>
             </div>

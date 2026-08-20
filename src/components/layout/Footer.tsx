@@ -102,11 +102,11 @@ export default function Footer() {
 
           {/* Contact Details */}
           <div className="md:col-span-4 flex flex-col space-y-3 font-extrabold text-gray-900 text-base sm:text-lg lg:pl-6">
-            <a href="tel:8146269537" className="flex items-center space-x-3 hover:text-[#F04B8B] transition-colors">
+            <a href="tel:9888484310" className="flex items-center space-x-3 hover:text-[#F04B8B] transition-colors">
               <div className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center flex-shrink-0">
                 <Phone className="w-5 h-5 fill-white" />
               </div>
-              <span>81462 69537</span>
+              <span>9888484310</span>
             </a>
 
             <a href="mailto:info@clinicbychoice.com" className="flex items-center space-x-3 hover:text-[#F04B8B] transition-colors">

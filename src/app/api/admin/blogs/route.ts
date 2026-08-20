@@ -150,3 +150,45 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to create blog post' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const authUser = await getAuthUser();
+    if (!authUser || (authUser.role !== 'SUPER_ADMIN' && authUser.role !== 'ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await connectDB();
+    const body = await req.json();
+    const { ids } = body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: 'Array of blog IDs is required' }, { status: 400 });
+    }
+
+    const { cleanupOldImages } = await import('@/lib/fileCleanup');
+
+    const blogs = await BlogPost.findAll({
+      where: { id: { [Op.in]: ids } },
+    });
+
+    for (const blog of blogs) {
+      if (blog.image) {
+        await cleanupOldImages(blog.image, null);
+      }
+    }
+
+    const deletedCount = await BlogPost.destroy({
+      where: { id: { [Op.in]: ids } },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `${deletedCount} blog post(s) deleted successfully`,
+      deletedCount,
+    });
+  } catch (error) {
+    console.error('Error bulk deleting admin blogs:', error);
+    return NextResponse.json({ error: 'Failed to bulk delete blogs' }, { status: 500 });
+  }
+}

@@ -187,9 +187,58 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, message: 'SEO configuration deleted' });
     }
 
+    if (action === 'bulk_delete' || action === 'bulk_delete_seo') {
+      const { ids } = body;
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return NextResponse.json({ error: 'IDs array is required for bulk delete' }, { status: 400 });
+      }
+
+      const { Op } = await import('sequelize');
+      const deletedCount = await SeoMetadata.destroy({
+        where: { id: { [Op.in]: ids } },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `${deletedCount} SEO configuration(s) deleted successfully`,
+        deletedCount,
+      });
+    }
+
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('Admin POST SEO error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const authUser = await getAuthUser();
+    if (!authUser || (authUser.role !== 'SUPER_ADMIN' && authUser.role !== 'ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    await connectDB();
+    const body = await req.json();
+    const { ids } = body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: 'IDs array is required for bulk delete' }, { status: 400 });
+    }
+
+    const { Op } = await import('sequelize');
+    const deletedCount = await SeoMetadata.destroy({
+      where: { id: { [Op.in]: ids } },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `${deletedCount} SEO configuration(s) deleted successfully`,
+      deletedCount,
+    });
+  } catch (error) {
+    console.error('Admin DELETE SEO error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

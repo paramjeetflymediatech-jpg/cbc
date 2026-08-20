@@ -25,6 +25,118 @@ interface WPAIOSEO {
 
 const VALID_POST_TYPES = new Set(['page', 'post', 'doctor', 'product', 'service', 'hospital']);
 
+const KNOWN_SERVICES = [
+  'orthopedic',
+  'orthopedics',
+  'gastroenterologist',
+  'gastroenterology',
+  'dermatologists',
+  'dermatologist',
+  'dermatology',
+  'transgender-surgery',
+  'dental-care',
+  'eye-care',
+  'neurologist',
+  'neurology',
+  'urologist',
+  'urology',
+  'sexologist',
+  'plastic-surgery',
+  'infertility-treatment',
+  'hair-transplant',
+  'ent-hospitals',
+  'practology-hospitals',
+  'pediatric-orthopedics',
+  'anaesthesia',
+  'cancer-hospital',
+  'laparoscopy',
+  'obstetrics-and-gynecology',
+  'neonatology-hospital',
+  'homeopathy-hospital',
+  'psychiatrist',
+  'heart-hospital',
+  'ayurdeva',
+  'general-surgery',
+  'hepatologyy',
+  'physiotherapy',
+  'cardiology',
+  'nephrology',
+  'gynecology',
+  'pediatrics',
+  'ophthalmology',
+  'pulmonology',
+  'endocrinology',
+  'rheumatology',
+  'vascular-surgery',
+  'bariatric-surgery',
+  'ivf-fertility',
+  'hematology',
+  'organ-transplant',
+  'critical-care',
+  'pathology-diagnostics',
+].sort((a, b) => b.length - a.length);
+
+const KNOWN_CITIES = [
+  'ludhiana',
+  'mumbai',
+  'visakhapatnam',
+  'bangalore',
+  'bengaluru',
+  'phagwara',
+  'jalandhar',
+  'moga',
+  'amritsar',
+  'bathinda',
+  'delhi',
+  'patna',
+  'chennai',
+  'hyderabad',
+  'kolkata',
+  'chandigarh',
+  'pune',
+  'jaipur',
+  'mohali',
+  'patiala',
+  'ahmedabad',
+  'lucknow',
+  'whitefield',
+].sort((a, b) => b.length - a.length);
+
+function mapSlugToNextJsPath(slug: string, postType: string): string | null {
+  if (slug === 'home' || slug === 'front-page' || slug === 'home-2') return '/';
+  if (slug === 'about-us') return '/about-us';
+  if (slug === 'contact-us') return '/contact-us';
+  if (slug === 'our-service') return '/hospital';
+  if (slug === 'blog') return '/blog';
+  if (slug === 'get-listed') return '/get-listed';
+  if (slug === 'login' || slug === 'staff-cabinate') return null;
+
+  const cleanSlug = slug.replace(/^hospitals-/, '');
+
+  // Special cases
+  if (slug === 'orthopatna') return '/hospitals/orthopedic/patna';
+  if (slug === 'ludhiana') return '/hospital?city=Ludhiana';
+
+  // 1. Check if it matches a service-city combination
+  for (const s of KNOWN_SERVICES) {
+    for (const c of KNOWN_CITIES) {
+      if (cleanSlug === `${s}-${c}`) {
+        return `/hospitals/${s}/${c}`;
+      }
+    }
+  }
+
+  // 2. Check if it is a standalone service (All-India Page)
+  for (const s of KNOWN_SERVICES) {
+    if (cleanSlug === s) {
+      return `/hospitals/${s}/india`;
+    }
+  }
+
+  // 3. Otherwise treat as hospital or clinic profile
+  return `/hospital/${slug}`;
+}
+
 export async function extractSeoFromSql() {
   const sqlPath = path.resolve('/Users/flymedia/Downloads/clinicbychoice_wp_rwcjs.sql');
   if (!fs.existsSync(sqlPath)) {
@@ -108,6 +220,16 @@ export async function extractSeoFromSql() {
   const servicesSeoList = [];
 
   for (const [postId, post] of postsMap.entries()) {
+    // Skip individual blog posts (managed separately in BlogPost / Admin Blogs)
+    if (post.type === 'post') {
+      continue;
+    }
+
+    const cleanPath = mapSlugToNextJsPath(post.slug, post.type);
+    if (!cleanPath) {
+      continue;
+    }
+
     const seo: WPAIOSEO = aioseoMap.get(postId) || {};
 
     const cleanTitle = (seo.title || post.title || '')
@@ -125,19 +247,6 @@ export async function extractSeoFromSql() {
       .replace(/#separator_sa/g, '-')
       .replace(/#sep/g, '|')
       .trim();
-
-    let cleanPath = `/${post.slug}`;
-    if (post.type === 'post') {
-      cleanPath = `/blog/${post.slug}`;
-    } else if (post.type === 'hospital') {
-      cleanPath = `/hospital/${post.slug}`;
-    } else if (post.type === 'service') {
-      cleanPath = `/hospitals/${post.slug}/india`;
-    }
-
-    if (post.slug === 'home' || post.slug === 'front-page') {
-      cleanPath = '/';
-    }
 
     const finalTitle = cleanTitle || `${post.title} | Clinic By Choice`;
     const finalDesc = cleanDesc || `Explore ${post.title} with Clinic By Choice. Compare premier hospitals, top doctors, and affordable healthcare in India.`;
@@ -158,7 +267,7 @@ export async function extractSeoFromSql() {
       robotsIndex: seo.robotsNoIndex ? 'noindex, nofollow' : 'index, follow',
       schemaMarkup: JSON.stringify({
         '@context': 'https://schema.org',
-        '@type': post.type === 'post' ? 'BlogPosting' : 'MedicalWebPage',
+        '@type': 'MedicalWebPage',
         name: post.title,
         url: `https://clinicbychoice.com${cleanPath}`,
         description: finalDesc,
@@ -167,9 +276,10 @@ export async function extractSeoFromSql() {
 
     combinedSeoList.push(seoRecord);
 
-    if (post.type === 'service' || post.type === 'page' || post.slug.includes('orthopedics') || post.slug.includes('cardiology') || post.slug.includes('ivf')) {
+    if (cleanPath.startsWith('/hospitals/')) {
       servicesSeoList.push({
         slug: post.slug,
+        path: cleanPath,
         name: post.title,
         seoTitle: finalTitle,
         seoDescription: finalDesc,
@@ -177,20 +287,30 @@ export async function extractSeoFromSql() {
     }
   }
 
-  const outputPath = path.resolve(process.cwd(), 'src/data/extracted_seo_data.json');
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  const outDir = path.resolve(process.cwd(), 'src/data');
+  if (!fs.existsSync(outDir)) {
+    fs.mkdirSync(outDir, { recursive: true });
+  }
 
-  const resultData = {
-    source: 'clinicbychoice_wp_rwcjs.sql',
-    generatedAt: new Date().toISOString(),
-    totalPublicPages: combinedSeoList.length,
-    seoMetadata: combinedSeoList,
-    servicesSeo: servicesSeoList,
-  };
+  const outputPath = path.join(outDir, 'extracted_seo_data.json');
+  fs.writeFileSync(
+    outputPath,
+    JSON.stringify(
+      {
+        source: 'clinicbychoice_wp_rwcjs.sql',
+        generatedAt: new Date().toISOString(),
+        totalPublicPages: combinedSeoList.length,
+        seoMetadata: combinedSeoList,
+        servicesSeo: servicesSeoList,
+      },
+      null,
+      2
+    ),
+    'utf8'
+  );
 
-  fs.writeFileSync(outputPath, JSON.stringify(resultData, null, 2), 'utf8');
-  console.log(`✅ Successfully extracted ${combinedSeoList.length} SEO records to: ${outputPath}`);
-  return resultData;
+  console.log(`\n✅ Extracted ${combinedSeoList.length} SEO metadata records successfully!`);
+  console.log(` Output saved to: ${outputPath}`);
 }
 
 extractSeoFromSql().catch(console.error);

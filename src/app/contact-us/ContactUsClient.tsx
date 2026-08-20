@@ -96,7 +96,7 @@ export default function ContactUsClient() {
                 </div>
                 <div>
                   <h4 className="font-bold text-gray-900 text-base">Phone Support</h4>
-                  <p className="text-sm text-gray-600">+91 81462 69537</p>
+                  <p className="text-sm text-gray-600">+91 9888484310</p>
                 </div>
               </div>
 
@@ -123,7 +123,7 @@ export default function ContactUsClient() {
                 <p className="text-xs sm:text-sm text-emerald-700 font-medium max-w-md mx-auto leading-relaxed">
                   Thank you for reaching out. Your enquiry has been sent to our super admin team and we will get back to you shortly.
                 </p>
-                
+
                 <div className="pt-3">
                   <button
                     type="button"

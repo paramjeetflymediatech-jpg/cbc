@@ -19,6 +19,7 @@ async function importSeoData() {
 
   const { connectDB } = await import('@/lib/db');
   const { SeoMetadata, Service } = await import('@/models');
+  const { Op } = await import('sequelize');
 
   await connectDB();
 
@@ -27,12 +28,42 @@ async function importSeoData() {
 
   console.log(`Found ${seoRecords.length} SEO metadata records to insert/update...`);
 
+  // 1. Remove obsolete legacy un-prefixed paths that were replaced
+  const validPaths = new Set(seoRecords.map((r: any) => r.path));
+  
+  // Clean individual /blog/ paths from seo_metadata
+  await SeoMetadata.destroy({
+    where: {
+      path: {
+        [Op.like]: '/blog/%',
+      },
+    },
+  });
+
+  // Clean old un-prefixed service paths (e.g., /gastroenterologist, /dermatologists, etc.)
+  const allDbSeo = await SeoMetadata.findAll({ attributes: ['id', 'path'] });
+  let deletedOld = 0;
+  for (const entry of allDbSeo) {
+    if (!validPaths.has(entry.path)) {
+      await entry.destroy();
+      deletedOld++;
+    }
+  }
+  if (deletedOld > 0) {
+    console.log(`🧹 Cleaned up ${deletedOld} old/outdated SEO paths from database.`);
+  }
+
   let seoInserted = 0;
   let seoUpdated = 0;
   let servicesUpdated = 0;
 
   for (const item of seoRecords) {
     try {
+      // Never insert individual blog post paths into seo_metadata (they belong in blog_posts)
+      if (item.path && item.path.startsWith('/blog/')) {
+        continue;
+      }
+
       const existing = await SeoMetadata.findOne({ where: { path: item.path } });
       if (existing) {
         await existing.update({
@@ -67,7 +98,14 @@ async function importSeoData() {
 
       // Also update services table if slug matches
       if (item.slug) {
-        const matchingService = await Service.findOne({ where: { slug: item.slug } });
+        const matchingService = await Service.findOne({
+          where: {
+            [Op.or]: [
+              { slug: item.slug },
+              { slug: item.slug.replace(/s$/, '') },
+            ],
+          },
+        });
         if (matchingService) {
           await matchingService.update({
             seoTitle: item.title,

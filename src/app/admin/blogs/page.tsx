@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import RichTextEditor from '@/components/ui/RichTextEditor';
+import Swal from 'sweetalert2';
 import {
   FileText,
   Plus,
@@ -44,12 +45,16 @@ interface BlogPostItem {
   publishedAt?: string | null;
   views: number;
   createdAt: string;
+  updatedAt: string;
 }
 
 export default function AdminBlogsPage() {
   const [blogs, setBlogs] = useState<BlogPostItem[]>([]);
   const [stats, setStats] = useState({ total: 0, published: 0, drafts: 0, totalViews: 0 });
   const [loading, setLoading] = useState(true);
+
+  // Bulk Selection state
+  const [selectedBlogIds, setSelectedBlogIds] = useState<number[]>([]);
 
   // Search & Filter & Pagination state
   const [searchQuery, setSearchQuery] = useState('');
@@ -277,10 +282,83 @@ export default function AdminBlogsPage() {
       if (res.ok) {
         setMessage('Blog post deleted successfully.');
         setDeleteBlogId(null);
+        setSelectedBlogIds((prev) => prev.filter((id) => id !== deleteBlogId));
         fetchBlogs();
       }
     } catch {
       alert('Failed to delete blog post');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Bulk Selection Handlers
+  const handleToggleSelectAll = () => {
+    if (paginatedBlogs.length === 0) return;
+    const paginatedIds = paginatedBlogs.map((b) => b.id);
+    const allSelected = paginatedIds.every((id) => selectedBlogIds.includes(id));
+
+    if (allSelected) {
+      setSelectedBlogIds((prev) => prev.filter((id) => !paginatedIds.includes(id)));
+    } else {
+      setSelectedBlogIds((prev) => Array.from(new Set([...prev, ...paginatedIds])));
+    }
+  };
+
+  const handleToggleSelectBlog = (id: number) => {
+    setSelectedBlogIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDeleteBlogs = async () => {
+    if (selectedBlogIds.length === 0) return;
+
+    const result = await Swal.fire({
+      title: `Delete ${selectedBlogIds.length} Blog Post(s)?`,
+      text: `Are you sure you want to permanently delete the ${selectedBlogIds.length} selected blog posts? This action cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#e11d48',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: `Yes, Delete ${selectedBlogIds.length} Posts`,
+      cancelButtonText: 'Cancel',
+    });
+
+    if (!result.isConfirmed) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/admin/blogs', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedBlogIds }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Deleted!',
+          text: data.message || `${selectedBlogIds.length} blog posts deleted successfully.`,
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        setSelectedBlogIds([]);
+        fetchBlogs();
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: data.error || 'Failed to delete selected blogs',
+        });
+      }
+    } catch {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'An unexpected error occurred during bulk deletion.',
+      });
     } finally {
       setDeleting(false);
     }
@@ -305,6 +383,8 @@ export default function AdminBlogsPage() {
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (safeCurrentPage - 1) * pageSize;
   const paginatedBlogs = filteredBlogs.slice(startIndex, startIndex + pageSize);
+  const isAllPaginatedSelected =
+    paginatedBlogs.length > 0 && paginatedBlogs.every((b) => selectedBlogIds.includes(b.id));
 
   return (
     <div className="space-y-8 w-full">
@@ -403,11 +483,50 @@ export default function AdminBlogsPage() {
           </div>
         </div>
 
+        {/* Bulk Action Bar */}
+        {selectedBlogIds.length > 0 && (
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
+            <div className="flex items-center space-x-3 text-xs font-bold text-rose-900">
+              <span className="bg-rose-600 text-white px-2.5 py-1 rounded-lg">
+                {selectedBlogIds.length} Selected
+              </span>
+              <span>Blog post(s) selected for action</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setSelectedBlogIds([])}
+                className="px-3 py-1.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                Deselect All
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDeleteBlogs}
+                disabled={deleting}
+                className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center space-x-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Selected ({selectedBlogIds.length})</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Data Table */}
         <div className="overflow-x-auto pt-2">
           <table className="w-full text-left text-sm text-gray-700">
             <thead className="bg-gray-50 text-xs font-bold uppercase text-gray-500 border-b border-gray-100">
               <tr>
+                <th className="p-4 w-10">
+                  <input
+                    type="checkbox"
+                    checked={isAllPaginatedSelected}
+                    onChange={handleToggleSelectAll}
+                    className="w-4 h-4 rounded text-[#ec2c6c] border-gray-300 focus:ring-[#ec2c6c] cursor-pointer"
+                    title="Select all on this page"
+                  />
+                </th>
                 <th className="p-4">Article</th>
                 <th className="p-4">Category</th>
                 <th className="p-4">Author</th>
@@ -418,7 +537,20 @@ export default function AdminBlogsPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {paginatedBlogs.map((b) => (
-                <tr key={b.id} className="hover:bg-gray-50/60 transition-colors">
+                <tr
+                  key={b.id}
+                  className={`hover:bg-gray-50/60 transition-colors ${
+                    selectedBlogIds.includes(b.id) ? 'bg-pink-50/30' : ''
+                  }`}
+                >
+                  <td className="p-4 w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedBlogIds.includes(b.id)}
+                      onChange={() => handleToggleSelectBlog(b.id)}
+                      className="w-4 h-4 rounded text-[#ec2c6c] border-gray-300 focus:ring-[#ec2c6c] cursor-pointer"
+                    />
+                  </td>
                   <td className="p-4 max-w-md">
                     <div className="flex items-start space-x-3">
                       <div className="relative w-14 h-14 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-200">

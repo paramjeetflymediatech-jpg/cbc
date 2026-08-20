@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import { Globe, Code, Plus, Edit, Trash2, Save, Search, Settings, Upload, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SeoItem {
@@ -23,6 +24,8 @@ export default function AdminSeoPage() {
   const [activeTab, setActiveTab] = useState<'scripts' | 'seo'>('scripts');
   const [seoList, setSeoList] = useState<SeoItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSeoIds, setSelectedSeoIds] = useState<number[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   
   // Scripts Form State
   const [headerScript, setHeaderScript] = useState('');
@@ -182,7 +185,19 @@ export default function AdminSeoPage() {
   };
 
   const handleDeleteSeo = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this SEO configuration?')) return;
+    const result = await Swal.fire({
+      title: 'Delete SEO Configuration?',
+      text: 'Are you sure you want to delete this SEO path configuration? This action cannot be undone.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#e11d48',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, Delete',
+      cancelButtonText: 'Cancel',
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       const res = await fetch('/api/admin/seo', {
         method: 'POST',
@@ -194,11 +209,97 @@ export default function AdminSeoPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to delete SEO config');
-      
-      showToast('success', 'SEO configuration deleted');
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Deleted!',
+        text: 'SEO configuration deleted successfully.',
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      setSelectedSeoIds((prev) => prev.filter((item) => item !== id));
       fetchData();
     } catch (err: any) {
-      showToast('error', err.message || 'Error deleting SEO config');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err.message || 'Error deleting SEO configuration',
+      });
+    }
+  };
+
+  // Bulk Selection Handlers
+  const handleToggleSelectAllSeo = () => {
+    if (paginatedSeoList.length === 0) return;
+    const paginatedIds = paginatedSeoList.map((s) => s.id);
+    const allSelected = paginatedIds.every((id) => selectedSeoIds.includes(id));
+
+    if (allSelected) {
+      setSelectedSeoIds((prev) => prev.filter((id) => !paginatedIds.includes(id)));
+    } else {
+      setSelectedSeoIds((prev) => Array.from(new Set([...prev, ...paginatedIds])));
+    }
+  };
+
+  const handleToggleSelectSeo = (id: number) => {
+    setSelectedSeoIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDeleteSeo = async () => {
+    if (selectedSeoIds.length === 0) return;
+
+    const result = await Swal.fire({
+      title: `Delete ${selectedSeoIds.length} SEO Configuration(s)?`,
+      text: `Are you sure you want to delete the ${selectedSeoIds.length} selected SEO path configurations? This action cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#e11d48',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: `Yes, Delete ${selectedSeoIds.length} Items`,
+      cancelButtonText: 'Cancel',
+    });
+
+    if (!result.isConfirmed) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const res = await fetch('/api/admin/seo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'bulk_delete',
+          ids: selectedSeoIds,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Deleted!',
+          text: data.message || `${selectedSeoIds.length} SEO configurations deleted successfully.`,
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        setSelectedSeoIds([]);
+        fetchData();
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: data.error || 'Failed to delete selected SEO configurations',
+        });
+      }
+    } catch {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'An unexpected error occurred during bulk deletion.',
+      });
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -427,12 +528,51 @@ export default function AdminSeoPage() {
             </button>
           </div>
 
+          {/* Bulk Action Bar */}
+          {selectedSeoIds.length > 0 && (
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center space-x-3 text-xs font-bold text-rose-900">
+                <span className="bg-rose-600 text-white px-2.5 py-1 rounded-lg">
+                  {selectedSeoIds.length} Selected
+                </span>
+                <span>SEO configuration(s) selected for action</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedSeoIds([])}
+                  className="px-3 py-1.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  Deselect All
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkDeleteSeo}
+                  disabled={isBulkDeleting}
+                  className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center space-x-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Selected ({selectedSeoIds.length})</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Table list */}
           <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100 text-[10px] font-black uppercase text-gray-500 tracking-wider">
+                    <th className="px-4 py-4 w-10">
+                      <input
+                        type="checkbox"
+                        checked={paginatedSeoList.length > 0 && paginatedSeoList.every((s) => selectedSeoIds.includes(s.id))}
+                        onChange={handleToggleSelectAllSeo}
+                        className="w-4 h-4 rounded text-[#ec2c6c] border-gray-300 focus:ring-[#ec2c6c] cursor-pointer"
+                        title="Select all on this page"
+                      />
+                    </th>
                     <th className="px-6 py-4">Page Name</th>
                     <th className="px-6 py-4">URL Path</th>
                     <th className="px-6 py-4">Meta Title</th>
@@ -444,7 +584,20 @@ export default function AdminSeoPage() {
                 <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
                   {paginatedSeoList.length > 0 ? (
                     paginatedSeoList.map((seo) => (
-                      <tr key={seo.id} className="hover:bg-gray-50/50 transition-colors">
+                      <tr
+                        key={seo.id}
+                        className={`hover:bg-gray-50/50 transition-colors ${
+                          selectedSeoIds.includes(seo.id) ? 'bg-pink-50/30' : ''
+                        }`}
+                      >
+                        <td className="px-4 py-4.5 w-10">
+                          <input
+                            type="checkbox"
+                            checked={selectedSeoIds.includes(seo.id)}
+                            onChange={() => handleToggleSelectSeo(seo.id)}
+                            className="w-4 h-4 rounded text-[#ec2c6c] border-gray-300 focus:ring-[#ec2c6c] cursor-pointer"
+                          />
+                        </td>
                         <td className="px-6 py-4.5 font-extrabold text-gray-900 max-w-[150px] truncate">
                           {seo.pageName || 'Unnamed Page'}
                         </td>

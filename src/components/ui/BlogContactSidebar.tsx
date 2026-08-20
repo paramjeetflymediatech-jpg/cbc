@@ -222,11 +222,11 @@ export default function BlogContactSidebar({ categoryName, articleTitle }: BlogC
         </p>
 
         <div className="space-y-3 text-xs font-bold pt-1">
-          <a href="tel:8146269537" className="flex items-center space-x-3 text-gray-200 hover:text-[#fd1d74] transition-colors">
+          <a href="tel:9888484310" className="flex items-center space-x-3 text-gray-200 hover:text-[#fd1d74] transition-colors">
             <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[#fd1d74]">
               <Phone className="w-4 h-4" />
             </div>
-            <span>+91 81462 69537</span>
+            <span>+91 9888484310</span>
           </a>
 
           <a href="mailto:info@clinicbychoice.com" className="flex items-center space-x-3 text-gray-200 hover:text-[#fd1d74] transition-colors">

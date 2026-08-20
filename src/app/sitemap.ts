@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 import { connectDB } from '@/lib/db';
-import { Service, Hospital, BlogPost, SeoMetadata } from '@/models';
+import { Service, Hospital, HospitalService, ServiceLocation, BlogPost, initAssociations } from '@/models';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
@@ -43,12 +43,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     await connectDB();
+    initAssociations();
 
     // 1. Dynamic Treatment / Service Pages (/hospitals/${service.slug}/india)
     const services = await Service.findAll({
-      attributes: ['slug', 'updatedAt'],
+      where: { status: 'ACTIVE' },
+      attributes: ['id', 'slug', 'updatedAt'],
       raw: true,
     });
+
     for (const service of services as any[]) {
       if (service.slug) {
         routes.push({
@@ -57,39 +60,66 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           changeFrequency: 'weekly',
           priority: 0.85,
         });
-
-        const topCitySlugs = [
-          'ludhiana',
-          'delhi',
-          'mumbai',
-          'bengaluru',
-          'hyderabad',
-          'chennai',
-          'kolkata',
-          'chandigarh',
-          'pune',
-          'jaipur',
-          'amritsar',
-          'jalandhar',
-          'mohali',
-          'patiala',
-          'ahmedabad',
-          'lucknow',
-        ];
-        for (const citySlug of topCitySlugs) {
-          routes.push({
-            url: `${baseUrl}/hospitals/${service.slug}/${citySlug}`,
-            lastModified: service.updatedAt ? new Date(service.updatedAt) : new Date(),
-            changeFrequency: 'weekly',
-            priority: 0.8,
-          });
-        }
       }
     }
 
-    // 2. Dynamic Hospital Profiles (/hospital/${hospital.slug})
-    const hospitals = await Hospital.findAll({
+    // 2. Only include City Service URLs (/hospitals/${service.slug}/${citySlug}) if active hospitals exist or custom content is configured
+    const validServiceCityPairs = new Set<string>();
+
+    const activeHospitalServices = await HospitalService.findAll({
       where: { status: 'ACTIVE' },
+      include: [
+        {
+          model: Hospital,
+          as: 'hospital',
+          where: { status: 'APPROVED', accountStatus: 'ACTIVE' },
+          attributes: ['city'],
+        },
+        {
+          model: Service,
+          as: 'service',
+          where: { status: 'ACTIVE' },
+          attributes: ['slug'],
+        },
+      ],
+    });
+
+    activeHospitalServices.forEach((hs: any) => {
+      const sSlug = hs.service?.slug;
+      const hCity = hs.hospital?.city;
+      if (sSlug && hCity && hCity.trim()) {
+        const cSlug = hCity.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        if (cSlug) {
+          validServiceCityPairs.add(`${sSlug}/${cSlug}`);
+        }
+      }
+    });
+
+    // Also include any explicitly configured custom ServiceLocation pages
+    const customServiceLocations = await ServiceLocation.findAll({
+      where: { status: 'ACTIVE' },
+      attributes: ['serviceSlug', 'citySlug', 'updatedAt'],
+      raw: true,
+    });
+
+    customServiceLocations.forEach((sl: any) => {
+      if (sl.serviceSlug && sl.citySlug) {
+        validServiceCityPairs.add(`${sl.serviceSlug}/${sl.citySlug}`);
+      }
+    });
+
+    for (const pair of validServiceCityPairs) {
+      routes.push({
+        url: `${baseUrl}/hospitals/${pair}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.8,
+      });
+    }
+
+    // 3. Dynamic Hospital Profiles (/hospital/${hospital.slug})
+    const hospitals = await Hospital.findAll({
+      where: { status: 'APPROVED', accountStatus: 'ACTIVE' },
       attributes: ['slug', 'updatedAt'],
       raw: true,
     });
@@ -118,34 +148,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           changeFrequency: 'weekly',
           priority: 0.8,
         });
-      }
-    }
-
-    // 4. Custom SEO URLs from seo_metadata
-    const seoEntries = await SeoMetadata.findAll({
-      attributes: ['path', 'updatedAt', 'robotsIndex'],
-      raw: true,
-    });
-    const existingUrls = new Set(routes.map((r) => r.url));
-    for (const entry of seoEntries as any[]) {
-      if (
-        entry.path &&
-        !entry.path.startsWith('/admin') &&
-        !entry.path.startsWith('/api') &&
-        !entry.path.startsWith('/login') &&
-        !(entry.robotsIndex && entry.robotsIndex.includes('noindex'))
-      ) {
-        const cleanPath = entry.path.startsWith('/') ? entry.path : `/${entry.path}`;
-        const fullUrl = `${baseUrl}${cleanPath}`;
-        if (!existingUrls.has(fullUrl)) {
-          existingUrls.add(fullUrl);
-          routes.push({
-            url: fullUrl,
-            lastModified: entry.updatedAt ? new Date(entry.updatedAt) : new Date(),
-            changeFrequency: 'weekly',
-            priority: 0.75,
-          });
-        }
       }
     }
   } catch (err) {
