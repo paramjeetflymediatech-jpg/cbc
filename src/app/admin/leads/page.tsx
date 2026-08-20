@@ -236,9 +236,9 @@ export default function AdminLeadsPage() {
             <table className="w-full text-left text-sm text-gray-700">
               <thead className="bg-gray-50 text-xs font-bold uppercase text-gray-500">
                 <tr>
-                  <th className="p-4">Patient Name</th>
-                  <th className="p-4">Hospital Name</th>
-                  <th className="p-4">Service</th>
+                  <th className="p-4">Patient Info</th>
+                  <th className="p-4">Hospital & Location</th>
+                  <th className="p-4">Specialty Service</th>
                   <th className="p-4">Date</th>
                   <th className="p-4">Status</th>
                   <th className="p-4 text-right">Actions</th>
@@ -248,10 +248,36 @@ export default function AdminLeadsPage() {
                 {paginatedLeads.map((l) => (
                   <tr key={l.id} className="hover:bg-gray-50/50">
                     <td className="p-4 font-bold text-gray-900">
-                      {l.patientName}
-                      <p className="text-xs text-gray-500 font-normal">{l.phone} • {l.email}</p>
+                      <div className="flex items-center space-x-1.5">
+                        <Users className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                        <span>{l.patientName}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 font-normal mt-0.5">{l.phone} • {l.email}</p>
+                      {l.city && (
+                        <p className="text-[11px] text-gray-400 flex items-center mt-0.5">
+                          <MapPin className="w-3 h-3 mr-1 text-gray-400 flex-shrink-0" /> Patient City: {l.city}
+                        </p>
+                      )}
                     </td>
-                    <td className="p-4 text-xs font-semibold text-gray-900">{l.hospital?.name || 'General Platform'}</td>
+                    <td className="p-4 text-xs">
+                      <div className="flex items-center space-x-1.5 font-bold text-gray-900">
+                        <Building2 className="w-3.5 h-3.5 text-[#b02151] flex-shrink-0" />
+                        <span>{l.hospital?.name || 'General Platform'}</span>
+                      </div>
+                      {l.hospital ? (
+                        <div className="flex items-center space-x-1 text-[11px] text-gray-500 font-medium mt-0.5 pl-5">
+                          <MapPin className="w-3 h-3 text-pink-500 flex-shrink-0" />
+                          <span>
+                            {l.hospital.city}
+                            {l.hospital.state ? `, ${l.hospital.state}` : ''}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-bold ml-5 inline-block mt-0.5">
+                          Unassigned
+                        </span>
+                      )}
+                    </td>
                     <td className="p-4 text-xs font-medium text-[#ec2c6c]">{l.service?.name || 'General Consultation'}</td>
                     <td className="p-4 text-xs text-gray-500">{new Date(l.createdAt).toLocaleString('en-IN')}</td>
                     <td className="p-4">
@@ -354,7 +380,7 @@ export default function AdminLeadsPage() {
             <table className="w-full text-left text-sm text-gray-700">
               <thead className="bg-gray-50 text-xs font-bold uppercase text-gray-500">
                 <tr>
-                  <th className="p-4">Hospital Name</th>
+                  <th className="p-4">Hospital & Location</th>
                   <th className="p-4">Transaction Type</th>
                   <th className="p-4">Leads Credited</th>
                   <th className="p-4">Balance Log</th>
@@ -366,9 +392,17 @@ export default function AdminLeadsPage() {
               <tbody className="divide-y divide-gray-100">
                 {paginatedPurchases.map((tx) => (
                   <tr key={tx.id} className="hover:bg-gray-50/50">
-                    <td className="p-4 font-bold text-gray-900 flex items-center">
-                      <Building2 className="w-4 h-4 mr-2 text-[#b02151]" />
-                      {tx.hospital?.name}
+                    <td className="p-4 font-bold text-gray-900">
+                      <div className="flex items-center space-x-1.5">
+                        <Building2 className="w-4 h-4 text-[#b02151] flex-shrink-0" />
+                        <span>{tx.hospital?.name}</span>
+                      </div>
+                      {tx.hospital?.city && (
+                        <p className="text-[11px] text-gray-500 font-normal pl-5 flex items-center mt-0.5">
+                          <MapPin className="w-3 h-3 mr-0.5 text-gray-400" />
+                          {tx.hospital.city}{tx.hospital.state ? `, ${tx.hospital.state}` : ''}
+                        </p>
+                      )}
                     </td>
                     <td className="p-4">
                       <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 inline-flex items-center">
@@ -474,7 +508,7 @@ export default function AdminLeadsPage() {
             <table className="w-full text-left text-sm text-gray-700">
               <thead className="bg-gray-50 text-xs font-bold uppercase text-gray-500">
                 <tr>
-                  <th className="p-4">Hospital Name</th>
+                  <th className="p-4">Hospital & Location</th>
                   <th className="p-4">Type</th>
                   <th className="p-4">Lead Amount</th>
                   <th className="p-4">Balance Before / After</th>
@@ -486,7 +520,18 @@ export default function AdminLeadsPage() {
               <tbody className="divide-y divide-gray-100">
                 {paginatedAudit.map((tx) => (
                   <tr key={tx.id} className="hover:bg-gray-50/50">
-                    <td className="p-4 font-bold text-gray-900">{tx.hospital?.name}</td>
+                    <td className="p-4 font-bold text-gray-900">
+                      <div className="flex items-center space-x-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-[#b02151] flex-shrink-0" />
+                        <span>{tx.hospital?.name}</span>
+                      </div>
+                      {tx.hospital?.city && (
+                        <p className="text-[11px] text-gray-500 font-normal pl-5 flex items-center mt-0.5">
+                          <MapPin className="w-3 h-3 mr-0.5 text-gray-400" />
+                          {tx.hospital.city}{tx.hospital.state ? `, ${tx.hospital.state}` : ''}
+                        </p>
+                      )}
+                    </td>
                     <td className="p-4">
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
@@ -613,7 +658,7 @@ export default function AdminLeadsPage() {
             </div>
 
             <div className="space-y-4 text-xs">
-              {/* Contact Info */}
+              {/* Patient Contact Info */}
               <div className="p-4 bg-gray-50 rounded-2xl space-y-2 border border-gray-100">
                 <h4 className="font-bold text-gray-800 uppercase tracking-wider text-[10px]">Patient Contact Details</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-700">
@@ -628,22 +673,69 @@ export default function AdminLeadsPage() {
                   {viewLead.city && (
                     <div className="flex items-center space-x-2 col-span-2">
                       <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                      <span>{viewLead.city}</span>
+                      <span>Patient Location: <strong>{viewLead.city}</strong></span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Hospital & Service */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3.5 bg-blue-50/60 rounded-2xl border border-blue-100">
-                  <span className="text-[10px] font-bold text-blue-800 uppercase block mb-0.5">Assigned Hospital</span>
-                  <span className="font-extrabold text-gray-900">{viewLead.hospital?.name || 'General Platform'}</span>
+              {/* Assigned Hospital Information & Location */}
+              <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-100 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-blue-900 uppercase tracking-wider flex items-center space-x-1">
+                    <Building2 className="w-3.5 h-3.5 text-blue-700" />
+                    <span>Assigned Hospital & Location</span>
+                  </span>
+                  {viewLead.hospital?.city && (
+                    <span className="inline-flex items-center space-x-1 text-[10px] font-extrabold bg-blue-200/60 text-blue-900 px-2 py-0.5 rounded-full">
+                      <MapPin className="w-3 h-3 text-pink-600" />
+                      <span>{viewLead.hospital.city}{viewLead.hospital.state ? `, ${viewLead.hospital.state}` : ''}</span>
+                    </span>
+                  )}
                 </div>
 
-                <div className="p-3.5 bg-pink-50/60 rounded-2xl border border-pink-100">
-                  <span className="text-[10px] font-bold text-pink-800 uppercase block mb-0.5">Requested Specialty</span>
-                  <span className="font-extrabold text-[#ec2c6c]">{viewLead.service?.name || 'General Consultation'}</span>
+                <div className="text-gray-900 font-extrabold text-sm">
+                  {viewLead.hospital?.name || 'General Platform (Unassigned)'}
+                </div>
+
+                {viewLead.hospital && (
+                  <div className="space-y-1.5 pt-2 border-t border-blue-200/50 text-[11px] text-gray-700">
+                    {viewLead.hospital.address && (
+                      <div className="flex items-start space-x-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <span className="leading-tight">
+                          {viewLead.hospital.address}
+                          {viewLead.hospital.district ? `, ${viewLead.hospital.district}` : ''}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 pt-0.5 text-gray-600">
+                      {viewLead.hospital.phone && (
+                        <div className="flex items-center space-x-1">
+                          <Phone className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                          <a href={`tel:${viewLead.hospital.phone}`} className="hover:underline font-semibold text-gray-800">
+                            {viewLead.hospital.phone}
+                          </a>
+                        </div>
+                      )}
+                      {viewLead.hospital.email && (
+                        <div className="flex items-center space-x-1">
+                          <Mail className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                          <a href={`mailto:${viewLead.hospital.email}`} className="hover:underline font-semibold text-gray-800 truncate">
+                            {viewLead.hospital.email}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Requested Service */}
+              <div className="p-3.5 bg-pink-50/60 rounded-2xl border border-pink-100 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-pink-800 uppercase block mb-0.5">Requested Specialty / Service</span>
+                  <span className="font-extrabold text-[#ec2c6c] text-sm">{viewLead.service?.name || 'General Consultation'}</span>
                 </div>
               </div>
 
@@ -702,14 +794,32 @@ export default function AdminLeadsPage() {
             </div>
 
             <div className="space-y-4 text-xs">
-              {/* Hospital Info */}
-              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Hospital Profile</span>
-                  <span className="font-extrabold text-gray-900 text-sm">{viewTransaction.hospital?.name}</span>
-                  <p className="text-[11px] text-gray-500">{viewTransaction.hospital?.city}</p>
+              {/* Hospital Info & Location */}
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Hospital Profile & Location</span>
+                  <Building2 className="w-5 h-5 text-[#b02151]" />
                 </div>
-                <Building2 className="w-6 h-6 text-[#b02151]" />
+                <div className="font-extrabold text-gray-900 text-sm">
+                  {viewTransaction.hospital?.name}
+                </div>
+                {viewTransaction.hospital && (
+                  <div className="text-[11px] text-gray-600 space-y-1 pt-1.5 border-t border-gray-200/60">
+                    <div className="flex items-center space-x-1.5 text-gray-700 font-semibold">
+                      <MapPin className="w-3.5 h-3.5 text-pink-500 flex-shrink-0" />
+                      <span>
+                        {viewTransaction.hospital.city}
+                        {viewTransaction.hospital.state ? `, ${viewTransaction.hospital.state}` : ''}
+                      </span>
+                    </div>
+                    {viewTransaction.hospital.address && (
+                      <p className="text-gray-500 pl-5 leading-tight">
+                        {viewTransaction.hospital.address}
+                        {viewTransaction.hospital.district ? `, ${viewLead?.hospital?.district}` : ''}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Lead Amount & Balance Log */}

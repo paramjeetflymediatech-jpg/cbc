@@ -112,9 +112,9 @@ export default async function HospitalsPage({ searchParams }: PageProps) {
           </span>
           <h1 className="text-3xl sm:text-4xl font-extrabold">Find Accredited Hospitals & Clinics</h1>
 
-          {/* Instant Auto-Submit FilterBar onSelect */}
+          {/* FilterBar with seamless cascade and filter button */}
           <FilterBar
-            basePath="/hospitals"
+            basePath="/hospital"
             states={states}
             districts={districts}
             cities={cities}

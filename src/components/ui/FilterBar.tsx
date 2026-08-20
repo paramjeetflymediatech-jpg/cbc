@@ -126,50 +126,63 @@ export default function FilterBar({
     ? (dynStateCityMap[selectedState] || cities)
     : cities;
 
+  const effectiveBasePath = basePath === '/hospitals' ? '/hospital' : basePath || '/hospital';
+
   const handleStateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newState = e.target.value;
     setSelectedState(newState);
     setSelectedDistrict('');
     setSelectedCity('');
-    setTimeout(() => {
-      if (formRef.current) formRef.current.requestSubmit();
-    }, 50);
   };
 
   const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newDistrict = e.target.value;
     setSelectedDistrict(newDistrict);
     setSelectedCity('');
-    setTimeout(() => {
-      if (formRef.current) formRef.current.requestSubmit();
-    }, 50);
   };
 
   const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedCity(e.target.value);
-    setTimeout(() => {
-      if (formRef.current) formRef.current.requestSubmit();
-    }, 50);
-  };
-
-  const handleOtherSelectChange = () => {
-    setTimeout(() => {
-      if (formRef.current) formRef.current.requestSubmit();
-    }, 50);
   };
 
   const handleReset = () => {
     setSelectedState('');
     setSelectedDistrict('');
     setSelectedCity('');
-    router.push(basePath);
+    router.push(effectiveBasePath);
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const searchVal = (formData.get('search') as string || '').trim();
+    const stateVal = (formData.get('state') as string || '').trim();
+    const districtVal = (formData.get('district') as string || '').trim();
+    const cityVal = (formData.get('city') as string || '').trim();
+    const serviceVal = (formData.get('service') as string || '').trim();
+
+    // If on a specific service page or service selected with a city
+    if (serviceVal && cityVal && effectiveBasePath.startsWith('/hospitals/')) {
+      const citySlug = cityVal.toLowerCase().replace(/\s+/g, '-');
+      router.push(`/hospitals/${serviceVal}/${citySlug}`);
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (searchVal) params.set('search', searchVal);
+    if (stateVal) params.set('state', stateVal);
+    if (districtVal) params.set('district', districtVal);
+    if (cityVal) params.set('city', cityVal);
+    if (serviceVal) params.set('service', serviceVal);
+
+    const query = params.toString();
+    router.push(`${effectiveBasePath}${query ? `?${query}` : ''}`);
   };
 
   return (
     <form
       ref={formRef}
-      method="GET"
-      action={basePath}
+      onSubmit={handleSubmit}
       className={`bg-white p-3 rounded-2xl shadow-2xl grid grid-cols-1 sm:grid-cols-2 ${
         showSpecialtySelect ? 'lg:grid-cols-6' : 'lg:grid-cols-5'
       } gap-3 text-gray-900 pt-2`}
@@ -255,7 +268,6 @@ export default function FilterBar({
           <select
             name="service"
             defaultValue={currentService}
-            onChange={handleOtherSelectChange}
             className="w-full text-xs font-bold text-gray-800 bg-transparent focus:outline-none cursor-pointer"
           >
             <option value="">All Specialties</option>
@@ -272,18 +284,18 @@ export default function FilterBar({
       <div className="flex items-center space-x-2">
         <button
           type="submit"
-          className="cbc-btn-primary w-full py-2 text-xs font-bold uppercase tracking-wider flex items-center justify-center space-x-1.5 shadow-md"
+          className="cbc-btn-primary w-full py-2 text-xs font-bold uppercase tracking-wider flex items-center justify-center space-x-1.5 shadow-md cursor-pointer"
         >
-          <Filter className="w-3.5 h-3.5" />
-          <span>Filter</span>
+          <Search className="w-3.5 h-3.5" />
+          <span>Search</span>
         </button>
 
         {(selectedState || selectedDistrict || selectedCity || currentSearch || currentService) && (
           <button
             type="button"
             onClick={handleReset}
-            className="p-2 bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors"
-            title="Reset Filters"
+            className="p-2 bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors cursor-pointer"
+            title="Reset Search"
           >
             <RotateCcw className="w-4 h-4" />
           </button>

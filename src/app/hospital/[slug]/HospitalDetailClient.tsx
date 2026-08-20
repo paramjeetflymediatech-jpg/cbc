@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { MapPin, Phone, Globe, Star, ShieldCheck, Stethoscope, UserCheck, HelpCircle, PhoneCall, ChevronRight, CheckCircle2, AlertCircle, Loader2, Sparkles, Building2, Send, Clock, Map, Image as ImageIcon, X, ExternalLink, Tag } from 'lucide-react';
 import EnquiryModal from '@/components/ui/EnquiryModal';
@@ -180,9 +180,26 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
     setIsModalOpen(true);
   };
 
+  const [sidebarRequireLogin, setSidebarRequireLogin] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('cbc_pending_enquiry');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.patientName && !sidebarName) setSidebarName(parsed.patientName);
+        if (parsed.phone && !sidebarPhone) setSidebarPhone(parsed.phone);
+        if (parsed.email && !sidebarEmail) setSidebarEmail(parsed.email);
+        if (parsed.city && !sidebarCity) setSidebarCity(parsed.city);
+        if (parsed.message && !sidebarMessage) setSidebarMessage(parsed.message);
+      }
+    } catch {}
+  }, []);
+
   const handleSidebarSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
+    setSidebarRequireLogin(false);
     setFormLoading(true);
 
     try {
@@ -203,7 +220,31 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
 
       const data = await res.json();
       if (!res.ok) {
-        setFormError(data.error || 'Failed to submit enquiry.');
+        if (data.requireLogin || res.status === 409) {
+          setSidebarRequireLogin(true);
+          try {
+            localStorage.setItem(
+              'cbc_pending_enquiry',
+              JSON.stringify({
+                patientName: sidebarName,
+                phone: sidebarPhone,
+                email: sidebarEmail,
+                city: sidebarCity,
+                serviceId: sidebarServiceId ? Number(sidebarServiceId) : (services[0]?.id || 1),
+                hospitalId: hospital.id,
+                hospitalName: hospital.name,
+                message: sidebarMessage,
+                preferredContactTime: sidebarTime,
+                returnUrl: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '',
+              })
+            );
+          } catch (storageErr) {
+            console.warn(storageErr);
+          }
+          setFormError(data.error || 'An account with this email already exists. Please log in to complete your enquiry.');
+        } else {
+          setFormError(data.error || 'Failed to submit enquiry.');
+        }
       } else {
         setFormSuccess(true);
         setSidebarName('');
@@ -211,6 +252,9 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
         setSidebarEmail('');
         setSidebarCity('');
         setSidebarMessage('');
+        try {
+          localStorage.removeItem('cbc_pending_enquiry');
+        } catch {}
       }
     } catch {
       setFormError('Network error submitting enquiry.');
@@ -902,12 +946,38 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
                 </div>
               ) : (
                 <form onSubmit={handleSidebarSubmit} className="space-y-4">
-                  {formError && (
+                  {sidebarRequireLogin ? (
+                    <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl space-y-2 text-xs">
+                      <div className="flex items-start space-x-1.5 font-bold text-amber-900">
+                        <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <span>Account Already Exists</span>
+                      </div>
+                      <p className="text-[11px] text-amber-800 leading-tight">
+                        Your form details are saved. Log in with <strong>{sidebarEmail}</strong> to link and submit your enquiry.
+                      </p>
+                      <div className="space-y-1.5 pt-1">
+                        <a
+                          href={`/login?email=${encodeURIComponent(sidebarEmail)}&redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '')}`}
+                          className="cbc-btn-primary block text-center text-xs py-2 font-bold"
+                        >
+                          Log In & Submit
+                        </a>
+                        <div className="text-center">
+                          <a
+                            href={`/forgot-password?email=${encodeURIComponent(sidebarEmail)}`}
+                            className="text-[10px] font-bold text-gray-600 hover:text-[#ec2c6c] underline"
+                          >
+                            Forgot password? Reset here
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ) : formError ? (
                     <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center space-x-2">
                       <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
                       <span>{formError}</span>
                     </div>
-                  )}
+                  ) : null}
 
                   <div>
                     <label className="block text-[11px] font-extrabold text-gray-700 uppercase mb-1">

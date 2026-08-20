@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { connectDB, sequelize } from '@/lib/db';
 import { Hospital, Lead, LeadTransaction, Notification, Service, User } from '@/models';
-import { sendEnquiryEmail } from '@/lib/mailer';
-import { verifyToken, hashPassword } from '@/lib/auth';
+import { sendEnquiryEmail, sendPatientCredentialsEmail } from '@/lib/mailer';
+import { verifyToken, signToken, hashPassword } from '@/lib/auth';
 import { Op } from 'sequelize';
 import crypto from 'crypto';
 
@@ -31,11 +31,47 @@ export async function POST(req: Request) {
     const cleanName = patientName.trim();
     const cleanPhone = phone.trim();
 
-    // 1. Find or create unique patient user account
-    let patientUser = await User.findOne({ where: { email: cleanEmail } });
+    // Check if requester is already authenticated via cookie or Bearer token
+    const authHeader = req.headers.get('authorization');
+    let token = '';
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else {
+      const { cookies } = await import('next/headers');
+      const cookieStore = await cookies();
+      token = cookieStore.get('cbc_token')?.value || '';
+    }
+
+    let authPayload: any = null;
+    if (token) {
+      authPayload = verifyToken(token);
+    }
+
+    const isVerifiedAuth = authPayload && authPayload.email && authPayload.email.toLowerCase().trim() === cleanEmail;
+
+    // Check if user account already exists in DB
+    const existingUser = await User.findOne({ where: { email: cleanEmail } });
+
+    // If account already exists but user is NOT authenticated with this email -> Require Login!
+    if (existingUser && !isVerifiedAuth) {
+      return NextResponse.json(
+        {
+          requireLogin: true,
+          error: 'An account with this email already exists. Please log in to securely submit and link your enquiry.',
+          email: cleanEmail,
+        },
+        { status: 409 }
+      );
+    }
+
+    let patientUser = existingUser;
+    let isNewUserCreated = false;
+    let plainGeneratedPassword = '';
+
+    // If new user, create their account with a clear readable password
     if (!patientUser) {
-      const generatedPassword = crypto.randomBytes(16).toString('hex');
-      const passHash = await hashPassword(generatedPassword);
+      plainGeneratedPassword = `CBC-${Math.floor(100000 + Math.random() * 900000)}`;
+      const passHash = await hashPassword(plainGeneratedPassword);
       patientUser = await User.create({
         name: cleanName,
         email: cleanEmail,
@@ -44,8 +80,7 @@ export async function POST(req: Request) {
         phone: cleanPhone || null,
         status: 'ACTIVE',
       });
-    } else if (cleanPhone && !patientUser.phone) {
-      await patientUser.update({ phone: cleanPhone });
+      isNewUserCreated = true;
     }
 
     let targetHospital = null;
@@ -121,7 +156,12 @@ export async function POST(req: Request) {
           // Link any other existing unassigned leads for this email to this user
           await Lead.update(
             { userId: patientUser.id },
-            { where: { email: cleanEmail, userId: null } }
+            {
+              where: {
+                email: cleanEmail,
+                [Op.or]: [{ userId: null }, { userId: { [Op.ne]: patientUser.id } }],
+              },
+            }
           );
 
           // Send lead details email to BOTH Target Hospital AND Super Admin
@@ -152,13 +192,24 @@ export async function POST(req: Request) {
           message: message ? message.trim() : null,
           preferredContactTime: preferredContactTime ? preferredContactTime.trim() : null,
           status: 'UNASSIGNED',
-          notes: [{ content: 'Lead held: Hospital has 0 leads balance. Patient details restricted until package purchase.', author: 'System', createdAt: new Date().toISOString() }],
+          notes: [
+            {
+              content: 'Lead held: Hospital has 0 leads balance. Patient details restricted until package purchase.',
+              author: 'System',
+              createdAt: new Date().toISOString(),
+            },
+          ],
         });
 
         // Link any other existing unassigned leads for this email to this user
         await Lead.update(
           { userId: patientUser.id },
-          { where: { email: cleanEmail, userId: null } }
+          {
+            where: {
+              email: cleanEmail,
+              [Op.or]: [{ userId: null }, { userId: { [Op.ne]: patientUser.id } }],
+            },
+          }
         );
 
         // Notify Hospital about pending lead locked due to zero balance
@@ -183,7 +234,7 @@ export async function POST(req: Request) {
         }).catch((err) => console.error('[MAILER] Async enquiry email failed:', err));
       }
     } else {
-      // General Contact Form or Unapproved Hospital -> Send to Super Admin and Hospital if available
+      // General Contact Form or Direct Platform Enquiry -> Assign to Super Admin / platform
       try {
         await Lead.create({
           userId: patientUser.id,
@@ -202,7 +253,12 @@ export async function POST(req: Request) {
         // Link any other existing unassigned leads for this email to this user
         await Lead.update(
           { userId: patientUser.id },
-          { where: { email: cleanEmail, userId: null } }
+          {
+            where: {
+              email: cleanEmail,
+              [Op.or]: [{ userId: null }, { userId: { [Op.ne]: patientUser.id } }],
+            },
+          }
         );
       } catch (leadErr) {
         console.warn('Fallback general lead creation error:', leadErr);
@@ -219,13 +275,46 @@ export async function POST(req: Request) {
       }).catch((err) => console.error('[MAILER] Async general contact email failed:', err));
     }
 
-    return NextResponse.json(
+    // Send account credentials email to newly registered patient
+    if (isNewUserCreated && plainGeneratedPassword) {
+      sendPatientCredentialsEmail({
+        patientName: cleanName,
+        email: cleanEmail,
+        password: plainGeneratedPassword,
+        hospitalName: targetHospital?.name,
+      }).catch((err) => console.error('[MAILER] Async patient credentials email failed:', err));
+    }
+
+    const response = NextResponse.json(
       {
         message: 'Thank you for your message. Your enquiry has been submitted successfully.',
         userId: patientUser.id,
+        userEmail: cleanEmail,
+        isNewUser: isNewUserCreated,
       },
       { status: 201 }
     );
+
+    // Auto-login the newly created patient
+    if (isNewUserCreated) {
+      const token = signToken({
+        userId: String(patientUser.id),
+        email: patientUser.email,
+        role: patientUser.role,
+        name: patientUser.name,
+      });
+
+      response.cookies.set({
+        name: 'cbc_token',
+        value: token,
+        httpOnly: true,
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7,
+        sameSite: 'lax',
+      });
+    }
+
+    return response;
   } catch (error) {
     console.error('Enquiry submission error:', error);
     return NextResponse.json({ error: 'Server error processing enquiry.' }, { status: 500 });
@@ -235,7 +324,10 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     await connectDB();
-    
+
+    const { searchParams } = new URL(req.url);
+    const emailParam = searchParams.get('email');
+
     // Extract authorization header or cbc_token cookie
     const authHeader = req.headers.get('authorization');
     let token = '';
@@ -248,23 +340,34 @@ export async function GET(req: Request) {
       token = cookieStore.get('cbc_token')?.value || '';
     }
 
-    if (!token) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    let cleanEmail = '';
+    let userIdNum: number | null = null;
+
+    if (token) {
+      const payload = verifyToken(token);
+      if (payload && payload.email) {
+        cleanEmail = payload.email.toLowerCase().trim();
+        userIdNum = payload.userId ? Number(payload.userId) : null;
+      }
     }
 
-    const payload = verifyToken(token);
-    if (!payload || !payload.email) {
-      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+    if (!cleanEmail && emailParam) {
+      cleanEmail = emailParam.toLowerCase().trim();
+      const user = await User.findOne({ where: { email: cleanEmail } });
+      if (user) {
+        userIdNum = user.id;
+      }
     }
 
-    const cleanEmail = payload.email.toLowerCase().trim();
-    const userIdNum = payload.userId ? Number(payload.userId) : null;
+    if (!cleanEmail && !userIdNum) {
+      return NextResponse.json({ error: 'Authentication or email required' }, { status: 401 });
+    }
 
     // Query leads for this user by userId OR email
     const whereCondition: any = {
       [Op.or]: [
         ...(userIdNum ? [{ userId: userIdNum }] : []),
-        { email: cleanEmail },
+        ...(cleanEmail ? [{ email: cleanEmail }] : []),
       ],
     };
 
@@ -274,7 +377,22 @@ export async function GET(req: Request) {
         {
           model: Hospital,
           as: 'hospital',
-          attributes: ['id', 'name', 'city', 'location', 'address', 'image', 'phone', 'email', 'rating', 'specialties', 'isNabhAccredited', 'isVerifiedPartner'],
+          attributes: [
+            'id',
+            'name',
+            'slug',
+            'city',
+            'state',
+            'district',
+            'address',
+            'logo',
+            'coverImage',
+            'phone',
+            'email',
+            'rating',
+            'isNabhAccredited',
+            'isVerifiedPartner',
+          ],
         },
         {
           model: Service,
@@ -285,7 +403,13 @@ export async function GET(req: Request) {
       order: [['createdAt', 'DESC']],
     });
 
-    return NextResponse.json({ leads });
+    return NextResponse.json({
+      success: true,
+      total: leads.length,
+      userId: userIdNum,
+      email: cleanEmail,
+      leads,
+    });
   } catch (error) {
     console.error('Fetch enquiries error:', error);
     return NextResponse.json({ error: 'Server error fetching enquiries' }, { status: 500 });

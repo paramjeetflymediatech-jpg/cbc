@@ -134,11 +134,30 @@ export default function EnquiryModal({
     }
   }, [isOpen, servicesList, hospitalId, validDefaultId]);
 
+  const [requireLogin, setRequireLogin] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      try {
+        const stored = localStorage.getItem('cbc_pending_enquiry');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.patientName) setPatientName(parsed.patientName);
+          if (parsed.phone) setPhone(parsed.phone);
+          if (parsed.email) setEmail(parsed.email);
+          if (parsed.city) setCity(parsed.city);
+          if (parsed.message) setMessage(parsed.message);
+        }
+      } catch {}
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+    setRequireLogin(false);
     setLoading(true);
 
     try {
@@ -160,9 +179,36 @@ export default function EnquiryModal({
       const data = await res.json();
 
       if (!res.ok) {
-        setErrorMessage(data.error || 'Failed to submit enquiry. Please try again.');
+        if (data.requireLogin || res.status === 409) {
+          setRequireLogin(true);
+          try {
+            localStorage.setItem(
+              'cbc_pending_enquiry',
+              JSON.stringify({
+                patientName,
+                phone,
+                email,
+                city,
+                serviceId: Number(serviceId),
+                hospitalId,
+                hospitalName,
+                message,
+                preferredContactTime,
+                returnUrl: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '',
+              })
+            );
+          } catch (storageErr) {
+            console.warn(storageErr);
+          }
+          setErrorMessage(data.error || 'An account with this email already exists. Please log in to complete your enquiry.');
+        } else {
+          setErrorMessage(data.error || 'Failed to submit enquiry. Please try again.');
+        }
       } else {
         setIsSuccess(true);
+        try {
+          localStorage.removeItem('cbc_pending_enquiry');
+        } catch {}
       }
     } catch {
       setErrorMessage('Network error while submitting enquiry.');
@@ -173,6 +219,7 @@ export default function EnquiryModal({
 
   const handleReset = () => {
     setIsSuccess(false);
+    setRequireLogin(false);
     setErrorMessage('');
     setPatientName('');
     setPhone('');
@@ -218,12 +265,40 @@ export default function EnquiryModal({
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {errorMessage && (
+              {requireLogin ? (
+                <div className="p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl space-y-3">
+                  <div className="flex items-start space-x-2">
+                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-xs space-y-1">
+                      <p className="font-bold text-amber-900">Account Already Exists</p>
+                      <p className="text-amber-800">
+                        An account with <strong>{email}</strong> already exists. Your form details are saved. Please log in to complete and link your enquiry.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <a
+                      href={`/login?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '')}`}
+                      className="cbc-btn-primary block text-center text-xs py-2.5 font-bold"
+                    >
+                      Log In & Submit Enquiry
+                    </a>
+                    <div className="text-center">
+                      <a
+                        href={`/forgot-password?email=${encodeURIComponent(email)}`}
+                        className="text-[11px] font-bold text-gray-600 hover:text-[#ec2c6c] underline"
+                      >
+                        Forgot your password? Get a new one
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ) : errorMessage ? (
                 <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl flex items-start space-x-2">
                   <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                   <span>{errorMessage}</span>
                 </div>
-              )}
+              ) : null}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

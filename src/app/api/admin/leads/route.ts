@@ -32,7 +32,7 @@ export async function GET() {
 
     const leads = await Lead.findAll({
       include: [
-        { model: Hospital, as: 'hospital', attributes: ['id', 'name', 'city'] },
+        { model: Hospital, as: 'hospital', attributes: ['id', 'name', 'city', 'state', 'district', 'address', 'phone', 'email'] },
         { model: Service, as: 'service', attributes: ['id', 'name', 'slug'] },
       ],
       order: [['createdAt', 'DESC']],
@@ -40,7 +40,7 @@ export async function GET() {
     });
 
     const leadTransactions = await LeadTransaction.findAll({
-      include: [{ model: Hospital, as: 'hospital', attributes: ['id', 'name', 'city'] }],
+      include: [{ model: Hospital, as: 'hospital', attributes: ['id', 'name', 'city', 'state', 'district', 'address', 'phone', 'email'] }],
       order: [['createdAt', 'DESC']],
       limit: 500,
     });

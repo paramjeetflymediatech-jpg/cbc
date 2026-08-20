@@ -347,3 +347,169 @@ export async function sendPackagePurchaseEmail({
   });
 }
 
+/**
+ * Send Patient Account Credentials & Welcome Email
+ */
+export async function sendPatientCredentialsEmail({
+  patientName,
+  email,
+  password,
+  hospitalName,
+}: {
+  patientName: string;
+  email: string;
+  password: string;
+  hospitalName?: string;
+}) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://clinicbychoice.com';
+  const loginUrl = `${appUrl}/login?email=${encodeURIComponent(email)}`;
+  const logoUrl = getLogoUrl();
+
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+      
+      <!-- Header with Black Logo Badge -->
+      <div style="background: linear-gradient(90deg, rgb(180 58 173) 0%, rgb(253 29 116) 50%, rgb(252 69 214) 100%); padding: 28px 24px; text-align: center;">
+        <div style="background-color: rgba(255, 255, 255, 0.98); padding: 10px 22px; border-radius: 14px; display: inline-block; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <img src="${logoUrl}" alt="Clinic By Choice Logo" style="max-height: 48px; width: auto; display: block; margin: 0 auto;" />
+        </div>
+        <h2 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Welcome to Clinic By Choice</h2>
+      </div>
+
+      <!-- Main Email Content -->
+      <div style="padding: 28px 24px; background-color: #ffffff;">
+        <p style="font-size: 15px; color: #374151; margin-top: 0; line-height: 1.6;">
+          Dear <strong>${patientName}</strong>,
+        </p>
+        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+          Thank you for submitting your medical enquiry${hospitalName ? ` to <strong>${hospitalName}</strong>` : ''} on <strong>Clinic By Choice</strong>.
+        </p>
+        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+          A dedicated account has been automatically created for you so you can securely track all your queries, receive updates from hospital coordinators, and manage your consultations in one place.
+        </p>
+
+        <!-- Credentials Box -->
+        <div style="margin: 24px 0; padding: 20px; background-color: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 12px;">
+          <h4 style="margin: 0 0 12px 0; color: #be185d; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800;">
+            Your Login Credentials
+          </h4>
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <tr>
+              <td style="padding: 6px 0; font-weight: 700; color: #6b7280; width: 120px;">Email / User ID:</td>
+              <td style="padding: 6px 0; color: #111827; font-weight: 700;">${email}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: 700; color: #6b7280;">Password:</td>
+              <td style="padding: 6px 0; color: #be185d; font-weight: 800; font-family: monospace; font-size: 16px;">${password}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Action Button -->
+        <div style="text-align: center; margin: 28px 0 20px 0;">
+          <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(90deg, #fd1d74 0%, #b02151 100%); color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 9999px; font-weight: 800; font-size: 14px; box-shadow: 0 4px 12px rgba(253, 29, 116, 0.3);">
+            Log In to Your Account
+          </a>
+        </div>
+
+        <p style="font-size: 12px; color: #9ca3af; text-align: center; margin-top: 16px; line-height: 1.5;">
+          For security, you can change your password anytime after logging in.
+        </p>
+      </div>
+
+      <!-- Footer Bar -->
+      <div style="background-color: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af;">
+        Copyright © 2026 Clinic By Choice. All rights reserved.
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email.trim(),
+    subject: `Your Clinic By Choice Account Credentials & Enquiry Confirmation`,
+    html,
+  });
+}
+
+/**
+ * Send Password Reset Email with New Temporary Password
+ */
+export async function sendPasswordResetEmail({
+  name,
+  email,
+  newPassword,
+}: {
+  name: string;
+  email: string;
+  newPassword: string;
+}) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://clinicbychoice.com';
+  const loginUrl = `${appUrl}/login?email=${encodeURIComponent(email)}`;
+  const logoUrl = getLogoUrl();
+
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+      
+      <!-- Header with Black Logo Badge -->
+      <div style="background: linear-gradient(90deg, rgb(180 58 173) 0%, rgb(253 29 116) 50%, rgb(252 69 214) 100%); padding: 28px 24px; text-align: center;">
+        <div style="background-color: rgba(255, 255, 255, 0.98); padding: 10px 22px; border-radius: 14px; display: inline-block; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <img src="${logoUrl}" alt="Clinic By Choice Logo" style="max-height: 48px; width: auto; display: block; margin: 0 auto;" />
+        </div>
+        <h2 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Password Reset Request</h2>
+      </div>
+
+      <!-- Main Email Content -->
+      <div style="padding: 28px 24px; background-color: #ffffff;">
+        <p style="font-size: 15px; color: #374151; margin-top: 0; line-height: 1.6;">
+          Dear <strong>${name || 'User'}</strong>,
+        </p>
+        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+          We received a request to reset your password for your <strong>Clinic By Choice</strong> account.
+        </p>
+        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+          A new temporary password has been generated for your account:
+        </p>
+
+        <!-- Credentials Box -->
+        <div style="margin: 24px 0; padding: 20px; background-color: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 12px;">
+          <h4 style="margin: 0 0 12px 0; color: #be185d; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800;">
+            Your New Login Credentials
+          </h4>
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <tr>
+              <td style="padding: 6px 0; font-weight: 700; color: #6b7280; width: 120px;">Email / User ID:</td>
+              <td style="padding: 6px 0; color: #111827; font-weight: 700;">${email}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: 700; color: #6b7280;">New Password:</td>
+              <td style="padding: 6px 0; color: #be185d; font-weight: 800; font-family: monospace; font-size: 16px;">${newPassword}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Action Button -->
+        <div style="text-align: center; margin: 28px 0 20px 0;">
+          <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(90deg, #fd1d74 0%, #b02151 100%); color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 9999px; font-weight: 800; font-size: 14px; box-shadow: 0 4px 12px rgba(253, 29, 116, 0.3);">
+            Log In Now
+          </a>
+        </div>
+
+        <p style="font-size: 12px; color: #9ca3af; text-align: center; margin-top: 16px; line-height: 1.5;">
+          If you did not request this password reset, please contact support or log in immediately to secure your account.
+        </p>
+      </div>
+
+      <!-- Footer Bar -->
+      <div style="background-color: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af;">
+        Copyright © 2026 Clinic By Choice. All rights reserved.
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email.trim(),
+    subject: `Password Reset Request - Clinic By Choice`,
+    html,
+  });
+}
+

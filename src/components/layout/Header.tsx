@@ -209,18 +209,30 @@ export default function Header() {
 
             {authUser ? (
               <Link
-                href={authUser.role === 'HOSPITAL' ? '/hospital/dashboard' : '/admin/dashboard'}
+                href={
+                  authUser.role === 'HOSPITAL'
+                    ? '/hospital/dashboard'
+                    : authUser.role === 'PATIENT'
+                    ? '/patient/dashboard'
+                    : '/admin/dashboard'
+                }
                 className="bg-white text-[#fd1d74] text-xs font-extrabold py-2.5 px-5 rounded-full shadow-md hover:bg-gray-100 transition-colors flex items-center space-x-1.5"
               >
                 <Building2 className="w-4 h-4" />
-                <span>Dashboard</span>
+                <span>
+                  {authUser.role === 'PATIENT'
+                    ? 'My Enquiries'
+                    : authUser.role === 'HOSPITAL'
+                    ? 'Hospital Portal'
+                    : 'Admin Panel'}
+                </span>
               </Link>
             ) : (
               <Link
                 href="/login"
                 className="bg-white text-[#fd1d74] text-xs font-extrabold py-2.5 px-5 rounded-full shadow-md hover:bg-gray-100 transition-colors"
               >
-                Hospital Login
+                Login
               </Link>
             )}
           </div>
@@ -337,11 +349,21 @@ export default function Header() {
           <div className="pt-2 border-t border-gray-100">
             {authUser ? (
               <Link
-                href={authUser.role === 'HOSPITAL' ? '/hospital/dashboard' : '/admin/dashboard'}
+                href={
+                  authUser.role === 'HOSPITAL'
+                    ? '/hospital/dashboard'
+                    : authUser.role === 'PATIENT'
+                    ? '/patient/dashboard'
+                    : '/admin/dashboard'
+                }
                 className="cbc-btn-primary text-center w-full text-sm block py-2.5"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Go to Dashboard
+                {authUser.role === 'PATIENT'
+                  ? 'My Enquiries'
+                  : authUser.role === 'HOSPITAL'
+                  ? 'Hospital Dashboard'
+                  : 'Admin Dashboard'}
               </Link>
             ) : (
               <Link
@@ -349,7 +371,7 @@ export default function Header() {
                 className="cbc-btn-primary text-center w-full text-sm block py-2.5"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Doctor / Hospital Login
+                Login to Portal
               </Link>
             )}
           </div>
