@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import GoogleAddressMapPicker from '@/components/ui/GoogleAddressMapPicker';
 import RichTextEditor from '@/components/ui/RichTextEditor';
@@ -29,6 +29,11 @@ import {
   DollarSign,
   Star,
   RefreshCw,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 
 interface IDoctorReview {
@@ -121,6 +126,9 @@ export default function AdminHospitalsPage() {
   const [hospitals, setHospitals] = useState<HospitalData[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Dynamic Locations State
   const [statesList, setStatesList] = useState<StateItem[]>([]);
@@ -537,6 +545,34 @@ export default function AdminHospitalsPage() {
       .finally(() => setLoading(false));
   };
 
+  // Filter hospitals by search query & status
+  const filteredHospitals = useMemo(() => {
+    return hospitals.filter((h) => {
+      if (statusFilter && h.status !== statusFilter) return false;
+      if (searchQuery.trim() !== '') {
+        const q = searchQuery.toLowerCase().trim();
+        const matchName = h.name?.toLowerCase().includes(q);
+        const matchCity = h.city?.toLowerCase().includes(q);
+        const matchState = h.state?.toLowerCase().includes(q);
+        const matchEmail = h.email?.toLowerCase().includes(q);
+        const matchPhone = h.phone?.toLowerCase().includes(q);
+        return matchName || matchCity || matchState || matchEmail || matchPhone;
+      }
+      return true;
+    });
+  }, [hospitals, statusFilter, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredHospitals.length / pageSize));
+  const paginatedHospitals = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredHospitals.slice(start, start + pageSize);
+  }, [filteredHospitals, currentPage, pageSize]);
+
+  // Reset to page 1 on filter or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchQuery, pageSize]);
+
   useEffect(() => {
     const url = statusFilter ? `/api/admin/hospitals?status=${statusFilter}` : '/api/admin/hospitals';
     fetch(url)
@@ -934,7 +970,27 @@ export default function AdminHospitalsPage() {
           <p className="text-xs text-gray-500">Inspect hospital applications, add new hospitals, edit profiles, or purge data.</p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Live Search Input */}
+          <div className="relative min-w-[220px]">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name, city, email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#ec2c6c] placeholder:text-gray-400"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-bold"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
           <button
             onClick={() => setShowAddModal(true)}
             className="bg-[#b02151] hover:bg-[#921941] text-white text-xs font-extrabold px-4 py-2 rounded-xl uppercase tracking-wider transition-all shadow-md flex items-center space-x-1.5 cursor-pointer"
@@ -948,11 +1004,23 @@ export default function AdminHospitalsPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#ec2c6c]"
           >
-            <option value="">All Registrations</option>
-            <option value="PENDING">PENDING APPROVAL</option>
-            <option value="APPROVED">APPROVED</option>
-            <option value="REJECTED">REJECTED</option>
-            <option value="SUSPENDED">SUSPENDED</option>
+            <option value="">All Registrations ({hospitals.length})</option>
+            <option value="APPROVED">APPROVED ({hospitals.filter((h) => h.status === 'APPROVED').length})</option>
+            <option value="PENDING">PENDING APPROVAL ({hospitals.filter((h) => h.status === 'PENDING').length})</option>
+            <option value="REJECTED">REJECTED ({hospitals.filter((h) => h.status === 'REJECTED').length})</option>
+            <option value="SUSPENDED">SUSPENDED ({hospitals.filter((h) => h.status === 'SUSPENDED').length})</option>
+          </select>
+
+          {/* Page Size Selector */}
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#ec2c6c]"
+          >
+            <option value={10}>10 / page</option>
+            <option value={20}>20 / page</option>
+            <option value={50}>50 / page</option>
+            <option value={100}>100 / page</option>
           </select>
         </div>
       </div>
@@ -960,12 +1028,22 @@ export default function AdminHospitalsPage() {
       {/* Hospital Cards List */}
       <div className="space-y-4">
         {loading ? (
-          <div className="p-8 text-center text-xs text-gray-500 font-semibold flex items-center justify-center space-x-2">
-            <Loader2 className="w-4 h-4 animate-spin text-[#b02151]" />
+          <div className="p-12 text-center text-xs text-gray-500 font-semibold flex items-center justify-center space-x-2 bg-white rounded-3xl border border-gray-100 shadow-xs">
+            <Loader2 className="w-5 h-5 animate-spin text-[#b02151]" />
             <span>Loading hospitals...</span>
           </div>
+        ) : paginatedHospitals.length === 0 ? (
+          <div className="p-12 text-center text-gray-500 bg-white rounded-3xl border border-gray-100 shadow-xs space-y-2">
+            <Building2 className="w-10 h-10 text-gray-300 mx-auto" />
+            <h3 className="text-base font-bold text-gray-800">No Hospitals Found</h3>
+            <p className="text-xs text-gray-400 max-w-sm mx-auto">
+              {searchQuery
+                ? `No hospitals matched your search "${searchQuery}". Try clearing filters or using another keyword.`
+                : `No ${statusFilter || ''} hospital registrations available.`}
+            </p>
+          </div>
         ) : (
-          hospitals.map((h) => (
+          paginatedHospitals.map((h) => (
             <div key={h.id} className="cbc-card p-6 border border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div className="space-y-2 flex-1">
                 <div className="flex items-center space-x-2">
@@ -1085,6 +1163,91 @@ export default function AdminHospitalsPage() {
           ))
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {!loading && filteredHospitals.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+          <div className="text-xs font-medium text-gray-500">
+            Showing <strong className="font-bold text-gray-900">{(currentPage - 1) * pageSize + 1}</strong> to{' '}
+            <strong className="font-bold text-gray-900">
+              {Math.min(currentPage * pageSize, filteredHospitals.length)}
+            </strong>{' '}
+            of <strong className="font-bold text-gray-900">{filteredHospitals.length}</strong> hospitals
+          </div>
+
+          <div className="flex items-center space-x-1.5">
+            {/* First Page */}
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="First Page"
+            >
+              <ChevronsLeft className="w-4 h-4" />
+            </button>
+
+            {/* Prev Page */}
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Previous Page"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            {/* Page Numbers */}
+            <div className="flex items-center space-x-1 px-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum: number;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`min-w-[32px] h-8 px-2 rounded-xl text-xs font-bold transition-all ${
+                      currentPage === pageNum
+                        ? 'bg-[#ec2c6c] text-white shadow-xs'
+                        : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Next Page */}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+              className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Next Page"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+
+            {/* Last Page */}
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage >= totalPages}
+              className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Last Page"
+            >
+              <ChevronsRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Add New Hospital Modal */}
       {showAddModal && (
