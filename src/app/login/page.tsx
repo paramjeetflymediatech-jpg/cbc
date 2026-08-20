@@ -184,10 +184,7 @@ function LoginFormContent() {
         </div>
       </form>
 
-      <div className="p-4 bg-gray-50 rounded-xl text-xs text-gray-600 space-y-1">
-        <p className="font-semibold text-gray-900">Demo Credentials:</p>
-        <p>• <strong>Super Admin:</strong> admin@clinicbychoice.com / Admin123!</p>
-      </div>
+    
     </div>
   );
 }
