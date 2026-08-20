@@ -12,19 +12,36 @@ export async function GET(req: NextRequest) {
     const serviceId = searchParams.get('serviceId');
     const city = searchParams.get('city');
     const search = searchParams.get('search');
+    const countsOnly = searchParams.get('countsOnly') === 'true';
 
     const where: any = {};
-    if (serviceId) where.serviceId = Number(serviceId);
-    if (city) where.citySlug = city.toLowerCase().replace(/\s+/g, '-');
+    if (serviceId && serviceId !== 'ALL' && serviceId.trim() !== '') {
+      where.serviceId = Number(serviceId);
+    }
+    if (city && city.trim() !== '') {
+      where.citySlug = city.toLowerCase().replace(/\s+/g, '-');
+    }
     if (search && search.trim() !== '') {
+      const q = search.trim();
       where[Op.or] = [
-        { cityName: { [Op.like]: `%${search.trim()}%` } },
-        { serviceSlug: { [Op.like]: `%${search.trim()}%` } },
-        { description: { [Op.like]: `%${search.trim()}%` } },
+        { cityName: { [Op.like]: `%${q}%` } },
+        { serviceSlug: { [Op.like]: `%${q}%` } },
+        { serviceTitle: { [Op.like]: `%${q}%` } },
+        { stateName: { [Op.like]: `%${q}%` } },
       ];
     }
 
-    const locations = await ServiceLocation.findAll({
+    // Fast counts only
+    if (countsOnly) {
+      const total = await ServiceLocation.count();
+      return NextResponse.json({ success: true, total });
+    }
+
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '20', 10)));
+    const offset = (page - 1) * limit;
+
+    const { count, rows: locations } = await ServiceLocation.findAndCountAll({
       where,
       include: [
         {
@@ -35,9 +52,18 @@ export async function GET(req: NextRequest) {
         },
       ],
       order: [['cityName', 'ASC'], ['updatedAt', 'DESC']],
+      limit,
+      offset,
     });
 
-    return NextResponse.json({ success: true, locations });
+    return NextResponse.json({
+      success: true,
+      locations,
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit),
+    });
   } catch (error: any) {
     console.error('Error fetching service locations:', error);
     return NextResponse.json({ error: error.message || 'Failed to fetch service locations' }, { status: 500 });
@@ -85,7 +111,7 @@ export async function POST(req: NextRequest) {
         cityName: cityName.trim(),
         citySlug,
         stateName: stateName || null,
-        serviceTitle: serviceTitle || null,
+        serviceTitle: serviceTitle || `${service.name} in ${cityName.trim()}`,
         shortDescription: shortDescription || null,
         description: description || null,
         seoTitle: seoTitle || null,
@@ -97,25 +123,23 @@ export async function POST(req: NextRequest) {
     });
 
     if (!created) {
-      // Update existing record
       await record.update({
         serviceSlug: service.slug,
-        cityName: cityName.trim(),
         stateName: stateName || record.stateName,
-        serviceTitle: serviceTitle !== undefined ? serviceTitle : record.serviceTitle,
+        serviceTitle: serviceTitle || record.serviceTitle || `${service.name} in ${cityName.trim()}`,
         shortDescription: shortDescription !== undefined ? shortDescription : record.shortDescription,
         description: description !== undefined ? description : record.description,
         seoTitle: seoTitle !== undefined ? seoTitle : record.seoTitle,
         seoDescription: seoDescription !== undefined ? seoDescription : record.seoDescription,
         seoKeywords: seoKeywords !== undefined ? seoKeywords : record.seoKeywords,
-        faqs: faqs !== undefined ? faqs : record.faqs,
+        faqs: faqs && Array.isArray(faqs) ? faqs : record.faqs,
         status: status || record.status,
       });
     }
 
     return NextResponse.json({ success: true, location: record, created });
   } catch (error: any) {
-    console.error('Error saving service location description:', error);
+    console.error('Error creating/updating service location:', error);
     return NextResponse.json({ error: error.message || 'Failed to save service location' }, { status: 500 });
   }
 }

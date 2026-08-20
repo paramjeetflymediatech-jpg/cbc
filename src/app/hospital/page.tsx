@@ -3,6 +3,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import HospitalCard from '@/components/ui/HospitalCard';
 import FilterBar from '@/components/ui/FilterBar';
+import Pagination from '@/components/ui/Pagination';
 import { connectDB } from '@/lib/db';
 import { Hospital, Service, HospitalService } from '@/models';
 import { Op } from 'sequelize';
@@ -12,7 +13,7 @@ import { getLocationsData } from '@/lib/locations';
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
-  searchParams: Promise<{ state?: string; district?: string; city?: string; search?: string; service?: string }>;
+  searchParams: Promise<{ state?: string; district?: string; city?: string; search?: string; service?: string; page?: string }>;
 }
 
 import { getPageMetadata } from '@/lib/seo';
@@ -26,11 +27,14 @@ export async function generateMetadata() {
 }
 
 export default async function HospitalsPage({ searchParams }: PageProps) {
-  const { state, district, city, search, service: serviceSlug } = await searchParams;
+  const { state, district, city, search, service: serviceSlug, page } = await searchParams;
   const db = await connectDB();
   const { getPageSchemaMarkup } = await import('@/lib/seo');
   const schemaMarkup = await getPageSchemaMarkup('/hospital');
   const { states, districts, cities, locationsMap, stateDistrictMap, districtCityMap } = await getLocationsData();
+
+  const currentPage = Math.max(1, parseInt(page || '1', 10));
+  const ITEMS_PER_PAGE = 10;
 
   let parsedHospitals: any[] = [];
   let allServices: any[] = [];
@@ -146,7 +150,23 @@ export default async function HospitalsPage({ searchParams }: PageProps) {
           </div>
 
           {parsedHospitals.length > 0 ? (
-            parsedHospitals.map((h: any) => <HospitalCard key={h.id} hospital={h} />)
+            <>
+              {parsedHospitals
+                .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                .map((h: any) => (
+                  <HospitalCard key={h.id} hospital={h} />
+                ))}
+
+              {/* Pagination Controls */}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(parsedHospitals.length / ITEMS_PER_PAGE)}
+                totalItems={parsedHospitals.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                basePath="/hospital"
+                searchParams={{ state, district, city, search, service: serviceSlug }}
+              />
+            </>
           ) : (
             <div className="text-center py-16 bg-gray-50 rounded-2xl space-y-3 border border-dashed border-gray-200">
               <h3 className="text-lg font-bold text-gray-800">No Hospitals Found</h3>

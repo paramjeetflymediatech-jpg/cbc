@@ -54,11 +54,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )}
 
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[#101828] text-white flex flex-col justify-between transition-transform duration-300 ${
+        className={`fixed lg:sticky lg:top-0 inset-y-0 left-0 z-50 w-64 h-screen bg-[#101828] text-white flex flex-col justify-between transition-transform duration-300 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 flex-1 overflow-y-auto min-h-0 [scrollbar-width:thin] [scrollbar-color:#374151_transparent]">
           <div className="flex items-center justify-between border-b border-gray-800 pb-4">
             <Link href="/" className="relative h-10 w-40 block">
               <Image src="/images/logo.png" alt="Clinic By Choice" fill className="object-contain object-left" />
@@ -94,10 +94,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </nav>
         </div>
 
-        <div className="p-4 border-t border-gray-800">
+        <div className="p-4 border-t border-gray-800 flex-shrink-0 bg-[#101828]">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white hover:bg-red-500/10 border border-transparent transition-all"
+            className="w-full flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white hover:bg-red-500/10 border border-transparent transition-all cursor-pointer"
           >
             <LogOut className="w-4 h-4 mr-2 text-red-400" />
             <span>Sign Out</span>

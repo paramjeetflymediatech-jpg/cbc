@@ -5,6 +5,8 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import HospitalCard from '@/components/ui/HospitalCard';
 import FilterBar from '@/components/ui/FilterBar';
+import Pagination from '@/components/ui/Pagination';
+import LocationsWithHospitals from '@/components/ui/LocationsWithHospitals';
 import { connectDB } from '@/lib/db';
 import { Service, Hospital, HospitalService, ServiceLocation } from '@/models';
 import { Op } from 'sequelize';
@@ -25,7 +27,7 @@ export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ state?: string; district?: string; city?: string; search?: string }>;
+  searchParams: Promise<{ state?: string; district?: string; city?: string; search?: string; page?: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps) {
@@ -83,10 +85,13 @@ function cleanEditorHtml(html?: string): string {
 
 export default async function ServiceHospitalsIndiaPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const { state, district, city, search } = await searchParams;
+  const { state, district, city, search, page } = await searchParams;
 
   const db = await connectDB();
   if (!db) notFound();
+
+  const currentPage = Math.max(1, parseInt(page || '1', 10));
+  const ITEMS_PER_PAGE = 10;
 
   const { states, districts, cities, locationsMap, stateDistrictMap, districtCityMap } = await getLocationsData();
 
@@ -359,9 +364,21 @@ export default async function ServiceHospitalsIndiaPage({ params, searchParams }
 
             {hospitals.length > 0 ? (
               <div className="space-y-6">
-                {hospitals.map((h: any) => (
-                  <HospitalCard key={h.id} hospital={JSON.parse(JSON.stringify(h))} defaultServiceId={service.id} />
-                ))}
+                {hospitals
+                  .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                  .map((h: any) => (
+                    <HospitalCard key={h.id} hospital={JSON.parse(JSON.stringify(h))} defaultServiceId={service.id} />
+                  ))}
+
+                {/* Pagination Controls */}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(hospitals.length / ITEMS_PER_PAGE)}
+                  totalItems={hospitals.length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  basePath={`/hospitals/${service.slug}/india`}
+                  searchParams={{ state, district, city, search }}
+                />
               </div>
             ) : (
               <div className="text-center py-16 bg-gray-50 rounded-3xl space-y-3 border border-dashed border-gray-200 p-8">
@@ -439,51 +456,14 @@ export default async function ServiceHospitalsIndiaPage({ params, searchParams }
 
           {/* RIGHT COLUMN: Available Locations Only + Free Consultation (4 Columns) */}
           <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
-            {/* AVAILABLE CITIES ONLY (Shows ONLY cities where hospitals are available for this service) */}
+            {/* AVAILABLE CITIES ONLY (With Instant City Search) */}
             {availableCities.length > 0 && (
-              <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-xs space-y-4">
-                <div className="border-b border-gray-100 pb-3">
-                  <div className="flex items-center space-x-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#ec2c6c]">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>Locations With Hospitals</span>
-                  </div>
-                  <h3 className="text-base font-black text-gray-900 mt-0.5">
-                    Available in {availableCities.length} Cities
-                  </h3>
-                </div>
-
-                <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-1">
-                  {/* All India Option */}
-                  <Link
-                    href={`/hospitals/${service.slug}/india`}
-                    className="flex items-center justify-between p-2.5 rounded-xl text-xs font-bold border border-[#ec2c6c] bg-[#ec2c6c] text-white shadow-xs"
-                  >
-                    <span className="flex items-center space-x-2">
-                      <span>🇮🇳 All India</span>
-                    </span>
-                    <span className="bg-white/20 text-white text-[11px] px-2 py-0.5 rounded-full font-bold">
-                      {totalAllIndiaHospitals}
-                    </span>
-                  </Link>
-
-                  {/* Cities where hospitals are actually available */}
-                  {availableCities.map((c) => (
-                    <Link
-                      key={c.citySlug}
-                      href={`/hospitals/${service.slug}/${c.citySlug}`}
-                      className="flex items-center justify-between p-2.5 rounded-xl text-xs font-bold border border-gray-100 bg-white hover:bg-pink-50/50 hover:border-pink-200 text-gray-800 transition-all group"
-                    >
-                      <span className="flex items-center space-x-2 truncate">
-                        <MapPin className="w-3.5 h-3.5 text-[#ec2c6c] flex-shrink-0" />
-                        <span className="truncate">{c.cityName}</span>
-                      </span>
-                      <span className="text-[11px] px-2 py-0.5 rounded-full font-bold ml-2 flex-shrink-0 bg-gray-100 group-hover:bg-[#ec2c6c] group-hover:text-white text-gray-600 transition-colors">
-                        {c.count} {c.count === 1 ? 'Hospital' : 'Hospitals'}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
+              <LocationsWithHospitals
+                serviceSlug={service.slug}
+                currentCitySlug="india"
+                totalAllIndiaHospitals={totalAllIndiaHospitals}
+                availableCities={availableCities}
+              />
             )}
 
             {/* Quick Free Consultation Card */}

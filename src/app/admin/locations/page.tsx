@@ -22,6 +22,8 @@ import {
   Save,
   Globe,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import RichTextEditor from '@/components/ui/RichTextEditor';
@@ -80,13 +82,22 @@ export default function AdminLocationsPage() {
   const [districts, setDistricts] = useState<DistrictItem[]>([]);
   const [cities, setCities] = useState<CityItem[]>([]);
   const [serviceLocations, setServiceLocations] = useState<ServiceLocationItem[]>([]);
+  const [serviceLocationsTotal, setServiceLocationsTotal] = useState(0);
   const [servicesList, setServicesList] = useState<ServiceItem[]>([]);
 
   const [loading, setLoading] = useState(true);
+  const [slLoading, setSlLoading] = useState(false);
+  const [slPage, setSlPage] = useState(1);
+  const [slTotalPages, setSlTotalPages] = useState(1);
+  const [slLimit, setSlLimit] = useState(25);
+
   const [search, setSearch] = useState('');
   const [selectedStateFilter, setSelectedStateFilter] = useState<string>('');
   const [selectedDistrictFilter, setSelectedDistrictFilter] = useState<string>('');
   const [selectedServiceFilter, setSelectedServiceFilter] = useState<string>('');
+
+  const [locPage, setLocPage] = useState(1);
+  const [locLimit, setLocLimit] = useState(25);
 
   // Location Hierarchy Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -132,6 +143,19 @@ export default function AdminLocationsPage() {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  const fetchInitialCounts = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/service-locations?countsOnly=true');
+      if (res.ok) {
+        const data = await res.json();
+        setServiceLocationsTotal(data.total || 0);
+        setSlTotalPages(Math.ceil((data.total || 0) / slLimit));
+      }
+    } catch (err) {
+      console.error('Error fetching initial counts:', err);
+    }
+  }, [slLimit]);
+
   const fetchLocations = useCallback(async () => {
     setLoading(true);
     try {
@@ -152,19 +176,24 @@ export default function AdminLocationsPage() {
     }
   }, [search, selectedStateFilter, selectedDistrictFilter]);
 
-  const fetchServiceLocations = useCallback(async () => {
+  const fetchServiceLocations = useCallback(async (targetPage = slPage) => {
+    setSlLoading(true);
     try {
-      let url = `/api/admin/service-locations?search=${encodeURIComponent(search)}`;
+      let url = `/api/admin/service-locations?page=${targetPage}&limit=${slLimit}&search=${encodeURIComponent(search)}`;
       if (selectedServiceFilter) url += `&serviceId=${selectedServiceFilter}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setServiceLocations(data.locations || []);
+        setServiceLocationsTotal(data.total || 0);
+        setSlTotalPages(data.totalPages || 1);
       }
     } catch (err) {
       console.error('Error loading service locations:', err);
+    } finally {
+      setSlLoading(false);
     }
-  }, [search, selectedServiceFilter]);
+  }, [search, selectedServiceFilter, slPage, slLimit]);
 
   const fetchServices = useCallback(async () => {
     try {
@@ -181,13 +210,23 @@ export default function AdminLocationsPage() {
   useEffect(() => {
     fetchLocations();
     fetchServices();
-  }, [fetchLocations, fetchServices]);
+    fetchInitialCounts();
+  }, [fetchLocations, fetchServices, fetchInitialCounts]);
 
   useEffect(() => {
     if (activeTab === 'SERVICE_LOCATIONS') {
-      fetchServiceLocations();
+      fetchServiceLocations(slPage);
     }
-  }, [activeTab, fetchServiceLocations]);
+  }, [activeTab, fetchServiceLocations, slPage]);
+
+  // Reset page when search or filters change
+  useEffect(() => {
+    setSlPage(1);
+  }, [search, selectedServiceFilter]);
+
+  useEffect(() => {
+    setLocPage(1);
+  }, [activeTab, search, selectedStateFilter, selectedDistrictFilter]);
 
   // Modal Handlers for Hierarchy (State/District/City)
   const handleOpenAddModal = (entityType: 'STATE' | 'DISTRICT' | 'CITY') => {
@@ -549,7 +588,7 @@ export default function AdminLocationsPage() {
           }`}
         >
           <Sparkles className="w-4 h-4 text-amber-300" />
-          <span>City Service Descriptions & SEO ({serviceLocations.length})</span>
+          <span>City Service Descriptions & SEO ({serviceLocationsTotal.toLocaleString()})</span>
         </button>
       </div>
 
@@ -566,36 +605,43 @@ export default function AdminLocationsPage() {
                 ? 'Search city service descriptions (e.g. Ludhiana, Dermatologist, Cancer)...'
                 : `Search ${activeTab.toLowerCase()}...`
             }
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#ec2c6c] focus:bg-white transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[#ec2c6c] focus:outline-none"
           />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-2.5 text-xs text-gray-400 hover:text-gray-600 font-bold"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         {activeTab === 'SERVICE_LOCATIONS' && (
-          <div className="w-full md:w-64">
+          <div className="flex items-center space-x-2 w-full md:w-auto">
+            <span className="text-xs font-bold text-gray-500 uppercase flex-shrink-0">Service:</span>
             <select
               value={selectedServiceFilter}
               onChange={(e) => setSelectedServiceFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:border-[#ec2c6c]"
+              className="w-full md:w-56 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#ec2c6c]"
             >
-              <option value="">All Services</option>
-              {servicesList.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
+              <option value="">All Services ({servicesList.length})</option>
+              {servicesList.map((srv) => (
+                <option key={srv.id} value={srv.id}>
+                  {srv.name}
                 </option>
               ))}
             </select>
           </div>
         )}
 
-        {(activeTab === 'DISTRICTS' || activeTab === 'CITIES') && (
-          <div className="w-full md:w-48">
+        {activeTab === 'CITIES' && (
+          <div className="flex items-center space-x-2 w-full md:w-auto">
+            <span className="text-xs font-bold text-gray-500 uppercase flex-shrink-0">Filter State:</span>
             <select
               value={selectedStateFilter}
-              onChange={(e) => {
-                setSelectedStateFilter(e.target.value);
-                setSelectedDistrictFilter('');
-              }}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:border-[#ec2c6c]"
+              onChange={(e) => setSelectedStateFilter(e.target.value)}
+              className="w-full md:w-48 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#ec2c6c]"
             >
               <option value="">All States</option>
               {states.map((st) => (
@@ -618,8 +664,9 @@ export default function AdminLocationsPage() {
         /* SERVICE LOCATIONS TAB CONTENT */
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-4 bg-gray-50/80 border-b border-gray-200 flex items-center justify-between">
-            <div className="text-xs font-bold uppercase tracking-wider text-gray-500">
-              City-Specific Descriptions, SEO & FAQs ({serviceLocations.length})
+            <div className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center space-x-2">
+              <span>City-Specific Descriptions, SEO & FAQs ({serviceLocationsTotal.toLocaleString()})</span>
+              {slLoading && <Loader2 className="w-3.5 h-3.5 text-[#ec2c6c] animate-spin" />}
             </div>
             <button
               onClick={handleOpenAddServiceLoc}
@@ -643,7 +690,14 @@ export default function AdminLocationsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
-                {serviceLocations.length > 0 ? (
+                {slLoading && serviceLocations.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-16">
+                      <Loader2 className="w-6 h-6 text-[#ec2c6c] animate-spin mx-auto mb-2" />
+                      <span className="text-xs text-gray-500 font-bold">Loading records...</span>
+                    </td>
+                  </tr>
+                ) : serviceLocations.length > 0 ? (
                   serviceLocations.map((loc) => {
                     const serviceSlug = loc.service?.slug || loc.serviceSlug || 'service';
                     const citySlug = loc.citySlug || loc.cityName.toLowerCase().replace(/\s+/g, '-');
@@ -725,6 +779,62 @@ export default function AdminLocationsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {serviceLocationsTotal > 0 && (
+            <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div>
+                  Showing <strong>{(slPage - 1) * slLimit + 1}</strong> to{' '}
+                  <strong>{Math.min(slPage * slLimit, serviceLocationsTotal).toLocaleString()}</strong> of{' '}
+                  <strong className="text-[#ec2c6c]">{serviceLocationsTotal.toLocaleString()}</strong> records
+                </div>
+
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-gray-500 font-medium">Per page:</span>
+                  <select
+                    value={slLimit}
+                    onChange={(e) => {
+                      setSlLimit(Number(e.target.value));
+                      setSlPage(1);
+                    }}
+                    className="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#ec2c6c] cursor-pointer"
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
+
+              {slTotalPages > 1 && (
+                <div className="flex items-center space-x-1.5">
+                  <button
+                    onClick={() => setSlPage((p) => Math.max(1, p - 1))}
+                    disabled={slPage === 1 || slLoading}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed font-bold flex items-center space-x-1 cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Prev</span>
+                  </button>
+
+                  <span className="px-3 font-extrabold text-gray-800">
+                    Page {slPage} of {slTotalPages.toLocaleString()}
+                  </span>
+
+                  <button
+                    onClick={() => setSlPage((p) => Math.min(slTotalPages, p + 1))}
+                    disabled={slPage === slTotalPages || slLoading}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed font-bold flex items-center space-x-1 cursor-pointer"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         /* STATES, DISTRICTS, CITIES TABLES */
@@ -749,7 +859,7 @@ export default function AdminLocationsPage() {
               </thead>
               <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
                 {activeTab === 'STATES' &&
-                  states.map((st) => (
+                  states.slice((locPage - 1) * locLimit, locPage * locLimit).map((st) => (
                     <tr key={st.id} className="hover:bg-gray-50/50">
                       <td className="px-6 py-4 text-gray-400 font-mono">#{st.id}</td>
                       <td className="px-6 py-4 font-bold text-gray-900">{st.name}</td>
@@ -778,7 +888,7 @@ export default function AdminLocationsPage() {
                   ))}
 
                 {activeTab === 'DISTRICTS' &&
-                  districts.map((dt) => {
+                  districts.slice((locPage - 1) * locLimit, locPage * locLimit).map((dt) => {
                     const st = states.find((s) => s.id === dt.stateId);
                     return (
                       <tr key={dt.id} className="hover:bg-gray-50/50">
@@ -811,7 +921,7 @@ export default function AdminLocationsPage() {
                   })}
 
                 {activeTab === 'CITIES' &&
-                  cities.map((ct) => {
+                  cities.slice((locPage - 1) * locLimit, locPage * locLimit).map((ct) => {
                     const st = states.find((s) => s.id === ct.stateId);
                     const dt = districts.find((d) => d.id === ct.districtId);
                     return (
@@ -854,9 +964,83 @@ export default function AdminLocationsPage() {
                       </tr>
                     );
                   })}
+
+                {((activeTab === 'STATES' && states.length === 0) ||
+                  (activeTab === 'DISTRICTS' && districts.length === 0) ||
+                  (activeTab === 'CITIES' && cities.length === 0)) && (
+                  <tr>
+                    <td colSpan={activeTab === 'CITIES' ? 6 : activeTab === 'DISTRICTS' ? 5 : 4} className="text-center py-12 text-gray-400 italic">
+                      No {activeTab.toLowerCase()} found.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls for States / Districts / Cities */}
+          {(() => {
+            const currentList = activeTab === 'STATES' ? states : activeTab === 'DISTRICTS' ? districts : cities;
+            const totalCount = currentList.length;
+            const totalPages = Math.ceil(totalCount / locLimit);
+
+            if (totalCount === 0) return null;
+
+            return (
+              <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div>
+                    Showing <strong>{(locPage - 1) * locLimit + 1}</strong> to{' '}
+                    <strong>{Math.min(locPage * locLimit, totalCount).toLocaleString()}</strong> of{' '}
+                    <strong className="text-[#ec2c6c]">{totalCount.toLocaleString()}</strong> {activeTab.toLowerCase()}
+                  </div>
+
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-gray-500 font-medium">Per page:</span>
+                    <select
+                      value={locLimit}
+                      onChange={(e) => {
+                        setLocLimit(Number(e.target.value));
+                        setLocPage(1);
+                      }}
+                      className="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#ec2c6c] cursor-pointer"
+                    >
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center space-x-1.5">
+                    <button
+                      onClick={() => setLocPage((p) => Math.max(1, p - 1))}
+                      disabled={locPage === 1}
+                      className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed font-bold flex items-center space-x-1 cursor-pointer"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>Prev</span>
+                    </button>
+
+                    <span className="px-3 font-extrabold text-gray-800">
+                      Page {locPage} of {totalPages.toLocaleString()}
+                    </span>
+
+                    <button
+                      onClick={() => setLocPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={locPage === totalPages}
+                      className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed font-bold flex items-center space-x-1 cursor-pointer"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 
