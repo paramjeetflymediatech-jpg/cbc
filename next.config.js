@@ -44,6 +44,14 @@ const nextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: '/sitemap:id.xml',
+        destination: '/api/sitemap?id=:id',
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

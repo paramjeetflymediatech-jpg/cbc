@@ -2,10 +2,7 @@ import { MetadataRoute } from 'next';
 import { connectDB } from '@/lib/db';
 import { Service, Hospital, HospitalService, ServiceLocation, BlogPost, initAssociations } from '@/models';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 3600;
-
-async function getAllRoutes(): Promise<MetadataRoute.Sitemap> {
+export async function getAllRoutes(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://clinicbychoice.com').replace(/\/$/, '');
 
   const routes: MetadataRoute.Sitemap = [
@@ -155,22 +152,4 @@ async function getAllRoutes(): Promise<MetadataRoute.Sitemap> {
   }
 
   return routes;
-}
-
-export async function generateSitemaps() {
-  const routes = await getAllRoutes();
-  const chunkCount = Math.ceil(routes.length / 5000);
-  if (chunkCount === 0) return [{ id: 0 }];
-  
-  return Array.from({ length: chunkCount }, (_, i) => ({ id: i }));
-}
-
-export default async function sitemap({ id }: { id: number }): Promise<MetadataRoute.Sitemap> {
-  const routes = await getAllRoutes();
-  // Next.js may pass id as a string or number depending on the route, 
-  // ensure it's a number for calculations
-  const chunkId = Number(id) || 0;
-  const start = chunkId * 5000;
-  const end = start + 5000;
-  return routes.slice(start, end);
 }
