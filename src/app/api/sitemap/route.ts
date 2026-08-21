@@ -5,9 +5,20 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
 export async function GET(request: NextRequest) {
+  let chunkId = 1;
+
+  // 1. Try to get from searchParams (if rewrite passed it)
   const idStr = request.nextUrl.searchParams.get('id');
-  // if id is missing or invalid, default to chunk 1
-  const chunkId = idStr ? parseInt(idStr, 10) : 1;
+  if (idStr) {
+    chunkId = parseInt(idStr, 10);
+  } else {
+    // 2. Extract directly from the URL path (e.g., /sitemap2.xml -> 2)
+    const match = request.nextUrl.pathname.match(/sitemap(\d+)\.xml/);
+    if (match && match[1]) {
+      chunkId = parseInt(match[1], 10);
+    }
+  }
+  
   const chunkIndex = Math.max(0, chunkId - 1);
   
   const routes = await getAllRoutes();
