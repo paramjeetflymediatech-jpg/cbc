@@ -521,21 +521,47 @@ export default async function ServiceHospitalsIndiaPage({ params, searchParams }
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'MedicalWebPage',
-            name: `${service.name} in India`,
-            description: `Top accredited ${service.name} hospitals, clinics, and specialists across India.`,
-            url: `https://clinicbychoice.com/hospitals/${service.slug}/india`,
-            about: {
-              '@type': 'MedicalSpecialty',
-              name: service.name,
+          __html: JSON.stringify([
+            {
+              '@context': 'https://schema.org',
+              '@type': 'MedicalWebPage',
+              name: `${service.name} in India`,
+              description: `Top accredited ${service.name} hospitals, clinics, and specialists across India.`,
+              url: `https://clinicbychoice.com/hospitals/${service.slug}/india`,
+              about: {
+                '@type': 'MedicalSpecialty',
+                name: service.name,
+              },
+              spatialCoverage: {
+                '@type': 'Place',
+                name: 'India',
+              },
             },
-            spatialCoverage: {
-              '@type': 'Place',
-              name: 'India',
-            },
-          }),
+            {
+              '@context': 'https://schema.org',
+              '@type': 'BreadcrumbList',
+              itemListElement: [
+                {
+                  '@type': 'ListItem',
+                  position: 1,
+                  name: 'Home',
+                  item: 'https://clinicbychoice.com/',
+                },
+                {
+                  '@type': 'ListItem',
+                  position: 2,
+                  name: 'Treatments',
+                  item: 'https://clinicbychoice.com/treatments',
+                },
+                {
+                  '@type': 'ListItem',
+                  position: 3,
+                  name: service.name,
+                  item: `https://clinicbychoice.com/hospitals/${service.slug}/india`,
+                },
+              ],
+            }
+          ]),
         }}
       />
 
