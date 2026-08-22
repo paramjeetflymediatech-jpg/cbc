@@ -101,8 +101,35 @@ export default async function BlogDetailPage({ params }: PageProps) {
       })
     : new Date().toLocaleDateString();
 
+  const blogSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `https://clinicbychoice.com/blog/${blog.slug}`
+    },
+    "headline": blog.seoTitle || blog.title,
+    "description": blog.seoDescription || blog.excerpt || blog.title,
+    "image": blog.ogImage || blog.image ? [(blog.ogImage || blog.image)] : [],
+    "datePublished": blog.publishedAt ? new Date(blog.publishedAt).toISOString() : new Date().toISOString(),
+    "dateModified": blog.updatedAt ? new Date(blog.updatedAt).toISOString() : new Date().toISOString(),
+    "author": {
+      "@type": "Person",
+      "name": blog.author || "Clinic By Choice"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Clinic By Choice",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://clinicbychoice.com/images/logoblac.png"
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#f9fafb]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }} />
       <Header />
 
       {/* Article Header Banner */}

@@ -516,6 +516,49 @@ export default async function ServiceHospitalsIndiaPage({ params, searchParams }
       </main>
 
       <Footer />
+
+      {/* Structured Data Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'MedicalWebPage',
+            name: `${service.name} in India`,
+            description: `Top accredited ${service.name} hospitals, clinics, and specialists across India.`,
+            url: `https://clinicbychoice.com/hospitals/${service.slug}/india`,
+            about: {
+              '@type': 'MedicalSpecialty',
+              name: service.name,
+            },
+            spatialCoverage: {
+              '@type': 'Place',
+              name: 'India',
+            },
+          }),
+        }}
+      />
+
+      {/* FAQPage Structured Data Schema */}
+      {service.faqs && service.faqs.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: service.faqs.map((f: any) => ({
+                '@type': 'Question',
+                name: f.question,
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: f.answer,
+                },
+              })),
+            }),
+          }}
+        />
+      )}
     </div>
   );
 }

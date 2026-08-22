@@ -64,8 +64,24 @@ export default async function HospitalDetailPage({ params }: PageProps) {
 
   const parsedHospital = JSON.parse(JSON.stringify(hospital));
 
+  const hospitalSchema = {
+    "@context": "https://schema.org",
+    "@type": "MedicalClinic",
+    "name": hospital.name,
+    "description": hospital.description?.substring(0, 200),
+    "image": hospital.logo || hospital.coverImage ? [(hospital.logo || hospital.coverImage)] : [],
+    "url": `https://clinicbychoice.com/hospital/${hospital.slug}`,
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": hospital.city || "",
+      "addressCountry": "IN"
+    },
+    "medicalSpecialty": (hospital as any).hospitalServices?.map((hs: any) => hs.service?.name).filter(Boolean) || []
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(hospitalSchema) }} />
       <Header />
       <HospitalDetailClient hospital={parsedHospital} />
       <Footer />
