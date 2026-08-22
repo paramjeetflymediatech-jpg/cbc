@@ -73,7 +73,7 @@ export default function ContactUsClient() {
           {/* Contact Details */}
           <div className="space-y-8">
             <div>
-              <h2 className="text-2xl font-extrabold text-gray-900">Reach Out To Us</h2>
+              <h2 className="text-2xl font-extrabold text-gray-900">For any inquiry contact us</h2>
               <p className="text-sm text-gray-600 mt-2">
                 Our support team is available Monday to Saturday (9 AM - 7 PM IST) to assist with hospital registrations and medical search enquiries.
               </p>
@@ -92,21 +92,12 @@ export default function ContactUsClient() {
 
               <div className="flex items-start space-x-4">
                 <div className="w-12 h-12 rounded-2xl bg-pink-50 text-[#ec2c6c] flex items-center justify-center flex-shrink-0">
-                  <Phone className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-gray-900 text-base">Phone Support</h4>
-                  <p className="text-sm text-gray-600">+91 9888484310</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 rounded-2xl bg-pink-50 text-[#ec2c6c] flex items-center justify-center flex-shrink-0">
                   <Mail className="w-6 h-6" />
                 </div>
                 <div>
                   <h4 className="font-bold text-gray-900 text-base">Email Queries</h4>
                   <p className="text-sm text-gray-600">info@clinicbychoice.com</p>
+                  <p className="text-sm text-gray-600 mt-1">anujguptaflymedia@gmail.com</p>
                 </div>
               </div>
             </div>

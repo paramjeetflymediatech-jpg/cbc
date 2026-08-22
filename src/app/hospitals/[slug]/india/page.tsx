@@ -502,13 +502,7 @@ export default async function ServiceHospitalsIndiaPage({ params, searchParams }
                 >
                   Book Free Consultation
                 </Link>
-                <a
-                  href="tel:+919888484310"
-                  className="flex items-center justify-center space-x-1.5 text-center w-full bg-white/10 hover:bg-white/20 text-white font-bold py-2.5 px-4 rounded-xl text-xs border border-white/15 transition-all"
-                >
-                  <PhoneCall className="w-3.5 h-3.5 text-pink-400" />
-                  <span>Call: +91-9888484310</span>
-                </a>
+
               </div>
             </div>
           </div>
