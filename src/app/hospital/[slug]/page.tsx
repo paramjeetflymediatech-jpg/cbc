@@ -68,7 +68,7 @@ export default async function HospitalDetailPage({ params }: PageProps) {
     "@context": "https://schema.org",
     "@type": "MedicalClinic",
     "name": hospital.name,
-    "description": hospital.description?.substring(0, 200),
+    "description": hospital.description?.replace(/<[^>]*>?/gm, '').substring(0, 200).trim(),
     "image": hospital.logo || hospital.coverImage ? [(hospital.logo || hospital.coverImage)] : [],
     "url": `https://clinicbychoice.com/hospital/${hospital.slug}`,
     "address": {

@@ -331,21 +331,6 @@ export default async function BlogDetailPage({ params }: PageProps) {
       </main>
 
       <Footer />
-
-      {blog.schemaMarkup && (
-        blog.schemaMarkup.includes('<script') ? (
-          <span
-            suppressHydrationWarning
-            dangerouslySetInnerHTML={{ __html: blog.schemaMarkup }}
-          />
-        ) : (
-          <script
-            type="application/ld+json"
-            suppressHydrationWarning
-            dangerouslySetInnerHTML={{ __html: blog.schemaMarkup }}
-          />
-        )
-      )}
     </div>
   );
 }
