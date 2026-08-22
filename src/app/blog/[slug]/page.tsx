@@ -108,8 +108,8 @@ export default async function BlogDetailPage({ params }: PageProps) {
       "@type": "WebPage",
       "@id": `https://clinicbychoice.com/blog/${blog.slug}`
     },
-    "headline": blog.seoTitle || blog.title,
-    "description": blog.seoDescription || blog.excerpt || blog.title,
+    "headline": blog.title?.replace(/<[^>]*>?/gm, '').trim(),
+    "description": (blog.excerpt || blog.seoDescription || blog.title)?.replace(/<[^>]*>?/gm, '').trim(),
     "image": blog.ogImage || blog.image ? [(blog.ogImage || blog.image)] : [],
     "datePublished": blog.publishedAt ? new Date(blog.publishedAt).toISOString() : new Date().toISOString(),
     "dateModified": blog.updatedAt ? new Date(blog.updatedAt).toISOString() : new Date().toISOString(),
