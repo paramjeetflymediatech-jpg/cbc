@@ -222,19 +222,19 @@ export default function Footer() {
 
       {/* Pink Bottom Bar matching exact screenshot */}
       <div className="bg-[#F04B8B] text-white py-4 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs sm:text-sm font-semibold">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-2 text-xs sm:text-sm font-semibold">
           <div className="flex items-center space-x-2.5">
             <span>Copyright © 2026 Clinic By Choice All rights reserved.</span>
             <span className="opacity-60">•</span>
             <Link href="/sitemap.xml" target="_blank" className="hover:underline opacity-90 hover:opacity-100">
               Sitemap
             </Link>
-            <span className="opacity-60">•</span>
+            {/* <span className="opacity-60">•</span>
             <Link href="/robots.txt" target="_blank" className="hover:underline opacity-90 hover:opacity-100">
               Robots
-            </Link>
+            </Link> */}
           </div>
-          <div>Website Design And Developed By Flymedia Technology</div>
+          {/* <div>Website Design And Developed By Flymedia Technology</div> */}
         </div>
       </div>
     </footer>

@@ -62,8 +62,7 @@ export default function HomeContactSection() {
 
   return (
     <section
-      className="relative py-3 bg-no-repeat bg-contain min-h-[600px] flex items-center"
-      style={{ backgroundImage: "url('/images/contact-doctor.png')" }}
+      className="relative py-12 lg:py-3 bg-none lg:bg-[url('/images/contact-doctor1.png')] bg-no-repeat lg:bg-[left_center] lg:bg-contain min-h-fit lg:min-h-[600px] flex items-center bg-gray-50 lg:bg-transparent"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
@@ -71,8 +70,8 @@ export default function HomeContactSection() {
           <div className="hidden lg:block lg:col-span-6 min-h-[480px]"></div>
 
           {/* Right Side Form Card */}
-          <div className="lg:col-span-6 flex justify-center lg:justify-end">
-            <div className="bg-white p-8 sm:p-10 rounded-3xl shadow-2xl w-full max-w-xl border border-gray-100">
+          <div className="lg:col-span-6 flex justify-center lg:justify-end z-10">
+            <div className="bg-white p-6 sm:p-10 rounded-3xl shadow-2xl w-full max-w-xl border border-gray-100">
               <span className="text-xs sm:text-sm font-extrabold tracking-widest uppercase text-gray-900 block mb-1">
                 CONTACT US
               </span>
@@ -87,9 +86,8 @@ export default function HomeContactSection() {
 
               {statusMsg && (
                 <div
-                  className={`p-4 rounded-xl text-sm font-bold mb-6 ${
-                    statusMsg.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
-                  }`}
+                  className={`p-4 rounded-xl text-sm font-bold mb-6 ${statusMsg.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+                    }`}
                 >
                   {statusMsg.text}
                 </div>

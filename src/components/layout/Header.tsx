@@ -168,9 +168,7 @@ export default function Header() {
 
             <Link
               href="/get-listed"
-              className={`text-white text-sm font-semibold transition-colors py-2 border-b-2 ${
-                pathname === '/get-listed' ? 'border-white' : 'border-transparent hover:border-white/70'
-              }`}
+              className="text-[#ec2c6c] bg-white px-4 py-1.5 rounded-full text-sm font-bold shadow-[0_0_15px_rgba(255,255,255,0.6)] animate-pulse hover:animate-none transition-all"
             >
               Get Listed
             </Link>
@@ -309,7 +307,7 @@ export default function Header() {
 
           <Link
             href="/get-listed"
-            className="block py-2 font-bold text-[#fd1d74]"
+            className="block py-2 font-extrabold text-[#ec2c6c] animate-pulse bg-pink-50 rounded-lg px-3 -ml-3"
             onClick={() => setIsMobileMenuOpen(false)}
           >
             Get Listed

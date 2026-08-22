@@ -238,7 +238,7 @@ export default async function HomePage() {
             <div className="relative pb-10 sm:pb-12">
               <div className="relative w-4/5 rounded-3xl overflow-hidden shadow-xl border-4 border-white">
                 <Image
-                  src="/images/about-img-6.jpg"
+                  src="/images/about-img-21.jpg"
                   alt="Nurse and patient care"
                   width={600}
                   height={450}
@@ -247,7 +247,7 @@ export default async function HomePage() {
               </div>
               <div className="absolute bottom-0 right-0 w-3/4 sm:w-2/3 rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
                 <Image
-                  src="/images/about-img-2902.jpg"
+                  src="/images/about-img-61.jpg"
                   alt="Doctor patient examination"
                   width={500}
                   height={350}
@@ -255,6 +255,8 @@ export default async function HomePage() {
                 />
               </div>
             </div>
+
+        
 
             {/* Right Side Content matching exact screenshot */}
             <div className="space-y-6 lg:pl-4">
