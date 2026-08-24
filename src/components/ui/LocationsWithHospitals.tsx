@@ -46,9 +46,6 @@ export default function LocationsWithHospitals({
           <span>Locations With Hospitals</span>
         </div>
         <div className="flex items-center justify-between mt-0.5">
-          <h3 className="text-base font-black text-gray-900">
-            Available in {availableCities.length} Cities
-          </h3>
           {searchQuery.trim() && (
             <span className="text-[11px] font-bold text-[#ec2c6c] bg-pink-50 px-2 py-0.5 rounded-full">
               {filteredCities.length} found

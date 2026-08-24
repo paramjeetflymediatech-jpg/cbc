@@ -12,11 +12,33 @@ export default function ContactUsClient() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [requireLogin, setRequireLogin] = useState(false);
+  const [isResumed, setIsResumed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Restore saved contact form submission after login
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem('cbc_pending_enquiry');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.patientName || parsed.email || parsed.phone || parsed.message) {
+          if (parsed.patientName) setName(parsed.patientName);
+          if (parsed.email) setEmail(parsed.email);
+          if (parsed.phone && parsed.phone !== 'N/A') setPhone(parsed.phone);
+          if (parsed.message) setMessage(parsed.message);
+          setIsResumed(true);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+    setRequireLogin(false);
     setLoading(true);
 
     try {
@@ -33,13 +55,40 @@ export default function ContactUsClient() {
         }),
       });
 
-      if (res.ok) {
-        setSubmitted(true);
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.requireLogin || res.status === 409) {
+          setRequireLogin(true);
+          try {
+            localStorage.setItem(
+              'cbc_pending_enquiry',
+              JSON.stringify({
+                formType: 'contact',
+                patientName: name,
+                phone,
+                email,
+                city: '',
+                message,
+                isGeneralContact: true,
+                returnUrl: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/contact-us',
+              })
+            );
+          } catch (storageErr) {
+            console.warn(storageErr);
+          }
+          setErrorMessage(data.error || 'An account with this email already exists. Please log in first to submit your enquiry.');
+        } else {
+          setErrorMessage(data.error || 'Failed to submit your message. Please try again.');
+        }
       } else {
         setSubmitted(true);
+        try {
+          localStorage.removeItem('cbc_pending_enquiry');
+        } catch {}
       }
     } catch {
-      setSubmitted(true);
+      setErrorMessage('Network error while sending message. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -51,7 +100,12 @@ export default function ContactUsClient() {
     setPhone('');
     setMessage('');
     setErrorMessage('');
+    setRequireLogin(false);
+    setIsResumed(false);
     setSubmitted(false);
+    try {
+      localStorage.removeItem('cbc_pending_enquiry');
+    } catch {}
   };
 
   return (
@@ -128,12 +182,52 @@ export default function ContactUsClient() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                {errorMessage && (
-                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center space-x-2">
+                {isResumed && !requireLogin && (
+                  <div className="p-4 bg-pink-50/80 border border-pink-200 text-[#b02151] rounded-2xl space-y-1 text-xs">
+                    <div className="flex items-center space-x-2 font-black">
+                      <CheckCircle2 className="w-4 h-4 text-[#ec2c6c] flex-shrink-0" />
+                      <span>Welcome Back! Your Message Details Are Ready</span>
+                    </div>
+                    <p className="text-gray-600 pl-6 leading-relaxed">
+                      We have restored your message details below. Please review your information and click <strong>Send Message</strong> to submit.
+                    </p>
+                  </div>
+                )}
+
+                {requireLogin ? (
+                  <div className="p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl space-y-3">
+                    <div className="flex items-start space-x-2.5">
+                      <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs space-y-1">
+                        <p className="font-extrabold text-amber-900">Account Already Exists</p>
+                        <p className="text-amber-800 leading-relaxed">
+                          An account with <strong>{email}</strong> already exists. Your message details are securely saved. Please log in first to submit and link your message.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-2 pt-1">
+                      <a
+                        href={`/login?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/contact-us')}`}
+                        className="cbc-btn-primary block text-center text-xs py-2.5 font-bold shadow-md"
+                      >
+                        Log In & Continue Form Submission
+                      </a>
+                      <div className="text-center">
+                        <a
+                          href={`/forgot-password?email=${encodeURIComponent(email)}`}
+                          className="text-[11px] font-bold text-gray-600 hover:text-[#ec2c6c] underline"
+                        >
+                          Forgot your password? Reset here
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ) : errorMessage ? (
+                  <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center space-x-2">
                     <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
                     <span>{errorMessage}</span>
                   </div>
-                )}
+                ) : null}
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Your Name *</label>

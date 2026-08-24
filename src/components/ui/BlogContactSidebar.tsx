@@ -20,6 +20,7 @@ export default function BlogContactSidebar({ categoryName, articleTitle }: BlogC
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [requireLogin, setRequireLogin] = useState(false);
+  const [isResumed, setIsResumed] = useState(false);
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
@@ -27,11 +28,15 @@ export default function BlogContactSidebar({ categoryName, articleTitle }: BlogC
       const stored = localStorage.getItem('cbc_pending_enquiry');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed.patientName && !patientName) setPatientName(parsed.patientName);
-        if (parsed.phone && !phone) setPhone(parsed.phone);
-        if (parsed.email && !email) setEmail(parsed.email);
-        if (parsed.city && !city) setCity(parsed.city);
-        if (parsed.message && !message) setMessage(parsed.message);
+        if (parsed.patientName || parsed.email || parsed.phone || parsed.message) {
+          if (parsed.patientName) setPatientName(parsed.patientName);
+          if (parsed.phone) setPhone(parsed.phone);
+          if (parsed.email) setEmail(parsed.email);
+          if (parsed.city) setCity(parsed.city);
+          if (parsed.message) setMessage(parsed.message);
+          if (parsed.preferredContactTime) setPreferredContactTime(parsed.preferredContactTime);
+          setIsResumed(true);
+        }
       }
     } catch {}
   }, []);
@@ -65,11 +70,12 @@ export default function BlogContactSidebar({ categoryName, articleTitle }: BlogC
             localStorage.setItem(
               'cbc_pending_enquiry',
               JSON.stringify({
+                formType: 'blog_sidebar',
                 patientName,
                 phone,
                 email,
                 city,
-                message: `[Blog Enquiry: ${articleTitle || 'Article'}] ${message}`,
+                message,
                 preferredContactTime,
                 isGeneralContact: true,
                 returnUrl: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '',
@@ -78,7 +84,7 @@ export default function BlogContactSidebar({ categoryName, articleTitle }: BlogC
           } catch (storageErr) {
             console.warn(storageErr);
           }
-          setError(data.error || 'An account with this email already exists. Please log in to send your enquiry.');
+          setError(data.error || 'An account with this email already exists. Please log in first to send your enquiry.');
         } else {
           setError(data.error || 'Failed to send enquiry.');
         }
@@ -134,6 +140,18 @@ export default function BlogContactSidebar({ categoryName, articleTitle }: BlogC
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isResumed && !requireLogin && (
+              <div className="p-3 bg-pink-50/80 border border-pink-200 text-[#b02151] rounded-xl space-y-1 text-xs">
+                <div className="flex items-center space-x-1.5 font-bold">
+                  <CheckCircle2 className="w-4 h-4 text-[#ec2c6c] flex-shrink-0" />
+                  <span>Saved Details Restored</span>
+                </div>
+                <p className="text-gray-600 pl-5 text-[11px] leading-relaxed">
+                  Please review your query and click <strong>Submit Contact Enquiry</strong> below.
+                </p>
+              </div>
+            )}
+
             {requireLogin ? (
               <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl space-y-2 text-xs">
                 <div className="flex items-start space-x-1.5 font-bold text-amber-900">
@@ -148,7 +166,7 @@ export default function BlogContactSidebar({ categoryName, articleTitle }: BlogC
                     href={`/login?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '')}`}
                     className="cbc-btn-primary block text-center text-xs py-2 font-bold"
                   >
-                    Log In & Submit
+                    Log In & Continue Submission
                   </a>
                   <div className="text-center">
                     <a

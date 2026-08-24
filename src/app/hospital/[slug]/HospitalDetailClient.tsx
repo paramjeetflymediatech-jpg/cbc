@@ -181,20 +181,30 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
   };
 
   const [sidebarRequireLogin, setSidebarRequireLogin] = useState(false);
+  const [sidebarResumed, setSidebarResumed] = useState(false);
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem('cbc_pending_enquiry');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed.patientName && !sidebarName) setSidebarName(parsed.patientName);
-        if (parsed.phone && !sidebarPhone) setSidebarPhone(parsed.phone);
-        if (parsed.email && !sidebarEmail) setSidebarEmail(parsed.email);
-        if (parsed.city && !sidebarCity) setSidebarCity(parsed.city);
-        if (parsed.message && !sidebarMessage) setSidebarMessage(parsed.message);
+        if (parsed.hospitalId === hospital.id || !parsed.hospitalId) {
+          if (parsed.formType === 'enquiry_modal') {
+            setIsModalOpen(true);
+          } else {
+            if (parsed.patientName) setSidebarName(parsed.patientName);
+            if (parsed.phone) setSidebarPhone(parsed.phone);
+            if (parsed.email) setSidebarEmail(parsed.email);
+            if (parsed.city) setSidebarCity(parsed.city);
+            if (parsed.message) setSidebarMessage(parsed.message);
+            if (parsed.serviceId) setSidebarServiceId(Number(parsed.serviceId));
+            if (parsed.preferredContactTime) setSidebarTime(parsed.preferredContactTime);
+            setSidebarResumed(true);
+          }
+        }
       }
     } catch {}
-  }, []);
+  }, [hospital.id]);
 
   const handleSidebarSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,6 +236,7 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
             localStorage.setItem(
               'cbc_pending_enquiry',
               JSON.stringify({
+                formType: 'hospital_sidebar',
                 patientName: sidebarName,
                 phone: sidebarPhone,
                 email: sidebarEmail,
@@ -241,7 +252,7 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
           } catch (storageErr) {
             console.warn(storageErr);
           }
-          setFormError(data.error || 'An account with this email already exists. Please log in to complete your enquiry.');
+          setFormError(data.error || 'An account with this email already exists. Please log in first to submit your enquiry.');
         } else {
           setFormError(data.error || 'Failed to submit enquiry.');
         }
@@ -946,6 +957,18 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
                 </div>
               ) : (
                 <form onSubmit={handleSidebarSubmit} className="space-y-4">
+                  {sidebarResumed && !sidebarRequireLogin && (
+                    <div className="p-3 bg-pink-50/80 border border-pink-200 text-[#b02151] rounded-xl space-y-1 text-xs">
+                      <div className="flex items-center space-x-1.5 font-bold">
+                        <CheckCircle2 className="w-4 h-4 text-[#ec2c6c] flex-shrink-0" />
+                        <span>Saved Enquiry Restored</span>
+                      </div>
+                      <p className="text-gray-600 pl-5 text-[11px] leading-relaxed">
+                        Please review details and click <strong>Submit Query to Hospital</strong> below.
+                      </p>
+                    </div>
+                  )}
+
                   {sidebarRequireLogin ? (
                     <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl space-y-2 text-xs">
                       <div className="flex items-start space-x-1.5 font-bold text-amber-900">
@@ -960,7 +983,7 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
                           href={`/login?email=${encodeURIComponent(sidebarEmail)}&redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '')}`}
                           className="cbc-btn-primary block text-center text-xs py-2 font-bold"
                         >
-                          Log In & Submit
+                          Log In & Continue Form Submission
                         </a>
                         <div className="text-center">
                           <a

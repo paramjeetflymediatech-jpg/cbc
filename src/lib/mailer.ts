@@ -518,3 +518,99 @@ export async function sendPasswordResetEmail({
   });
 }
 
+/**
+ * Send Automatic Confirmation Email to the User / Patient after form submission
+ */
+export async function sendUserEnquiryConfirmationEmail({
+  patientName,
+  email,
+  phone,
+  hospitalName,
+  message,
+  preferredContactTime,
+}: {
+  patientName: string;
+  email: string;
+  phone?: string;
+  hospitalName?: string;
+  message?: string;
+  preferredContactTime?: string;
+}) {
+  const logoUrl = getLogoUrl();
+  const cleanName = patientName ? patientName.trim() : 'Valued Patient';
+
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+      
+      <!-- Header with Black Logo Badge -->
+      <div style="background: linear-gradient(90deg, rgb(180 58 173) 0%, rgb(253 29 116) 50%, rgb(252 69 214) 100%); padding: 28px 24px; text-align: center;">
+        <div style="background-color: rgba(255, 255, 255, 0.98); padding: 10px 22px; border-radius: 14px; display: inline-block; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <img src="${logoUrl}" alt="Clinic By Choice Logo" style="max-height: 48px; width: auto; display: block; margin: 0 auto;" />
+        </div>
+        <h2 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">We Received Your Enquiry</h2>
+      </div>
+
+      <!-- Main Content -->
+      <div style="padding: 28px 24px; background-color: #ffffff;">
+        <p style="font-size: 16px; color: #111827; margin-top: 0; line-height: 1.6; font-weight: 700;">
+          Dear ${cleanName},
+        </p>
+        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+          Thank you for reaching out to <strong>Clinic By Choice</strong>${hospitalName ? ` regarding <strong>${hospitalName}</strong>` : ''}.
+        </p>
+        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+          We have received your message successfully. <strong>Our dedicated healthcare coordination team will contact you shortly</strong> to assist with your medical consultation and answer any questions.
+        </p>
+
+        <!-- Summary Box -->
+        <div style="margin: 24px 0; padding: 18px 20px; background-color: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 12px;">
+          <h4 style="margin: 0 0 12px 0; color: #be185d; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800;">
+            Summary of Your Enquiry
+          </h4>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            ${hospitalName ? `
+            <tr>
+              <td style="padding: 6px 0; font-weight: 700; color: #6b7280; width: 140px;">Hospital:</td>
+              <td style="padding: 6px 0; color: #111827; font-weight: 700;">${hospitalName}</td>
+            </tr>` : ''}
+            ${phone ? `
+            <tr>
+              <td style="padding: 6px 0; font-weight: 700; color: #6b7280; width: 140px;">Contact Phone:</td>
+              <td style="padding: 6px 0; color: #111827;">${phone}</td>
+            </tr>` : ''}
+            ${preferredContactTime ? `
+            <tr>
+              <td style="padding: 6px 0; font-weight: 700; color: #6b7280;">Preferred Callback:</td>
+              <td style="padding: 6px 0; color: #111827;">${preferredContactTime}</td>
+            </tr>` : ''}
+            ${message ? `
+            <tr>
+              <td style="padding: 6px 0; font-weight: 700; color: #6b7280; vertical-align: top;">Your Message:</td>
+              <td style="padding: 6px 0; color: #111827; line-height: 1.5;">${message}</td>
+            </tr>` : ''}
+          </table>
+        </div>
+
+        <!-- Helpful Support Note -->
+        <div style="margin-top: 24px; padding: 16px; background-color: #f9fafb; border-left: 4px solid #fd1d74; border-radius: 8px;">
+          <p style="margin: 0; font-size: 13px; color: #374151; line-height: 1.5;">
+            <strong>Need urgent assistance?</strong> You can also reply directly to this email or write to us at <a href="mailto:info@clinicbychoice.com" style="color: #fd1d74; font-weight: 700; text-decoration: none;">info@clinicbychoice.com</a>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Footer Bar -->
+      <div style="background-color: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af;">
+        Copyright © 2026 Clinic By Choice. All rights reserved.
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email.trim(),
+    subject: `Thank you for contacting Clinic By Choice - Our team will contact you shortly`,
+    html,
+  });
+}
+
+

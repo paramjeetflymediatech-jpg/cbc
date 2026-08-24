@@ -135,6 +135,7 @@ export default function EnquiryModal({
   }, [isOpen, servicesList, hospitalId, validDefaultId]);
 
   const [requireLogin, setRequireLogin] = useState(false);
+  const [isResumed, setIsResumed] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -142,11 +143,16 @@ export default function EnquiryModal({
         const stored = localStorage.getItem('cbc_pending_enquiry');
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (parsed.patientName) setPatientName(parsed.patientName);
-          if (parsed.phone) setPhone(parsed.phone);
-          if (parsed.email) setEmail(parsed.email);
-          if (parsed.city) setCity(parsed.city);
-          if (parsed.message) setMessage(parsed.message);
+          if (parsed.patientName || parsed.email || parsed.phone || parsed.message) {
+            if (parsed.patientName) setPatientName(parsed.patientName);
+            if (parsed.phone) setPhone(parsed.phone);
+            if (parsed.email) setEmail(parsed.email);
+            if (parsed.city) setCity(parsed.city);
+            if (parsed.message) setMessage(parsed.message);
+            if (parsed.serviceId) setServiceId(Number(parsed.serviceId));
+            if (parsed.preferredContactTime) setPreferredContactTime(parsed.preferredContactTime);
+            setIsResumed(true);
+          }
         }
       } catch {}
     }
@@ -185,6 +191,7 @@ export default function EnquiryModal({
             localStorage.setItem(
               'cbc_pending_enquiry',
               JSON.stringify({
+                formType: 'enquiry_modal',
                 patientName,
                 phone,
                 email,
@@ -200,7 +207,7 @@ export default function EnquiryModal({
           } catch (storageErr) {
             console.warn(storageErr);
           }
-          setErrorMessage(data.error || 'An account with this email already exists. Please log in to complete your enquiry.');
+          setErrorMessage(data.error || 'An account with this email already exists. Please log in first to complete and link your enquiry.');
         } else {
           setErrorMessage(data.error || 'Failed to submit enquiry. Please try again.');
         }
@@ -265,6 +272,18 @@ export default function EnquiryModal({
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {isResumed && !requireLogin && (
+                <div className="p-3.5 bg-pink-50/80 border border-pink-200 text-[#b02151] rounded-xl space-y-1 text-xs">
+                  <div className="flex items-center space-x-1.5 font-bold">
+                    <CheckCircle2 className="w-4 h-4 text-[#ec2c6c] flex-shrink-0" />
+                    <span>Welcome Back! Your Enquiry Details Are Restored</span>
+                  </div>
+                  <p className="text-gray-600 pl-5 text-[11px] leading-relaxed">
+                    Review your details below and click <strong>Submit Enquiry Now</strong> to proceed.
+                  </p>
+                </div>
+              )}
+
               {requireLogin ? (
                 <div className="p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl space-y-3">
                   <div className="flex items-start space-x-2">
@@ -272,7 +291,7 @@ export default function EnquiryModal({
                     <div className="text-xs space-y-1">
                       <p className="font-bold text-amber-900">Account Already Exists</p>
                       <p className="text-amber-800">
-                        An account with <strong>{email}</strong> already exists. Your form details are saved. Please log in to complete and link your enquiry.
+                        An account with <strong>{email}</strong> already exists. Your form details are saved. Please log in first to complete and link your enquiry.
                       </p>
                     </div>
                   </div>
@@ -281,7 +300,7 @@ export default function EnquiryModal({
                       href={`/login?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '')}`}
                       className="cbc-btn-primary block text-center text-xs py-2.5 font-bold"
                     >
-                      Log In & Submit Enquiry
+                      Log In & Continue Enquiry Submission
                     </a>
                     <div className="text-center">
                       <a

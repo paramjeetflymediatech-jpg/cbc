@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB, sequelize } from '@/lib/db';
 import { Hospital, Lead, LeadTransaction, Notification, Service, User } from '@/models';
-import { sendEnquiryEmail, sendPatientCredentialsEmail } from '@/lib/mailer';
+import { sendEnquiryEmail, sendPatientCredentialsEmail, sendUserEnquiryConfirmationEmail } from '@/lib/mailer';
 import { verifyToken, signToken, hashPassword } from '@/lib/auth';
 import { Op } from 'sequelize';
 import crypto from 'crypto';
@@ -57,19 +57,19 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           requireLogin: true,
-          error: 'An account with this email already exists. Please log in to securely submit and link your enquiry.',
+          error: 'An account with this email already exists. Please log in first to submit and link your enquiry.',
           email: cleanEmail,
         },
         { status: 409 }
       );
     }
 
-    let patientUser = existingUser;
+    let patientUser = isVerifiedAuth ? existingUser : null;
     let isNewUserCreated = false;
     let plainGeneratedPassword = '';
 
-    // If new user, create their account with a clear readable password
-    if (!patientUser) {
+    // Only auto-create account for specific hospital/service enquiries, NOT for general contact page forms
+    if (!patientUser && !isGeneralContact) {
       plainGeneratedPassword = `CBC-${Math.floor(100000 + Math.random() * 900000)}`;
       const passHash = await hashPassword(plainGeneratedPassword);
       patientUser = await User.create({
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
 
           const lead = await Lead.create(
             {
-              userId: patientUser.id,
+              userId: patientUser ? patientUser.id : null,
               patientName: cleanName,
               phone: cleanPhone,
               email: cleanEmail,
@@ -153,16 +153,18 @@ export async function POST(req: Request) {
 
           await transaction.commit();
 
-          // Link any other existing unassigned leads for this email to this user
-          await Lead.update(
-            { userId: patientUser.id },
-            {
-              where: {
-                email: cleanEmail,
-                [Op.or]: [{ userId: null }, { userId: { [Op.ne]: patientUser.id } }],
-              },
-            }
-          );
+          // Link any other existing unassigned leads for this email to this user if verified
+          if (patientUser) {
+            await Lead.update(
+              { userId: patientUser.id },
+              {
+                where: {
+                  email: cleanEmail,
+                  userId: null,
+                },
+              }
+            );
+          }
 
           // Send lead details email to BOTH Target Hospital AND Super Admin
           sendEnquiryEmail({
@@ -182,7 +184,7 @@ export async function POST(req: Request) {
       } else {
         // Hospital HAS ZERO lead balance -> Save lead for Super Admin review
         await Lead.create({
-          userId: patientUser.id,
+          userId: patientUser ? patientUser.id : null,
           patientName: cleanName,
           phone: cleanPhone,
           email: cleanEmail,
@@ -201,16 +203,18 @@ export async function POST(req: Request) {
           ],
         });
 
-        // Link any other existing unassigned leads for this email to this user
-        await Lead.update(
-          { userId: patientUser.id },
-          {
-            where: {
-              email: cleanEmail,
-              [Op.or]: [{ userId: null }, { userId: { [Op.ne]: patientUser.id } }],
-            },
-          }
-        );
+        // Link any other existing unassigned leads for this email to this user if verified
+        if (patientUser) {
+          await Lead.update(
+            { userId: patientUser.id },
+            {
+              where: {
+                email: cleanEmail,
+                userId: null,
+              },
+            }
+          );
+        }
 
         // Notify Hospital about pending lead locked due to zero balance
         await Notification.create({
@@ -237,7 +241,7 @@ export async function POST(req: Request) {
       // General Contact Form or Direct Platform Enquiry -> Assign to Super Admin / platform
       try {
         await Lead.create({
-          userId: patientUser.id,
+          userId: patientUser ? patientUser.id : null,
           patientName: cleanName,
           phone: cleanPhone,
           email: cleanEmail,
@@ -250,16 +254,18 @@ export async function POST(req: Request) {
           notes: [],
         });
 
-        // Link any other existing unassigned leads for this email to this user
-        await Lead.update(
-          { userId: patientUser.id },
-          {
-            where: {
-              email: cleanEmail,
-              [Op.or]: [{ userId: null }, { userId: { [Op.ne]: patientUser.id } }],
-            },
-          }
-        );
+        // Link any other existing unassigned leads for this email to this user if verified
+        if (patientUser) {
+          await Lead.update(
+            { userId: patientUser.id },
+            {
+              where: {
+                email: cleanEmail,
+                userId: null,
+              },
+            }
+          );
+        }
       } catch (leadErr) {
         console.warn('Fallback general lead creation error:', leadErr);
       }
@@ -275,8 +281,8 @@ export async function POST(req: Request) {
       }).catch((err) => console.error('[MAILER] Async general contact email failed:', err));
     }
 
-    // Send account credentials email to newly registered patient
-    if (isNewUserCreated && plainGeneratedPassword) {
+    // Send account credentials email to newly registered patient (if created via hospital enquiry)
+    if (isNewUserCreated && plainGeneratedPassword && patientUser) {
       sendPatientCredentialsEmail({
         patientName: cleanName,
         email: cleanEmail,
@@ -285,18 +291,28 @@ export async function POST(req: Request) {
       }).catch((err) => console.error('[MAILER] Async patient credentials email failed:', err));
     }
 
+    // Send automatic confirmation email to the user / patient
+    sendUserEnquiryConfirmationEmail({
+      patientName: cleanName,
+      email: cleanEmail,
+      phone: cleanPhone,
+      hospitalName: targetHospital?.name,
+      message: message ? message.trim() : '',
+      preferredContactTime: preferredContactTime ? preferredContactTime.trim() : undefined,
+    }).catch((err) => console.error('[MAILER] Async patient confirmation email failed:', err));
+
     const response = NextResponse.json(
       {
         message: 'Thank you for your message. Your enquiry has been submitted successfully.',
-        userId: patientUser.id,
+        userId: patientUser ? patientUser.id : null,
         userEmail: cleanEmail,
         isNewUser: isNewUserCreated,
       },
       { status: 201 }
     );
 
-    // Auto-login the newly created patient
-    if (isNewUserCreated) {
+    // Auto-login the newly created patient if registered from a hospital enquiry
+    if (isNewUserCreated && patientUser) {
       const token = signToken({
         userId: String(patientUser.id),
         email: patientUser.email,

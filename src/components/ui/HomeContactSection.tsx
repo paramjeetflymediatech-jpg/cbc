@@ -10,7 +10,27 @@ export default function HomeContactSection() {
     message: '',
   });
   const [loading, setLoading] = useState(false);
+  const [requireLogin, setRequireLogin] = useState(false);
+  const [isResumed, setIsResumed] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem('cbc_pending_enquiry');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.patientName || parsed.email || parsed.phone || parsed.message) {
+          setFormData({
+            name: parsed.patientName || '',
+            email: parsed.email || '',
+            phone: parsed.phone && parsed.phone !== 'N/A' ? parsed.phone : '',
+            message: parsed.message || '',
+          });
+          setIsResumed(true);
+        }
+      }
+    } catch {}
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +41,7 @@ export default function HomeContactSection() {
 
     setLoading(true);
     setStatusMsg(null);
+    setRequireLogin(false);
 
     try {
       const res = await fetch('/api/enquiries', {
@@ -36,25 +57,53 @@ export default function HomeContactSection() {
         }),
       });
 
-      if (res.ok) {
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.requireLogin || res.status === 409) {
+          setRequireLogin(true);
+          try {
+            localStorage.setItem(
+              'cbc_pending_enquiry',
+              JSON.stringify({
+                formType: 'home_contact',
+                patientName: formData.name,
+                phone: formData.phone,
+                email: formData.email,
+                message: formData.message,
+                isGeneralContact: true,
+                returnUrl: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/',
+              })
+            );
+          } catch (storageErr) {
+            console.warn(storageErr);
+          }
+          setStatusMsg({
+            type: 'error',
+            text: data.error || 'An account with this email already exists. Please log in first to submit your message.',
+          });
+        } else {
+          setStatusMsg({
+            type: 'error',
+            text: data.error || 'Failed to submit consultation request. Please try again.',
+          });
+        }
+      } else {
         setStatusMsg({
           type: 'success',
           text: 'Thank you! Your message has been sent to our team. We will contact you shortly.',
         });
         setFormData({ name: '', email: '', phone: '', message: '' });
-      } else {
-        setStatusMsg({
-          type: 'success',
-          text: 'Thank you! Your consultation request has been received.',
-        });
-        setFormData({ name: '', email: '', phone: '', message: '' });
+        setIsResumed(false);
+        try {
+          localStorage.removeItem('cbc_pending_enquiry');
+        } catch {}
       }
     } catch {
       setStatusMsg({
-        type: 'success',
-        text: 'Thank you! Your consultation request has been submitted successfully.',
+        type: 'error',
+        text: 'Network error while submitting consultation request. Please try again.',
       });
-      setFormData({ name: '', email: '', phone: '', message: '' });
     } finally {
       setLoading(false);
     }
@@ -84,12 +133,31 @@ export default function HomeContactSection() {
                 We encourage you to schedule a consultation
               </p>
 
+              {isResumed && !requireLogin && !statusMsg && (
+                <div className="p-4 bg-pink-50 border border-pink-200 text-[#b02151] rounded-2xl text-xs space-y-1 mb-6">
+                  <span className="font-extrabold block">Saved Information Restored</span>
+                  <p className="text-gray-600 text-[11px]">
+                    Your message has been loaded. Please review and click <strong>Send Message</strong> below to submit.
+                  </p>
+                </div>
+              )}
+
               {statusMsg && (
                 <div
-                  className={`p-4 rounded-xl text-sm font-bold mb-6 ${statusMsg.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+                  className={`p-4 rounded-xl text-sm font-bold mb-6 space-y-2 ${statusMsg.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
                     }`}
                 >
-                  {statusMsg.text}
+                  <p>{statusMsg.text}</p>
+                  {requireLogin && (
+                    <div className="pt-1">
+                      <a
+                        href={`/login?email=${encodeURIComponent(formData.email)}&redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/')}`}
+                        className="inline-block bg-[#b02151] hover:bg-[#921941] text-white text-xs font-extrabold px-4 py-2 rounded-lg shadow-sm"
+                      >
+                        Log In & Continue Submission →
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
 

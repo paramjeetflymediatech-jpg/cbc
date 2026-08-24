@@ -60,24 +60,22 @@ function LoginFormContent() {
         return;
       }
 
-      // Check if there is a pending enquiry to auto-submit
-      const returnUrl = searchParams.get('redirect');
-      try {
-        const stored = localStorage.getItem('cbc_pending_enquiry');
-        if (stored) {
-          const pendingData = JSON.parse(stored);
-          if (pendingData && pendingData.hospitalId && pendingData.serviceId) {
-            // Auto submit pending enquiry with newly authenticated user session
-            await fetch('/api/enquiries', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(pendingData),
-            });
-            localStorage.removeItem('cbc_pending_enquiry');
+      // Determine destination redirect url if user had a pending enquiry or redirect param
+      const queryRedirect = searchParams.get('redirect');
+      let targetDestination = queryRedirect || '';
+
+      if (!targetDestination) {
+        try {
+          const stored = localStorage.getItem('cbc_pending_enquiry');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed.returnUrl) {
+              targetDestination = parsed.returnUrl;
+            }
           }
+        } catch {
+          // ignore
         }
-      } catch (enquiryErr) {
-        console.warn('Pending enquiry auto-submission warning:', enquiryErr);
       }
 
       // Redirect user according to role & pending destination
@@ -86,10 +84,10 @@ function LoginFormContent() {
       } else if (data.user.role === 'SUPER_ADMIN' || data.user.role === 'ADMIN') {
         router.push('/admin/dashboard');
       } else {
-        // Patient role
-        if (returnUrl) {
-          const separator = returnUrl.includes('?') ? '&' : '?';
-          router.push(`${returnUrl}${separator}enquiry_submitted=1`);
+        // Patient role: return to previous form page if available, else go to patient dashboard
+        if (targetDestination) {
+          const separator = targetDestination.includes('?') ? '&' : '?';
+          router.push(`${targetDestination}${separator}resume_form=1`);
         } else {
           router.push('/patient/dashboard');
         }
@@ -114,11 +112,11 @@ function LoginFormContent() {
         <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-1 text-xs text-amber-900">
           <div className="flex items-center space-x-1.5 font-bold">
             <CheckCircle2 className="w-4 h-4 text-amber-600 flex-shrink-0" />
-            <span>Saved Enquiry Ready to Submit</span>
+            <span>Saved Enquiry Ready</span>
           </div>
           <p className="text-[11px] text-amber-800 leading-tight">
-            Log in to automatically submit and link your enquiry
-            {pendingEnquiryInfo.hospitalName ? ` for ${pendingEnquiryInfo.hospitalName}` : ''}.
+            Log in to return to your form
+            {pendingEnquiryInfo.hospitalName ? ` for ${pendingEnquiryInfo.hospitalName}` : ''} and confirm submission.
           </p>
         </div>
       )}
