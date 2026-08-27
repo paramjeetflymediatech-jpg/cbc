@@ -327,11 +327,11 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
 
                 <div className="flex flex-wrap items-center gap-4 text-xs text-gray-300 pt-1 font-medium">
                   <span className="flex items-center"><Phone className="w-3.5 h-3.5 text-[#fd1d74] mr-1" /> {hospital.phone}</span>
-                  {hospital.website && (
+                  {/* {hospital.website && (
                     <a href={hospital.website} target="_blank" rel="noreferrer" className="text-pink-300 hover:underline flex items-center">
                       <Globe className="w-3.5 h-3.5 mr-1" /> Official Website
                     </a>
-                  )}
+                  )} */}
                 </div>
               </div>
             </div>
