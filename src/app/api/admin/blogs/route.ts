@@ -3,6 +3,7 @@ import { getAuthUser } from '@/lib/auth';
 import { connectDB } from '@/lib/db';
 import { BlogPost } from '@/models';
 import { Op } from 'sequelize';
+import { cleanBlogHtml } from '@/lib/blog-utils';
 
 function generateSlug(text: string): string {
   return text
@@ -112,8 +113,9 @@ export async function POST(req: Request) {
 
     const isPublished = status === 'PUBLISHED';
 
+    const sanitizedContent = cleanBlogHtml(content);
     // Auto-calculate read time based on word count (200 words/min)
-    const textContent = (content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const textContent = (sanitizedContent || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
     const wordCount = textContent ? textContent.split(' ').filter(Boolean).length : 0;
     const computedReadTime = readTime || `${Math.max(1, Math.ceil(wordCount / 200))} min read`;
 
@@ -121,7 +123,7 @@ export async function POST(req: Request) {
       title,
       slug: finalSlug,
       excerpt: excerpt || null,
-      content,
+      content: sanitizedContent,
       image: image || null,
       category: category || 'General Health',
       author: author || authUser.name || 'Clinic By Choice Editorial Team',

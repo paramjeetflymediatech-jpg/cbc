@@ -3,6 +3,7 @@ import { getAuthUser } from '@/lib/auth';
 import { connectDB } from '@/lib/db';
 import { BlogPost } from '@/models';
 import { cleanupOldImages } from '@/lib/fileCleanup';
+import { cleanBlogHtml } from '@/lib/blog-utils';
 
 function generateSlug(text: string): string {
   return text
@@ -94,7 +95,7 @@ export async function PUT(
       await cleanupOldImages(blog.image, image);
     }
 
-    const targetContent = content || blog.content;
+    const targetContent = content !== undefined ? cleanBlogHtml(content) : blog.content;
     const textContent = (targetContent || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
     const wordCount = textContent ? textContent.split(' ').filter(Boolean).length : 0;
     const computedReadTime = readTime || `${Math.max(1, Math.ceil(wordCount / 200))} min read`;
@@ -103,7 +104,7 @@ export async function PUT(
       title: title || blog.title,
       slug: updatedSlug,
       excerpt: excerpt !== undefined ? excerpt : blog.excerpt,
-      content: content || blog.content,
+      content: targetContent,
       image: image !== undefined ? image : blog.image,
       category: category !== undefined ? category : blog.category,
       author: author !== undefined ? author : blog.author,

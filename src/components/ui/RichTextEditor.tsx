@@ -82,8 +82,19 @@ export default function RichTextEditor({
   };
 
   const handleAddLink = () => {
-    const url = prompt('Enter web link URL (e.g. https://clinicbychoice.com):');
+    let url = prompt('Enter web link URL (e.g. https://clinicbychoice.com or /hospitals):');
     if (url) {
+      url = url.trim().replace(/^["']+|["']+$/g, '').replace(/^%22|%22$/gi, '');
+      if (
+        !url.startsWith('http://') &&
+        !url.startsWith('https://') &&
+        !url.startsWith('/') &&
+        !url.startsWith('#') &&
+        !url.startsWith('mailto:') &&
+        !url.startsWith('tel:')
+      ) {
+        url = 'https://' + url;
+      }
       execCommand('createLink', url);
     }
   };

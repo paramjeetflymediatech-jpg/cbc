@@ -19,6 +19,7 @@ async function importBlogs() {
 
   const { connectDB } = await import('@/lib/db');
   const { BlogPost } = await import('@/models');
+  const { cleanBlogHtml } = await import('@/lib/blog-utils');
 
   await connectDB();
 
@@ -37,7 +38,7 @@ async function importBlogs() {
         await existing.update({
           title: post.title,
           excerpt: post.excerpt,
-          content: post.content,
+          content: cleanBlogHtml(post.content),
           image: post.image,
           category: post.category,
           author: post.author,
@@ -61,7 +62,7 @@ async function importBlogs() {
           title: post.title,
           slug: post.slug,
           excerpt: post.excerpt,
-          content: post.content,
+          content: cleanBlogHtml(post.content),
           image: post.image,
           category: post.category,
           author: post.author,

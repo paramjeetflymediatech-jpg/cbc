@@ -9,6 +9,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Calendar, Clock, Eye, User, ShieldAlert, ArrowLeft, ArrowRight, Stethoscope } from 'lucide-react';
 import { Op } from 'sequelize';
+import { cleanBlogHtml } from '@/lib/blog-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -227,8 +228,9 @@ export default async function BlogDetailPage({ params }: PageProps) {
                   [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_li]:text-gray-700
                   [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2
                   [&_blockquote]:border-l-4 [&_blockquote]:border-[#ec2c6c] [&_blockquote]:bg-pink-50/60 [&_blockquote]:p-4 [&_blockquote]:rounded-r-2xl [&_blockquote]:italic [&_blockquote]:font-medium [&_blockquote]:text-gray-800
-                  [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-xl [&_img]:my-4 [&_img]:shadow-md"
-                dangerouslySetInnerHTML={{ __html: blog.content }}
+                  [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-xl [&_img]:my-4 [&_img]:shadow-md
+                  [&_a]:text-[#ec2c6c] [&_a]:underline [&_a]:underline-offset-2 [&_a]:font-semibold hover:[&_a]:text-[#d41c59] [&_a]:transition-colors [&_a]:break-words"
+                dangerouslySetInnerHTML={{ __html: cleanBlogHtml(blog.content) }}
               />
 
               {/* Article Tags */}
