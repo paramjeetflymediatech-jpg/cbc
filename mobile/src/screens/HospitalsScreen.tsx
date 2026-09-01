@@ -10,7 +10,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../services/api';
 import { Hospital } from '../types';
-import { mockHospitals } from '../data/mockData';
 import { colors } from '../theme/colors';
 import { SearchBar } from '../components/SearchBar';
 import { HospitalCard } from '../components/HospitalCard';
@@ -68,15 +67,16 @@ export const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ navigation, ro
     try {
       setLoading(true);
       const res = await api.get('/hospitals');
-      if (res.data && Array.isArray(res.data.hospitals) && res.data.hospitals.length > 0) {
+      if (res.data && Array.isArray(res.data.hospitals)) {
         setHospitals(res.data.hospitals);
-      } else if (Array.isArray(res.data) && res.data.length > 0) {
+      } else if (Array.isArray(res.data)) {
         setHospitals(res.data);
       } else {
-        setHospitals(mockHospitals);
+        setHospitals([]);
       }
     } catch (e) {
-      setHospitals(mockHospitals);
+      console.log('Error fetching hospitals:', e);
+      setHospitals([]);
     } finally {
       setLoading(false);
     }
@@ -242,7 +242,11 @@ export const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ navigation, ro
           <LoadingSkeleton type="card" />
         ) : filteredHospitals.length > 0 ? (
           filteredHospitals.map((hosp) => {
-            const hId = String(hosp.id || hosp._id);
+            const hId = String(hosp.id || hosp._id || hosp.slug);
+            const isSaved =
+              savedHospitalIds.includes(hId) ||
+              (hosp.id ? savedHospitalIds.includes(String(hosp.id)) : false) ||
+              (hosp.slug ? savedHospitalIds.includes(String(hosp.slug)) : false);
             return (
               <HospitalCard
                 key={hId}
@@ -250,7 +254,7 @@ export const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ navigation, ro
                 onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
                 onEnquirePress={() => navigation.navigate('Enquiry', { preferredHospital: hosp.name, hospitalId: hosp.id })}
                 onBookmarkPress={() => toggleSaveHospital(hId)}
-                isSaved={savedHospitalIds.includes(hId)}
+                isSaved={isSaved}
               />
             );
           })

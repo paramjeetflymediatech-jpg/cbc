@@ -1,9 +1,15 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
 import { colors } from '../theme/colors';
+import { normalizeImageUrl } from '../utils/imageUrl';
 
 interface AppHeaderProps {
   userName?: string;
+  avatarUrl?: string;
+  avatarScale?: number;
+  avatarTranslateX?: number;
+  avatarTranslateY?: number;
+  avatarRotate?: number;
   location?: string;
   unreadCount?: number;
   onLocationPress?: () => void;
@@ -13,6 +19,11 @@ interface AppHeaderProps {
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   userName,
+  avatarUrl,
+  avatarScale = 1,
+  avatarTranslateX = 0,
+  avatarTranslateY = 0,
+  avatarRotate = 0,
   location = 'Chandigarh',
   unreadCount = 2,
   onLocationPress,
@@ -20,16 +31,29 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onProfilePress,
 }) => {
   const isGuest = !userName || userName.toLowerCase() === 'guest';
+  const displayAvatar = normalizeImageUrl(avatarUrl) || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
 
   return (
     <View style={styles.headerContainer}>
       <View style={styles.leftRow}>
         {!isGuest && (
           <TouchableOpacity style={styles.avatarPressable} onPress={onProfilePress} activeOpacity={0.8}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80' }}
-              style={styles.avatarImage}
-            />
+            <View style={styles.avatarWrapper}>
+              <Image
+                source={{ uri: displayAvatar }}
+                style={[
+                  styles.avatarImage,
+                  {
+                    transform: [
+                      { scale: avatarScale },
+                      { translateX: avatarTranslateX },
+                      { translateY: avatarTranslateY },
+                      { rotate: `${avatarRotate}deg` },
+                    ],
+                  },
+                ]}
+              />
+            </View>
           </TouchableOpacity>
         )}
         <View style={styles.textColumn}>
@@ -78,10 +102,15 @@ const styles = StyleSheet.create({
     padding: 2,
     marginRight: 12,
   },
+  avatarWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
   avatarImage: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: '100%',
+    height: '100%',
   },
   textColumn: {
     justifyContent: 'center',

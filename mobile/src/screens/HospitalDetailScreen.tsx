@@ -14,11 +14,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Hospital } from '../types';
-import { mockHospitals } from '../data/mockData';
 import { colors } from '../theme/colors';
 import { DoctorCard } from '../components/DoctorCard';
 import { useAuth } from '../context/AuthContext';
 import { useSweetAlert } from '../context/SweetAlertContext';
+import { normalizeImageUrl } from '../utils/imageUrl';
 import api from '../services/api';
 
 const stripHtml = (html?: string): string => {
@@ -43,7 +43,7 @@ interface HospitalDetailScreenProps {
 }
 
 export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navigation, route }) => {
-  const [hospitalData, setHospitalData] = useState<Hospital>(route.params?.hospital || mockHospitals[0]);
+  const [hospitalData, setHospitalData] = useState<Hospital>(route.params?.hospital || ({} as Hospital));
   const hospital = hospitalData;
 
   useEffect(() => {
@@ -62,19 +62,44 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
     fetchFreshHospitalData();
   }, []);
 
-  const { location, toggleSaveHospital, savedHospitalIds } = useAuth();
+  const { location, user, toggleSaveHospital, savedHospitalIds } = useAuth();
   const { showAlert } = useSweetAlert();
 
+  const savedAddressParts = [
+    user?.address,
+    user?.city,
+    user?.state,
+    user?.pincode,
+  ].filter((p): p is string => Boolean(p && typeof p === 'string' && p.trim().length > 0));
+
+  const savedUserAddress = savedAddressParts.length > 0
+    ? savedAddressParts.join(', ')
+    : (user?.city || location || 'My Location');
+
+  const hasSpecificSavedAddress = Boolean(user?.address || user?.city);
+
   const [activeTab, setActiveTab] = useState<'Overview' | 'Treatments' | 'Doctors' | 'Facilities' | 'Map' | 'Reviews'>('Overview');
-  const [isSaved, setIsSaved] = useState<boolean>(savedHospitalIds.includes(String(hospital.id)));
+  const getHospitalKey = (h: Hospital) => String(h.id || (h as any)._id || (h as any).slug || '');
+  const [isSaved, setIsSaved] = useState<boolean>(() => {
+    const key = getHospitalKey(hospital);
+    return savedHospitalIds.includes(key) ||
+      (hospital.id && savedHospitalIds.includes(String(hospital.id))) ||
+      ((hospital as any).slug && savedHospitalIds.includes(String((hospital as any).slug)));
+  });
 
   useEffect(() => {
-    setIsSaved(savedHospitalIds.includes(String(hospital.id)));
-  }, [savedHospitalIds, hospital.id]);
+    const key = getHospitalKey(hospital);
+    setIsSaved(
+      savedHospitalIds.includes(key) ||
+      (hospital.id ? savedHospitalIds.includes(String(hospital.id)) : false) ||
+      ((hospital as any).slug ? savedHospitalIds.includes(String((hospital as any).slug)) : false)
+    );
+  }, [savedHospitalIds, hospital]);
 
   const handleToggleSave = async () => {
+    const key = getHospitalKey(hospital);
     const nextSavedState = !isSaved;
-    await toggleSaveHospital(hospital.id);
+    await toggleSaveHospital(key);
     showAlert({
       title: nextSavedState ? 'Saved to Favorites' : 'Removed from Favorites',
       message: nextSavedState 
@@ -143,13 +168,14 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
 
   const handleOpenMaps = async () => {
     const cleanBrand = (hospital.name || '').split('|')[0].trim();
-    const cleanAddr = (hospital.address || '').trim();
+    const cleanAddr = (hospital.address || hospital.location || '').trim();
     const cityStr = hospital.city || '';
-    const fullParts = [cleanBrand, cleanAddr, cityStr, 'India'].filter(Boolean);
+    const stateStr = hospital.state || '';
+    const fullParts = [cleanBrand, cleanAddr, cityStr, stateStr, 'India'].filter(Boolean);
     const destinationQuery = fullParts.join(', ');
     
-    // Fetch the user's active/saved address from AuthContext
-    const originQuery = location || 'Current Location';
+    // User's saved full address or location from AuthContext
+    const originQuery = savedUserAddress;
     
     const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(originQuery)}&destination=${encodeURIComponent(destinationQuery)}`;
     
@@ -168,12 +194,15 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Check out ${hospital.name} on Clinic By Choice: https://cbc.socialflymediatech.com/hospital/${hospital.slug}`,
+        message: `Check out ${hospital.name} on Clinic By Choice: https://clinicbychoice.com/hospital/${hospital.slug}`,
       });
     } catch (e) {
       console.log(e);
     }
   };
+
+  const bannerImgUrl = normalizeImageUrl(hospital.image || (hospital as any).coverImage || (hospital as any).bannerImage || hospital.logo) || 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&auto=format&fit=crop&q=80';
+  const logoImgUrl = hospital.logo ? normalizeImageUrl(hospital.logo) : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -182,7 +211,7 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
       {/* Main Image Header with Overlay Buttons */}
       <View style={styles.bannerContainer}>
         <Image
-          source={{ uri: hospital.image || 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&auto=format&fit=crop&q=80' }}
+          source={{ uri: bannerImgUrl }}
           style={styles.bannerImage}
         />
         <View style={styles.bannerOverlay} />
@@ -205,17 +234,24 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
 
         {/* Hospital Title Overlay Box */}
         <View style={styles.bannerContent}>
-          <View style={styles.badgeRow}>
-            {hospital.isVerified && (
-              <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedCheck}>✓ Verified Hospital</Text>
+          <View style={styles.titleWithLogoRow}>
+            {logoImgUrl ? (
+              <Image source={{ uri: logoImgUrl }} style={styles.detailLogoBadge} resizeMode="contain" />
+            ) : null}
+            <View style={styles.titleColumn}>
+              <View style={styles.badgeRow}>
+                {hospital.isVerified && (
+                  <View style={styles.verifiedBadge}>
+                    <Text style={styles.verifiedCheck}>✓ Verified</Text>
+                  </View>
+                )}
+                <View style={styles.ratingBadge}>
+                  <Text style={styles.starText}>⭐ {(hospital.rating || 4.8).toFixed(1)}</Text>
+                </View>
               </View>
-            )}
-            <View style={styles.ratingBadge}>
-              <Text style={styles.starText}>⭐ {(hospital.rating || 4.8).toFixed(1)}</Text>
+              <Text style={styles.hospitalTitle} numberOfLines={2}>{hospital.name}</Text>
             </View>
           </View>
-          <Text style={styles.hospitalTitle}>{hospital.name}</Text>
           <Text style={styles.locationSubText}>📍 {hospital.address || hospital.location || hospital.city}</Text>
         </View>
       </View>
@@ -406,10 +442,25 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
           <View style={styles.tabContent}>
             {/* User Saved Location Indicator */}
             <View style={styles.card}>
-              <Text style={styles.cardHeaderTitle}>Starting Location</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={styles.cardHeaderTitle}>Starting Location</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('EditProfile')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary }}>
+                    {hasSpecificSavedAddress ? '✏️ Edit Address' : '+ Set Saved Address'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
               <Text style={styles.bodyText}>
-                📍 Directions will start from your active address: <Text style={{ fontWeight: '900', color: colors.primary }}>{location || 'Current Location'}</Text>
+                📍 Directions will start from: <Text style={{ fontWeight: '800', color: colors.textPrimary }}>{savedUserAddress}</Text>
               </Text>
+              {!hasSpecificSavedAddress && (
+                <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>
+                  (Set your complete home/work address in profile for accurate door-to-door GPS navigation)
+                </Text>
+              )}
             </View>
 
             <View style={styles.card}>
@@ -418,10 +469,10 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
                 <Text style={{ fontWeight: '800', color: colors.textPrimary }}>Hospital:</Text> {hospital.name}
               </Text>
               <Text style={[styles.bodyText, { marginTop: 6 }]}>
-                <Text style={{ fontWeight: '800', color: colors.textPrimary }}>Address:</Text> {hospital.address || hospital.location}
+                <Text style={{ fontWeight: '800', color: colors.textPrimary }}>Address:</Text> {hospital.address || hospital.location || `${hospital.city || 'India'}`}
               </Text>
               <Text style={[styles.bodyText, { marginTop: 6 }]}>
-                <Text style={{ fontWeight: '800', color: colors.textPrimary }}>City/State:</Text> {hospital.city}, {hospital.state || 'Punjab'}
+                <Text style={{ fontWeight: '800', color: colors.textPrimary }}>City/State:</Text> {[hospital.city, hospital.state, (hospital as any).district].filter(Boolean).join(', ') || 'India'}
               </Text>
             </View>
 
@@ -438,7 +489,7 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
                 </View>
                 <View style={styles.mapVisualInfoBox}>
                   <Text style={styles.mapVisualInfoTitle}>{hospital.name}</Text>
-                  <Text style={styles.mapVisualInfoSub}>{hospital.location}</Text>
+                  <Text style={styles.mapVisualInfoSub}>{hospital.address || hospital.location || hospital.city}</Text>
                 </View>
               </View>
             </View>
@@ -449,7 +500,7 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
               onPress={handleOpenMaps}
               activeOpacity={0.85}
             >
-              <Text style={styles.directionsBtnText}>📍 Get Directions in Google Maps</Text>
+              <Text style={styles.directionsBtnText}>📍 Get Turn-by-Turn Directions in Google Maps</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -657,8 +708,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
+  titleWithLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    gap: 12,
+  },
+  detailLogoBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    padding: 3,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  titleColumn: {
+    flex: 1,
+  },
   hospitalTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
     color: colors.textWhite,
     marginBottom: 2,

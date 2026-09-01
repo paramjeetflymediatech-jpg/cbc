@@ -2,13 +2,17 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
 import { PatientLead } from '../types';
+import { normalizeImageUrl } from '../utils/imageUrl';
 
 export interface User {
   id: string | number;
   name: string;
   email: string;
   phone?: string;
+  address?: string;
   city?: string;
+  state?: string;
+  pincode?: string;
   role?: string;
   avatarUrl?: string;
   avatarScale?: number;
@@ -33,6 +37,7 @@ interface AuthContextType {
   addEnquiry: (lead: Omit<PatientLead, 'id' | 'createdAt' | 'status'>) => Promise<PatientLead>;
   updateUser: (updatedFields: Partial<User>) => Promise<void>;
   fetchUserEnquiries: () => Promise<void>;
+  fetchUserProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,15 +63,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const storedEnquiries = await AsyncStorage.getItem('user_enquiries');
       const storedLocation = await AsyncStorage.getItem('user_location');
 
-      if (storedToken && storedUser) {
+      if (storedUser) {
+        try {
+          const parsed = JSON.parse(storedUser);
+          if (parsed.avatarUrl) {
+            parsed.avatarUrl = normalizeImageUrl(parsed.avatarUrl);
+          }
+          setUser(parsed);
+        } catch (parseErr) {
+          console.log('Error parsing stored user data:', parseErr);
+        }
+      }
+
+      if (storedToken) {
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
         setTimeout(() => {
           fetchUserEnquiries();
+          fetchUserProfile();
         }, 100);
-      } else {
-        setUser(null);
-        setToken(null);
       }
 
       if (storedSaved) {
@@ -84,6 +98,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Error loading persisted auth data:', e);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const res = await api.get('/user/profile');
+      if (res.data && res.data.user) {
+        const u = res.data.user;
+        setUser((prev) => {
+          const updated: User = {
+            ...(prev || {}),
+            id: u.id,
+            name: u.name || prev?.name || '',
+            email: u.email || prev?.email || '',
+            phone: u.phone || prev?.phone || '',
+            address: u.address || prev?.address || '',
+            city: u.city || prev?.city || '',
+            state: u.state || prev?.state || '',
+            pincode: u.pincode || prev?.pincode || '',
+            role: u.role || prev?.role || 'PATIENT',
+            avatarUrl: u.avatar ? normalizeImageUrl(u.avatar) : prev?.avatarUrl,
+            avatarScale: prev?.avatarScale || 1,
+            avatarTranslateX: prev?.avatarTranslateX || 0,
+            avatarTranslateY: prev?.avatarTranslateY || 0,
+            avatarRotate: prev?.avatarRotate || 0,
+          };
+          AsyncStorage.setItem('user_data', JSON.stringify(updated));
+          return updated;
+        });
+      }
+    } catch (err) {
+      console.log('Error fetching live user profile:', err);
     }
   };
 
@@ -142,72 +188,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const cleanEmail = email.toLowerCase().trim();
 
-      try {
-        const res = await api.post('/auth/login', {
-          email: cleanEmail,
-          password: pass,
-        });
+      const res = await api.post('/auth/login', {
+        email: cleanEmail,
+        password: pass,
+      });
 
-        if (res.data) {
-          const userObj: User = {
-            id: res.data.user?.id || 'u_' + Date.now(),
-            name: res.data.user?.name || cleanEmail.split('@')[0],
-            email: res.data.user?.email || cleanEmail,
-            role: res.data.user?.role || 'PATIENT',
-            phone: res.data.user?.phone || '+91 9876543210',
-            avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
-          };
+      if (res.data && res.data.user) {
+        const rawAvatar = res.data.user.avatar || res.data.user.avatarUrl;
+        const userObj: User = {
+          id: res.data.user.id,
+          name: res.data.user.name || cleanEmail.split('@')[0],
+          email: res.data.user.email || cleanEmail,
+          role: res.data.user.role || 'PATIENT',
+          phone: res.data.user.phone || '',
+          city: res.data.user.city || '',
+          avatarUrl: rawAvatar ? normalizeImageUrl(rawAvatar) : undefined,
+        };
 
-          const authToken = res.data.token || 'cbc_jwt_token_' + Date.now();
+        const authToken = res.data.token || ('cbc_jwt_token_' + Date.now());
 
-          await AsyncStorage.setItem('user_token', authToken);
-          await AsyncStorage.setItem('user_data', JSON.stringify(userObj));
+        await AsyncStorage.setItem('user_token', authToken);
+        await AsyncStorage.setItem('user_data', JSON.stringify(userObj));
 
-          setToken(authToken);
-          setUser(userObj);
-          setTimeout(() => {
-            fetchUserEnquiries();
-          }, 100);
-          return { success: true };
-        }
-      } catch (apiErr: any) {
-        console.log('Backend API login error/offline mode:', apiErr?.response?.data || apiErr.message);
-
-        if (cleanEmail && pass.length >= 4) {
-          const storedRegisteredUsers = await AsyncStorage.getItem('registered_users');
-          let registeredList: any[] = storedRegisteredUsers ? JSON.parse(storedRegisteredUsers) : [];
-
-          const existing = registeredList.find((u) => u.email === cleanEmail);
-          const userName = existing ? existing.name : cleanEmail.split('@')[0].toUpperCase();
-          const userPhone = existing ? existing.phone : '+91 9876543210';
-
-          const fallbackUser: User = {
-            id: existing ? existing.id : 'u_' + Date.now(),
-            name: userName,
-            email: cleanEmail,
-            phone: userPhone,
-            role: 'PATIENT',
-            avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
-          };
-
-          const fallbackToken = 'token_' + Date.now();
-
-          await AsyncStorage.setItem('user_token', fallbackToken);
-          await AsyncStorage.setItem('user_data', JSON.stringify(fallbackUser));
-
-          setToken(fallbackToken);
-          setUser(fallbackUser);
-          return { success: true };
-        }
-
-        const errMsg = apiErr?.response?.data?.error || 'Invalid email or password.';
-        return { success: false, message: errMsg };
+        setToken(authToken);
+        setUser(userObj);
+        setTimeout(() => {
+          fetchUserEnquiries();
+          fetchUserProfile();
+        }, 100);
+        return { success: true };
+      } else {
+        return { success: false, message: res.data?.error || 'Invalid credentials.' };
       }
-    } catch (err: any) {
-      return { success: false, message: 'Authentication error.' };
+    } catch (apiErr: any) {
+      console.log('Backend API login error:', apiErr?.response?.data || apiErr.message);
+      const errMsg =
+        apiErr?.response?.data?.error ||
+        apiErr?.response?.data?.message ||
+        (apiErr.message?.includes('Network') ? 'Network error: Cannot reach server.' : 'Invalid email or password.');
+      return { success: false, message: errMsg };
     }
-
-    return { success: false, message: 'Failed to authenticate.' };
   };
 
   const signup = async (
@@ -219,46 +239,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const cleanEmail = email.toLowerCase().trim();
 
-      const userObj: User = {
-        id: 'u_' + Date.now(),
+      const res = await api.post('/auth/register', {
         name: name.trim(),
         email: cleanEmail,
-        phone: phone.trim() || '+91 9876543210',
-        role: 'PATIENT',
-        avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
-      };
+        password: pass,
+        phone: phone.trim(),
+      });
 
-      const authToken = 'token_' + Date.now();
+      if (res.data && res.data.user) {
+        const rawAvatar = res.data.user.avatar || res.data.user.avatarUrl;
+        const userObj: User = {
+          id: res.data.user.id,
+          name: res.data.user.name || name.trim(),
+          email: res.data.user.email || cleanEmail,
+          phone: res.data.user.phone || phone.trim() || '',
+          role: res.data.user.role || 'PATIENT',
+          avatarUrl: rawAvatar ? normalizeImageUrl(rawAvatar) : undefined,
+        };
 
-      const storedRegisteredUsers = await AsyncStorage.getItem('registered_users');
-      let registeredList: any[] = storedRegisteredUsers ? JSON.parse(storedRegisteredUsers) : [];
-      registeredList.push({ id: userObj.id, name: userObj.name, email: userObj.email, phone: userObj.phone, password: pass });
-      await AsyncStorage.setItem('registered_users', JSON.stringify(registeredList));
+        const authToken = res.data.token || ('cbc_jwt_token_' + Date.now());
 
-      await AsyncStorage.setItem('user_token', authToken);
-      await AsyncStorage.setItem('user_data', JSON.stringify(userObj));
+        await AsyncStorage.setItem('user_token', authToken);
+        await AsyncStorage.setItem('user_data', JSON.stringify(userObj));
 
-      setToken(authToken);
-      setUser(userObj);
+        setToken(authToken);
+        setUser(userObj);
 
-      try {
-        await api.post('/auth/register', {
-          name,
-          email: cleanEmail,
-          password: pass,
-          phone,
-        });
-      } catch (e) {
-        console.log('Backend signup offline/fallback handled locally');
+        setTimeout(() => {
+          fetchUserEnquiries();
+          fetchUserProfile();
+        }, 100);
+
+        return { success: true };
+      } else {
+        return { success: false, message: res.data?.error || 'Registration failed.' };
       }
-
-      setTimeout(() => {
-        fetchUserEnquiries();
-      }, 100);
-
-      return { success: true };
-    } catch (e) {
-      return { success: false, message: 'Registration failed.' };
+    } catch (apiErr: any) {
+      console.log('Backend API registration error:', apiErr?.response?.data || apiErr.message);
+      const errMsg =
+        apiErr?.response?.data?.error ||
+        apiErr?.response?.data?.message ||
+        (apiErr.message?.includes('Network') ? 'Network error: Cannot reach server.' : 'Registration failed.');
+      return { success: false, message: errMsg };
     }
   };
 
@@ -308,10 +330,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUser = async (updatedFields: Partial<User>) => {
-    if (!user) return;
-    const updatedUser = { ...user, ...updatedFields };
+    const baseUser: User = user || {
+      id: 'u_' + Date.now(),
+      name: 'User',
+      email: 'user@clinicbychoice.com',
+      role: 'PATIENT',
+      phone: '+91 9876543210',
+    };
+    const updatedUser = { ...baseUser, ...updatedFields };
+    if (updatedUser.avatarUrl) {
+      updatedUser.avatarUrl = normalizeImageUrl(updatedUser.avatarUrl);
+    }
     setUser(updatedUser);
     await AsyncStorage.setItem('user_data', JSON.stringify(updatedUser));
+
+    if (token) {
+      try {
+        await api.put('/user/profile', {
+          name: updatedFields.name ?? baseUser.name,
+          phone: updatedFields.phone ?? baseUser.phone,
+          avatar: updatedFields.avatarUrl ?? baseUser.avatarUrl,
+          address: updatedFields.address ?? baseUser.address,
+          city: updatedFields.city ?? baseUser.city,
+          state: updatedFields.state ?? baseUser.state,
+          pincode: updatedFields.pincode ?? baseUser.pincode,
+        });
+      } catch (err) {
+        console.log('Error syncing profile update to backend:', err);
+      }
+    }
   };
 
   return (
@@ -332,6 +379,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addEnquiry,
         updateUser,
         fetchUserEnquiries,
+        fetchUserProfile,
       }}
     >
       {children}
@@ -360,6 +408,7 @@ const defaultContext: AuthContextType = {
   }),
   updateUser: async () => {},
   fetchUserEnquiries: async () => {},
+  fetchUserProfile: async () => {},
 };
 
 export const useAuth = () => {

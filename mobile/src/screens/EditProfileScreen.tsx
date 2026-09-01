@@ -16,6 +16,7 @@ import { colors } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
 import { useSweetAlert } from '../context/SweetAlertContext';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { normalizeImageUrl } from '../utils/imageUrl';
 
 interface EditProfileScreenProps {
   navigation: any;
@@ -36,8 +37,12 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
   const [name, setName] = useState<string>(user?.name || '');
   const [phone, setPhone] = useState<string>(user?.phone || '');
   const [email, setEmail] = useState<string>(user?.email || '');
+  const [address, setAddress] = useState<string>(user?.address || '');
+  const [city, setCity] = useState<string>(user?.city || '');
+  const [state, setState] = useState<string>(user?.state || '');
+  const [pincode, setPincode] = useState<string>(user?.pincode || '');
   const [avatarUrl, setAvatarUrl] = useState<string>(
-    user?.avatarUrl || PRESET_AVATARS[0].url
+    normalizeImageUrl(user?.avatarUrl) || PRESET_AVATARS[0].url
   );
   const [customAvatarInput, setCustomAvatarInput] = useState<string>('');
   const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
@@ -55,11 +60,29 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
   const [tempY, setTempY] = useState<number>(user?.avatarTranslateY || 0);
   const [tempRotate, setTempRotate] = useState<number>(user?.avatarRotate || 0);
 
+  // Sync state if user changes/hydrates
+  React.useEffect(() => {
+    if (user) {
+      if (user.name) setName(user.name);
+      if (user.phone) setPhone(user.phone);
+      if (user.email) setEmail(user.email);
+      if (user.address !== undefined) setAddress(user.address || '');
+      if (user.city !== undefined) setCity(user.city || '');
+      if (user.state !== undefined) setState(user.state || '');
+      if (user.pincode !== undefined) setPincode(user.pincode || '');
+      if (user.avatarUrl) setAvatarUrl(normalizeImageUrl(user.avatarUrl));
+      if (typeof user.avatarScale === 'number') setAvatarScale(user.avatarScale);
+      if (typeof user.avatarTranslateX === 'number') setAvatarTranslateX(user.avatarTranslateX);
+      if (typeof user.avatarTranslateY === 'number') setAvatarTranslateY(user.avatarTranslateY);
+      if (typeof user.avatarRotate === 'number') setAvatarRotate(user.avatarRotate);
+    }
+  }, [user]);
+
   const showRebuildAlert = () => {
     showAlert({
-      title: 'Rebuild Required',
-      message: 'A native library (Image Picker) was just installed. Please stop your current terminal, run "npm run android" in your terminal to rebuild/recompile the app with the new native code. For now, you can select from the preset avatars below!',
-      type: 'warning',
+      title: 'Image Selection Notice',
+      message: 'If the photo picker is not available in your environment, you can select one of the preset avatars or paste a custom image link below.',
+      type: 'info',
     });
   };
 
@@ -68,8 +91,10 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
       const p = launchImageLibrary(
         {
           mediaType: 'photo',
-          quality: 1,
-          includeBase64: false,
+          quality: 0.8,
+          maxWidth: 600,
+          maxHeight: 600,
+          includeBase64: true,
         },
         (response) => {
           if (response.didCancel) {
@@ -82,9 +107,13 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
               type: 'error',
             });
           } else if (response.assets && response.assets.length > 0) {
-            const selectedUri = response.assets[0].uri;
-            if (selectedUri) {
-              setAvatarUrl(selectedUri);
+            const asset = response.assets[0];
+            const dataUri = asset.base64
+              ? `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`
+              : asset.uri;
+
+            if (dataUri) {
+              setAvatarUrl(dataUri);
               // Open adjustment modal automatically for selected image
               setTempScale(1);
               setTempX(0);
@@ -161,6 +190,10 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
         name: name.trim(),
         phone: phone.trim(),
         email: email.trim(),
+        address: address.trim(),
+        city: city.trim(),
+        state: state.trim(),
+        pincode: pincode.trim(),
         avatarUrl,
         avatarScale,
         avatarTranslateX,
@@ -332,6 +365,52 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
                 placeholderTextColor={colors.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                style={styles.textInput}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.fieldLabel}>Street Address / House / Flat No.</Text>
+              <TextInput
+                value={address}
+                onChangeText={setAddress}
+                placeholder="e.g. Flat 402, Green Avenue, Sector 34"
+                placeholderTextColor={colors.textMuted}
+                style={styles.textInput}
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.fieldLabel}>City</Text>
+                <TextInput
+                  value={city}
+                  onChangeText={setCity}
+                  placeholder="e.g. Chandigarh"
+                  placeholderTextColor={colors.textMuted}
+                  style={styles.textInput}
+                />
+              </View>
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.fieldLabel}>Pincode</Text>
+                <TextInput
+                  value={pincode}
+                  onChangeText={setPincode}
+                  placeholder="e.g. 160022"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="numeric"
+                  style={styles.textInput}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.fieldLabel}>State / Region</Text>
+              <TextInput
+                value={state}
+                onChangeText={setState}
+                placeholder="e.g. Punjab"
+                placeholderTextColor={colors.textMuted}
                 style={styles.textInput}
               />
             </View>

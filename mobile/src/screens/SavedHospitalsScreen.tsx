@@ -1,10 +1,20 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  StatusBar,
+  RefreshControl,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { mockHospitals } from '../data/mockData';
+import api from '../services/api';
+import { Hospital } from '../types';
 import { colors } from '../theme/colors';
 import { HospitalCard } from '../components/HospitalCard';
 import { EmptyState } from '../components/EmptyState';
+import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { useAuth } from '../context/AuthContext';
 import { useSweetAlert } from '../context/SweetAlertContext';
 
@@ -15,6 +25,10 @@ interface SavedHospitalsScreenProps {
 export const SavedHospitalsScreen: React.FC<SavedHospitalsScreenProps> = ({ navigation }) => {
   const { savedHospitalIds, toggleSaveHospital, isAuthenticated } = useAuth();
   const { showAlert } = useSweetAlert();
+
+  const [allHospitals, setAllHospitals] = useState<Hospital[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -30,7 +44,47 @@ export const SavedHospitalsScreen: React.FC<SavedHospitalsScreenProps> = ({ navi
     }
   }, [isAuthenticated, navigation]);
 
-  const savedList = mockHospitals.filter((h) => savedHospitalIds.includes(String(h.id || h._id)));
+  useEffect(() => {
+    fetchHospitals();
+  }, []);
+
+  const fetchHospitals = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/hospitals');
+      let fetchedList: Hospital[] = [];
+
+      if (res.data && Array.isArray(res.data.hospitals) && res.data.hospitals.length > 0) {
+        fetchedList = res.data.hospitals;
+      } else if (Array.isArray(res.data) && res.data.length > 0) {
+        fetchedList = res.data;
+      }
+
+      setAllHospitals(fetchedList);
+    } catch (e) {
+      console.log('Error fetching hospitals for saved list:', e);
+      setAllHospitals([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchHospitals();
+  };
+
+  const savedList = allHospitals.filter((h) => {
+    const idStr = String(h.id);
+    const _idStr = (h as any)._id ? String((h as any)._id) : '';
+    const slugStr = (h as any).slug ? String((h as any).slug) : '';
+    return (
+      savedHospitalIds.includes(idStr) ||
+      (_idStr && savedHospitalIds.includes(_idStr)) ||
+      (slugStr && savedHospitalIds.includes(slugStr))
+    );
+  });
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -45,16 +99,22 @@ export const SavedHospitalsScreen: React.FC<SavedHospitalsScreenProps> = ({ navi
         <View style={{ width: 50 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {savedList.length > 0 ? (
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
+      >
+        {loading ? (
+          <LoadingSkeleton type="card" />
+        ) : savedList.length > 0 ? (
           savedList.map((hosp) => {
-            const hId = String(hosp.id || hosp._id);
+            const hId = String(hosp.id || (hosp as any)._id || (hosp as any).slug);
             return (
               <HospitalCard
                 key={hId}
                 hospital={hosp}
                 onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
-                onEnquirePress={() => navigation.navigate('Enquiry', { preferredHospital: hosp.name })}
+                onEnquirePress={() => navigation.navigate('Enquiry', { preferredHospital: hosp.name, hospitalId: hosp.id })}
                 onBookmarkPress={() => toggleSaveHospital(hId)}
                 isSaved={true}
               />

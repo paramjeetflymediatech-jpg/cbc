@@ -12,14 +12,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
 import { useSweetAlert } from '../context/SweetAlertContext';
+import { normalizeImageUrl } from '../utils/imageUrl';
 
 interface ProfileScreenProps {
   navigation: any;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
-  const { user, logout, isAuthenticated, userEnquiries } = useAuth();
+  const { user, logout, isAuthenticated, userEnquiries, fetchUserProfile } = useAuth();
   const { showAlert } = useSweetAlert();
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      fetchUserProfile();
+    }
+  }, [isAuthenticated]);
 
   const handleLogout = () => {
     showAlert({
@@ -143,7 +150,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         <View style={styles.userCard}>
           <View style={styles.avatarWrapper}>
             <Image
-              source={{ uri: user?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80' }}
+              source={{ uri: normalizeImageUrl(user?.avatarUrl) || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80' }}
               style={[
                 styles.avatar,
                 {

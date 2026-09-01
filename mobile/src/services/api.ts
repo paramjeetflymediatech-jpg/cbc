@@ -13,7 +13,7 @@ import { Platform } from 'react-native';
 // });
 
 // export const API_BASE_URL = DEV_API_URL;
-export const API_BASE_URL = 'https://cbc.socialflymediatech.com/api';
+export const API_BASE_URL = 'https://clinicbychoice.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

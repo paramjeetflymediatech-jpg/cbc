@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,10 +9,11 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Service } from '../types';
-import { mockHospitals } from '../data/mockData';
+import api from '../services/api';
+import { Service, Hospital } from '../types';
 import { colors } from '../theme/colors';
 import { HospitalCard } from '../components/HospitalCard';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * Converts HTML from the rich-text editor to clean plain text.
@@ -45,6 +46,9 @@ interface ServiceDetailScreenProps {
 }
 
 export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ navigation, route }) => {
+  const { savedHospitalIds, toggleSaveHospital } = useAuth();
+  const [allHospitals, setAllHospitals] = useState<Hospital[]>([]);
+
   const service: Service = route.params?.service || {
     id: 's1',
     name: 'Orthopaedics',
@@ -56,11 +60,31 @@ export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ naviga
     popularTreatments: ['Knee Replacement', 'Hip Replacement', 'Sports Injury', 'Joint Pain Relief', 'Spine Surgery'],
   };
 
-  const recommendedHospitals = mockHospitals.filter((h) =>
+  useEffect(() => {
+    fetchHospitals();
+  }, []);
+
+  const fetchHospitals = async () => {
+    try {
+      const res = await api.get('/hospitals');
+      let fetchedList: Hospital[] = [];
+      if (res.data && Array.isArray(res.data.hospitals)) {
+        fetchedList = res.data.hospitals;
+      } else if (Array.isArray(res.data)) {
+        fetchedList = res.data;
+      }
+      setAllHospitals(fetchedList);
+    } catch (e) {
+      console.log('Error fetching dynamic hospitals in ServiceDetailScreen:', e);
+      setAllHospitals([]);
+    }
+  };
+
+  const recommendedHospitals = allHospitals.filter((h) =>
     Array.isArray(h.specialties) && h.specialties.some((s) => s.toLowerCase().includes(service.name.toLowerCase()))
   );
 
-  const displayHospitals = recommendedHospitals.length > 0 ? recommendedHospitals : mockHospitals.slice(0, 2);
+  const displayHospitals = recommendedHospitals.length > 0 ? recommendedHospitals : allHospitals.slice(0, 2);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -136,21 +160,31 @@ export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ naviga
             </TouchableOpacity>
           </View>
 
-          {displayHospitals.map((hosp) => (
-            <HospitalCard
-              key={hosp.id || hosp.name}
-              hospital={hosp}
-              onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
-              onEnquirePress={() =>
-                navigation.navigate('Enquiry', {
-                  serviceName: service.name,
-                  serviceId: service.id,
-                  preferredHospital: hosp.name,
-                  hospitalId: hosp.id,
-                })
-              }
-            />
-          ))}
+          {displayHospitals.map((hosp) => {
+            const hId = String(hosp.id || (hosp as any)._id || (hosp as any).slug);
+            const isSaved =
+              savedHospitalIds.includes(hId) ||
+              (hosp.id ? savedHospitalIds.includes(String(hosp.id)) : false) ||
+              ((hosp as any).slug ? savedHospitalIds.includes(String((hosp as any).slug)) : false);
+
+            return (
+              <HospitalCard
+                key={hId}
+                hospital={hosp}
+                onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
+                onEnquirePress={() =>
+                  navigation.navigate('Enquiry', {
+                    serviceName: service.name,
+                    serviceId: service.id,
+                    preferredHospital: hosp.name,
+                    hospitalId: hosp.id,
+                  })
+                }
+                onBookmarkPress={() => toggleSaveHospital(hId)}
+                isSaved={isSaved}
+              />
+            );
+          })}
         </View>
       </ScrollView>
 

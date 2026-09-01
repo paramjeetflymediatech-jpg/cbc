@@ -8,7 +8,6 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { mockServices } from '../data/mockData';
 import { Service } from '../types';
 import { colors } from '../theme/colors';
 import { SearchBar } from '../components/SearchBar';
@@ -36,40 +35,28 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({ navigation }) =>
     try {
       setLoading(true);
       const res = await api.get('/services');
-      if (res.data && Array.isArray(res.data.services) && res.data.services.length > 0) {
+      if (res.data && Array.isArray(res.data.services)) {
         setServices(res.data.services);
-      } else if (Array.isArray(res.data) && res.data.length > 0) {
+      } else if (Array.isArray(res.data)) {
         setServices(res.data);
       } else {
-        setServices(mockServices);
+        setServices([]);
       }
     } catch (e) {
-      setServices(mockServices);
+      console.log('Error fetching services:', e);
+      setServices([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const listToFilter = services.length > 0 ? services : mockServices;
+  const listToFilter = services;
 
   // Dynamically extract categories from loaded database services
   const dbCategories = Array.from(new Set(listToFilter.map((s) => s.category).filter((c): c is string => Boolean(c))));
   const categories = [
     'All',
-    ...(dbCategories.length > 0
-      ? dbCategories
-      : [
-          'Surgical & Rehabilitation',
-          "Reproductive Care & Women's Health",
-          'Heart & Vascular',
-          'Cancer Care & Oncology',
-          'Orthopedics & Joint Care',
-          'Urology & Kidney Care',
-          'Neurosciences & Mental Health',
-          'Pediatrics & Child Care',
-          'Skin, Dental & Eye Care',
-          'General & Critical Care',
-        ]),
+    ...dbCategories,
   ];
 
   const filteredServices = listToFilter.filter((s) => {

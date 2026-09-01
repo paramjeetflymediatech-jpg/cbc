@@ -10,7 +10,6 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { mockUserLeads } from '../data/mockData';
 import { PatientLead } from '../types';
 import { colors } from '../theme/colors';
 import { StatusBadge } from '../components/StatusBadge';

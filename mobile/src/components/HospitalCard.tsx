@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
 import { Hospital } from '../types';
 import { colors } from '../theme/colors';
+import { normalizeImageUrl } from '../utils/imageUrl';
 
 const stripHtml = (html?: string): string => {
   if (!html) return '';
@@ -34,7 +35,11 @@ export const HospitalCard: React.FC<HospitalCardProps> = ({
   onBookmarkPress,
   isSaved = false,
 }) => {
-  const imageUrl = hospital.image || (hospital as any).coverImage || (hospital as any).logo || 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&auto=format&fit=crop&q=80';
+  const rawCover = hospital.image || (hospital as any).coverImage || (hospital as any).bannerImage;
+  const rawLogo = hospital.logo;
+
+  const imageUrl = normalizeImageUrl(rawCover || rawLogo) || 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&auto=format&fit=crop&q=80';
+  const logoUrl = rawLogo ? normalizeImageUrl(rawLogo) : null;
 
   const rawSpecialties = Array.isArray(hospital.specialties)
     ? hospital.specialties
@@ -64,6 +69,19 @@ export const HospitalCard: React.FC<HospitalCardProps> = ({
             <Text style={styles.heartIcon}>{isSaved ? '❤️' : '🤍'}</Text>
           </TouchableOpacity>
         )}
+
+        {/* Hospital Logo Avatar Badge */}
+        <View style={styles.logoBadgeContainer}>
+          {logoUrl ? (
+            <Image source={{ uri: logoUrl }} style={styles.logoImage} resizeMode="contain" />
+          ) : (
+            <View style={styles.logoPlaceholder}>
+              <Text style={styles.logoPlaceholderText}>
+                {hospital.name ? hospital.name.charAt(0).toUpperCase() : '🏥'}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
 
       <View style={styles.contentContainer}>
@@ -138,7 +156,7 @@ const styles = StyleSheet.create({
   },
   imageWrapper: {
     position: 'relative',
-    height: 155,
+    height: 165,
     width: '100%',
     backgroundColor: colors.surfaceSecondary,
   },
@@ -148,7 +166,7 @@ const styles = StyleSheet.create({
   },
   ratingBadge: {
     position: 'absolute',
-    bottom: 12,
+    top: 12,
     left: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -182,12 +200,57 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   heartIcon: {
     fontSize: 16,
   },
+  logoBadgeContainer: {
+    position: 'absolute',
+    bottom: -18,
+    left: 16,
+    width: 50,
+    height: 50,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    padding: 3,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+  },
+  logoPlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoPlaceholderText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.primary,
+  },
   contentContainer: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 24,
   },
   titleRow: {
     flexDirection: 'row',

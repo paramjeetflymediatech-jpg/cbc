@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,10 +8,12 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { mockHospitals, mockServices } from '../data/mockData';
+import api from '../services/api';
+import { Hospital, Service } from '../types';
 import { colors } from '../theme/colors';
 import { SearchBar } from '../components/SearchBar';
 import { HospitalCard } from '../components/HospitalCard';
+import { useAuth } from '../context/AuthContext';
 
 interface SearchScreenProps {
   navigation: any;
@@ -19,26 +21,66 @@ interface SearchScreenProps {
 }
 
 export const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, route }) => {
+  const { savedHospitalIds, toggleSaveHospital } = useAuth();
   const initialQuery = route.params?.initialQuery || '';
   const [query, setQuery] = useState<string>(initialQuery);
+  const [allHospitals, setAllHospitals] = useState<Hospital[]>([]);
+  const [allServices, setAllServices] = useState<Service[]>([]);
+
+  useEffect(() => {
+    fetchSearchData();
+  }, []);
+
+  const fetchSearchData = async () => {
+    try {
+      const [hospRes, servRes] = await Promise.allSettled([
+        api.get('/hospitals'),
+        api.get('/services'),
+      ]);
+
+      if (hospRes.status === 'fulfilled' && hospRes.value?.data) {
+        const rawHosp = hospRes.value.data;
+        let fetchedList: Hospital[] = [];
+        if (Array.isArray(rawHosp.hospitals)) {
+          fetchedList = rawHosp.hospitals;
+        } else if (Array.isArray(rawHosp)) {
+          fetchedList = rawHosp;
+        }
+        setAllHospitals(fetchedList);
+      }
+
+      if (servRes.status === 'fulfilled' && servRes.value?.data) {
+        const rawServ = servRes.value.data;
+        if (Array.isArray(rawServ.services)) {
+          setAllServices(rawServ.services);
+        } else if (Array.isArray(rawServ)) {
+          setAllServices(rawServ);
+        }
+      }
+    } catch (e) {
+      console.log('Error fetching dynamic search data:', e);
+    }
+  };
 
   const recentSearches = ['IVF Fertility', 'Orthopaedics', 'Chandigarh Hospitals', 'Knee Replacement'];
   const popularSearches = ['Best IVF Hospitals', 'Top Joint Replacement', 'Dental Implants', 'Max Hospital Mohali'];
 
   const matchedHospitals = query.trim()
-    ? mockHospitals.filter(
+    ? allHospitals.filter(
         (h) =>
           (h.name && h.name.toLowerCase().includes(query.toLowerCase())) ||
           (h.location && h.location.toLowerCase().includes(query.toLowerCase())) ||
+          (h.city && h.city.toLowerCase().includes(query.toLowerCase())) ||
           (Array.isArray(h.specialties) && h.specialties.some((s) => s.toLowerCase().includes(query.toLowerCase())))
       )
     : [];
 
   const matchedServices = query.trim()
-    ? mockServices.filter(
+    ? allServices.filter(
         (s) =>
           s.name.toLowerCase().includes(query.toLowerCase()) ||
-          (s.description && s.description.toLowerCase().includes(query.toLowerCase()))
+          (s.description && s.description.toLowerCase().includes(query.toLowerCase())) ||
+          (Array.isArray(s.popularTreatments) && s.popularTreatments.some((t) => t.toLowerCase().includes(query.toLowerCase())))
       )
     : [];
 
@@ -101,22 +143,24 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, route })
             </View>
 
             {/* Categories */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Browse Categories</Text>
-              <View style={styles.catGrid}>
-                {mockServices.slice(0, 6).map((cat) => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={styles.catCard}
-                    onPress={() => navigation.navigate('ServiceDetail', { service: cat })}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.catIcon}>{cat.icon || '🩺'}</Text>
-                    <Text style={styles.catName}>{cat.name}</Text>
-                  </TouchableOpacity>
-                ))}
+            {allServices.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Browse Categories</Text>
+                <View style={styles.catGrid}>
+                  {allServices.slice(0, 6).map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={styles.catCard}
+                      onPress={() => navigation.navigate('ServiceDetail', { service: cat })}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.catIcon}>{cat.icon || '🩺'}</Text>
+                      <Text style={styles.catName}>{cat.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
+            )}
           </>
         ) : (
           <>
@@ -148,14 +192,24 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, route })
             {matchedHospitals.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.subHeading}>Hospitals ({matchedHospitals.length})</Text>
-                {matchedHospitals.map((hosp) => (
-                  <HospitalCard
-                    key={hosp.id || hosp._id}
-                    hospital={hosp}
-                    onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
-                    onEnquirePress={() => navigation.navigate('Enquiry', { preferredHospital: hosp.name })}
-                  />
-                ))}
+                {matchedHospitals.map((hosp) => {
+                  const hId = String(hosp.id || (hosp as any)._id || (hosp as any).slug);
+                  const isSaved =
+                    savedHospitalIds.includes(hId) ||
+                    (hosp.id ? savedHospitalIds.includes(String(hosp.id)) : false) ||
+                    ((hosp as any).slug ? savedHospitalIds.includes(String((hosp as any).slug)) : false);
+
+                  return (
+                    <HospitalCard
+                      key={hId}
+                      hospital={hosp}
+                      onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
+                      onEnquirePress={() => navigation.navigate('Enquiry', { preferredHospital: hosp.name, hospitalId: hosp.id })}
+                      onBookmarkPress={() => toggleSaveHospital(hId)}
+                      isSaved={isSaved}
+                    />
+                  );
+                })}
               </View>
             )}
 

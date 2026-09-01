@@ -12,8 +12,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../services/api';
 import { Hospital, Service } from '../types';
 import {
-  mockHospitals,
-  mockServices,
   whyChooseCBCData,
   howItWorksData,
 } from '../data/mockData';
@@ -33,7 +31,7 @@ interface HomeScreenProps {
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
-  const { user, location, isAuthenticated } = useAuth();
+  const { user, location, isAuthenticated, savedHospitalIds, toggleSaveHospital } = useAuth();
   const { showAlert } = useSweetAlert();
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -60,10 +58,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         } else if (Array.isArray(rawHosp)) {
           setHospitals(rawHosp);
         } else {
-          setHospitals(mockHospitals.slice(0, 3));
+          setHospitals([]);
         }
       } else {
-        setHospitals(mockHospitals.slice(0, 3));
+        setHospitals([]);
       }
 
       if (servRes.status === 'fulfilled' && servRes.value?.data) {
@@ -73,15 +71,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         } else if (Array.isArray(rawServ)) {
           setServices(rawServ);
         } else {
-          setServices(mockServices.slice(0, 4));
+          setServices([]);
         }
       } else {
-        setServices(mockServices.slice(0, 4));
+        setServices([]);
       }
     } catch (error) {
-      console.log('Error fetching featured data, using mock fallback:', error);
-      setHospitals(mockHospitals.slice(0, 3));
-      setServices(mockServices.slice(0, 4));
+      console.log('Error fetching featured dynamic data:', error);
+      setHospitals([]);
+      setServices([]);
     } finally {
       setLoading(false);
     }
@@ -100,6 +98,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       {/* App Header */}
       <AppHeader
         userName={user?.name}
+        avatarUrl={user?.avatarUrl}
+        avatarScale={user?.avatarScale}
+        avatarTranslateX={user?.avatarTranslateX}
+        avatarTranslateY={user?.avatarTranslateY}
+        avatarRotate={user?.avatarRotate}
         location={location}
         unreadCount={2}
         onLocationPress={() => setLocationModalVisible(true)}
@@ -260,14 +263,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
               const listToRender = filtered.length > 0 ? filtered : hospitals;
 
-              return listToRender.slice(0, 3).map((hosp) => (
-                <HospitalCard
-                  key={hosp.id || hosp._id || hosp.name}
-                  hospital={hosp}
-                  onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
-                  onEnquirePress={() => navigation.navigate('Enquiry', { preferredHospital: hosp.name })}
-                />
-              ));
+              return listToRender.slice(0, 3).map((hosp) => {
+                const hId = String(hosp.id || (hosp as any)._id || (hosp as any).slug);
+                const isSaved =
+                  savedHospitalIds.includes(hId) ||
+                  (hosp.id ? savedHospitalIds.includes(String(hosp.id)) : false) ||
+                  ((hosp as any).slug ? savedHospitalIds.includes(String((hosp as any).slug)) : false);
+
+                return (
+                  <HospitalCard
+                    key={hId}
+                    hospital={hosp}
+                    onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
+                    onEnquirePress={() => navigation.navigate('Enquiry', { preferredHospital: hosp.name, hospitalId: hosp.id })}
+                    onBookmarkPress={() => toggleSaveHospital(hId)}
+                    isSaved={isSaved}
+                  />
+                );
+              });
             })()
           )}
         </View>
