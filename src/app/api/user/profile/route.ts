@@ -135,3 +135,54 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: 'Server error updating profile' }, { status: 500 });
   }
 }
+
+export async function DELETE() {
+  try {
+    const authUser = await getAuthUser();
+    if (!authUser) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    await connectDB();
+    const user = await User.findByPk(authUser.userId);
+    if (!user) {
+      return NextResponse.json({ error: 'User account not found' }, { status: 404 });
+    }
+
+    // Safety guard: do not allow SUPER_ADMIN self-deletion via profile endpoint
+    if (user.role === 'SUPER_ADMIN') {
+      return NextResponse.json(
+        { error: 'Super Admin accounts cannot be self-deleted.' },
+        { status: 403 }
+      );
+    }
+
+    // 1. Unlink leads associated with this user
+    await Lead.update(
+      { userId: null },
+      { where: { userId: user.id } }
+    );
+
+    // 2. Permanently delete the user record
+    await user.destroy();
+
+    // 3. Clear auth cookie
+    const response = NextResponse.json({
+      success: true,
+      message: 'Your account and personal data have been permanently deleted.',
+    });
+
+    response.cookies.set('cbc_token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 0,
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Delete user account error:', error);
+    return NextResponse.json({ error: 'Server error deleting account' }, { status: 500 });
+  }
+}

@@ -31,6 +31,7 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<{ success: boolean; message?: string }>;
   signup: (name: string, email: string, pass: string, phone?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<{ success: boolean; message?: string }>;
   savedHospitalIds: string[];
   toggleSaveHospital: (id: string | number) => Promise<void>;
   userEnquiries: PatientLead[];
@@ -297,6 +298,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const deleteAccount = async (): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await api.delete('/user/profile');
+      if (res.data?.success) {
+        await logout();
+        return { success: true, message: res.data.message || 'Account deleted successfully.' };
+      }
+      return { success: false, message: res.data?.error || 'Failed to delete account.' };
+    } catch (err: any) {
+      console.log('Delete account error:', err?.response?.data || err.message);
+      const errMsg = err?.response?.data?.error || err?.response?.data?.message || 'Server error while deleting account.';
+      return { success: false, message: errMsg };
+    }
+  };
+
   const toggleSaveHospital = async (id: string | number) => {
     const strId = String(id);
     let updated: string[];
@@ -373,6 +389,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         signup,
         logout,
+        deleteAccount,
         savedHospitalIds,
         toggleSaveHospital,
         userEnquiries,
@@ -397,6 +414,7 @@ const defaultContext: AuthContextType = {
   login: async () => ({ success: true }),
   signup: async () => ({ success: true }),
   logout: async () => {},
+  deleteAccount: async () => ({ success: true }),
   savedHospitalIds: [],
   toggleSaveHospital: async () => {},
   userEnquiries: [],

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   StatusBar,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
@@ -19,7 +20,7 @@ interface ProfileScreenProps {
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
-  const { user, logout, isAuthenticated, userEnquiries, fetchUserProfile } = useAuth();
+  const { user, logout, deleteAccount, isAuthenticated, userEnquiries, fetchUserProfile } = useAuth();
   const { showAlert } = useSweetAlert();
 
   React.useEffect(() => {
@@ -38,6 +39,35 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       onConfirm: async () => {
         await logout();
         navigation.navigate('Auth');
+      },
+    });
+  };
+
+  const handleDeleteAccount = () => {
+    showAlert({
+      title: 'Delete Account & Data',
+      message:
+        'Are you sure you want to permanently delete your account? All your personal details and consultation inquiries will be permanently removed. This action cannot be reversed.',
+      type: 'warning',
+      confirmText: 'Delete Forever',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        const res = await deleteAccount();
+        if (res.success) {
+          showAlert({
+            title: 'Account Deleted',
+            message: 'Your account and personal data have been permanently deleted.',
+            type: 'success',
+            confirmText: 'OK',
+            onConfirm: () => navigation.navigate('Home'),
+          });
+        } else {
+          showAlert({
+            title: 'Deletion Failed',
+            message: res.message || 'Unable to delete account. Please try again or contact privacy@clinicbychoice.com.',
+            type: 'error',
+          });
+        }
       },
     });
   };
@@ -132,6 +162,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           label: 'About Clinic By Choice',
           onPress: () => navigation.navigate('About'),
         },
+        ...(isAuthenticated
+          ? [
+              {
+                icon: '🗑️',
+                label: 'Delete Account & Data',
+                onPress: handleDeleteAccount,
+                isDestructive: true,
+              },
+            ]
+          : [
+              {
+                icon: '🗑️',
+                label: 'Request Data Deletion',
+                onPress: () => {
+                  Linking.openURL('https://clinicbychoice.com/data-deletion').catch(() => {});
+                },
+              },
+            ]),
       ],
     },
   ];
@@ -198,7 +246,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                 >
                   <View style={styles.menuLeft}>
                     <Text style={styles.menuIcon}>{item.icon}</Text>
-                    <Text style={styles.menuLabel}>{item.label}</Text>
+                    <Text style={[styles.menuLabel, (item as any).isDestructive && { color: '#e11d48', fontWeight: '700' }]}>
+                      {item.label}
+                    </Text>
                   </View>
                   <Text style={styles.chevron}>→</Text>
                 </TouchableOpacity>

@@ -153,6 +153,18 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/privacy-policy" className="hover:text-[#F04B8B] flex items-center group">
+                  <span className="text-[#F04B8B] font-black mr-2 text-sm group-hover:translate-x-1 transition-transform">»</span>
+                  <span>Privacy Policy</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/data-deletion" className="hover:text-[#F04B8B] flex items-center group">
+                  <span className="text-[#F04B8B] font-black mr-2 text-sm group-hover:translate-x-1 transition-transform">»</span>
+                  <span>Data Deletion</span>
+                </Link>
+              </li>
+              <li>
                 <Link href="/sitemap.xml" target="_blank" className="hover:text-[#F04B8B] flex items-center group">
                   <span className="text-[#F04B8B] font-black mr-2 text-sm group-hover:translate-x-1 transition-transform">»</span>
                   <span>Sitemap</span>
@@ -218,6 +230,14 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-2 text-xs sm:text-sm font-semibold">
           <div className="flex items-center space-x-2.5">
             <span>Copyright © 2026 Clinic By Choice All rights reserved.</span>
+            <span className="opacity-60">•</span>
+            <Link href="/privacy-policy" className="hover:underline opacity-90 hover:opacity-100">
+              Privacy Policy
+            </Link>
+            <span className="opacity-60">•</span>
+            <Link href="/data-deletion" className="hover:underline opacity-90 hover:opacity-100">
+              Data Deletion
+            </Link>
             <span className="opacity-60">•</span>
             <Link href="/sitemap.xml" target="_blank" className="hover:underline opacity-90 hover:opacity-100">
               Sitemap

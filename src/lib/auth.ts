@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cbc_super_secret_jwt_key_2026';
 
@@ -35,8 +35,18 @@ export function verifyToken(token: string): TokenPayload | null {
 
 export async function getAuthUser(): Promise<TokenPayload | null> {
   try {
+    // 1. Try session cookie first
     const cookieStore = await cookies();
-    const token = cookieStore.get('cbc_token')?.value;
+    let token = cookieStore.get('cbc_token')?.value;
+
+    // 2. If no cookie, try Authorization header (used by mobile app API client)
+    if (!token) {
+      const headerList = await headers();
+      const authHeader = headerList.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7).trim();
+      }
+    }
 
     if (!token) return null;
     return verifyToken(token);
