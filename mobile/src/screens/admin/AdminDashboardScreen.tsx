@@ -93,7 +93,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
           <View style={styles.adminBadge}>
             <Text style={styles.adminBadgeText}>🛡️ MASTER ADMIN</Text>
           </View>
-          <Text style={styles.adminBannerTitle}>Clinic By Choice Platform</Text>
+          <Text style={styles.adminBannerTitle}>Clinic By Choice </Text>
           <Text style={styles.adminBannerSub}>
             Manage clinic partnerships, lead allocations, user security, and verified revenue.
           </Text>

@@ -853,24 +853,24 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Text style={styles.backBtnText}>← Back</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Hospital Directory</Text>
           <Text style={styles.headerSub}>{totalCount} Registered Partners</Text>
         </View>
-        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-          <TouchableOpacity
-            style={styles.headerLeadsBtn}
-            onPress={() => navigation.navigate('AdminLeads')}
-          >
-            <Text style={styles.headerLeadsBtnText}>📋 Leads</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.addBtn} onPress={() => setAddModalVisible(true)}>
-            <Text style={styles.addBtnText}>+ Onboard</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.addBtn}
+          onPress={() => setAddModalVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.addBtnText}>+ Onboard</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Search Box */}
@@ -879,69 +879,72 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search hospital by name, city, email, phone..."
+            placeholder="Search hospital by name, city, email..."
             placeholderTextColor={colors.textMuted}
             value={search}
             onChangeText={setSearch}
           />
           {search ? (
-            <TouchableOpacity onPress={() => setSearch('')}>
+            <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Text style={styles.clearIcon}>✕</Text>
             </TouchableOpacity>
           ) : null}
         </View>
       </View>
 
-      {/* KPI Stats Strip */}
+      {/* Status Filter Tabs / KPI Strip */}
       <View style={styles.kpiContainer}>
         <TouchableOpacity
           style={[styles.kpiCard, selectedStatus === 'ALL' && styles.kpiCardActive]}
           onPress={() => setSelectedStatus('ALL')}
+          activeOpacity={0.7}
         >
-          <Text style={styles.kpiValue}>{totalCount}</Text>
-          <Text style={styles.kpiLabel}>Total</Text>
+          <Text style={[styles.kpiValue, selectedStatus === 'ALL' && styles.kpiValueActive]}>
+            {totalCount}
+          </Text>
+          <Text style={[styles.kpiLabel, selectedStatus === 'ALL' && styles.kpiLabelActive]}>
+            All
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.kpiCard, selectedStatus === 'APPROVED' && styles.kpiCardActive]}
+          style={[styles.kpiCard, selectedStatus === 'APPROVED' && styles.kpiCardActiveApproved]}
           onPress={() => setSelectedStatus('APPROVED')}
+          activeOpacity={0.7}
         >
-          <Text style={[styles.kpiValue, { color: '#15803D' }]}>{approvedCount}</Text>
-          <Text style={styles.kpiLabel}>Approved</Text>
+          <Text style={[styles.kpiValue, { color: '#16A34A' }]}>
+            {approvedCount}
+          </Text>
+          <Text style={[styles.kpiLabel, selectedStatus === 'APPROVED' && { color: '#15803D', fontWeight: '800' }]}>
+            Approved
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.kpiCard, selectedStatus === 'PENDING' && styles.kpiCardActive]}
+          style={[styles.kpiCard, selectedStatus === 'PENDING' && styles.kpiCardActivePending]}
           onPress={() => setSelectedStatus('PENDING')}
+          activeOpacity={0.7}
         >
-          <Text style={[styles.kpiValue, { color: '#B45309' }]}>{pendingCount}</Text>
-          <Text style={styles.kpiLabel}>Pending</Text>
+          <Text style={[styles.kpiValue, { color: '#D97706' }]}>
+            {pendingCount}
+          </Text>
+          <Text style={[styles.kpiLabel, selectedStatus === 'PENDING' && { color: '#B45309', fontWeight: '800' }]}>
+            Pending
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.kpiCard, selectedStatus === 'SUSPENDED' && styles.kpiCardActive]}
+          style={[styles.kpiCard, selectedStatus === 'SUSPENDED' && styles.kpiCardActiveSuspended]}
           onPress={() => setSelectedStatus('SUSPENDED')}
+          activeOpacity={0.7}
         >
-          <Text style={[styles.kpiValue, { color: '#BE185D' }]}>{suspendedCount}</Text>
-          <Text style={styles.kpiLabel}>Suspended</Text>
+          <Text style={[styles.kpiValue, { color: '#E11D48' }]}>
+            {suspendedCount}
+          </Text>
+          <Text style={[styles.kpiLabel, selectedStatus === 'SUSPENDED' && { color: '#BE185D', fontWeight: '800' }]}>
+            Suspended
+          </Text>
         </TouchableOpacity>
-      </View>
-
-      {/* Status Filter Scroll */}
-      <View style={styles.filtersContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
-          {STATUS_FILTERS.map((s) => (
-            <TouchableOpacity
-              key={s}
-              style={[styles.filterPill, selectedStatus === s && styles.filterPillActive]}
-              onPress={() => setSelectedStatus(s)}
-            >
-              <Text style={[styles.filterPillText, selectedStatus === s && styles.filterPillTextActive]}>
-                {s === 'ALL' ? 'ALL HOSPITALS' : s}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </View>
 
       {loading && !refreshing ? (
@@ -1062,22 +1065,6 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
                         <Text style={styles.approveBtnText}>✓ Approve Registration</Text>
                       </TouchableOpacity>
                     ) : null}
-
-                    {/* View Leads Button */}
-                    <TouchableOpacity
-                      style={[styles.btn, styles.leadsBtn]}
-                      onPress={() =>
-                        navigation.navigate('AdminLeads', {
-                          hospitalId: h.id,
-                          hospitalName: h.name,
-                          search: h.name,
-                        })
-                      }
-                    >
-                      <Text style={styles.leadsBtnText}>
-                        📋 Leads{h.leadsRemaining !== undefined ? ` (${h.leadsRemaining})` : ''}
-                      </Text>
-                    </TouchableOpacity>
 
                     {/* Edit Hospital Button (Pink Primary) */}
                     <TouchableOpacity
@@ -2404,7 +2391,7 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     paddingVertical: 6,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
   },
   backBtnText: {
     fontSize: 15,
@@ -2412,12 +2399,15 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   headerCenter: {
+    flex: 1,
     alignItems: 'center',
+    marginHorizontal: 8,
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: '900',
     color: colors.textPrimary,
+    letterSpacing: -0.3,
   },
   headerSub: {
     fontSize: 11,
@@ -2425,24 +2415,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 1,
   },
-  headerLeadsBtn: {
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  headerLeadsBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#1D4ED8',
-  },
   addBtn: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
     borderRadius: 10,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 2,
   },
   addBtnText: {
     fontSize: 13,
@@ -2483,8 +2465,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingTop: 4,
+    paddingBottom: 10,
     gap: 8,
+    borderBottomWidth: 1,
+    borderColor: colors.borderLight,
   },
   kpiCard: {
     flex: 1,
@@ -2492,17 +2477,32 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 8,
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.borderLight,
   },
   kpiCardActive: {
     borderColor: colors.primary,
     backgroundColor: '#FFF1F2',
   },
+  kpiCardActiveApproved: {
+    borderColor: '#16A34A',
+    backgroundColor: '#F0FDF4',
+  },
+  kpiCardActivePending: {
+    borderColor: '#D97706',
+    backgroundColor: '#FFFBEB',
+  },
+  kpiCardActiveSuspended: {
+    borderColor: '#E11D48',
+    backgroundColor: '#FFF1F2',
+  },
   kpiValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '900',
     color: colors.textPrimary,
+  },
+  kpiValueActive: {
+    color: colors.primary,
   },
   kpiLabel: {
     fontSize: 10,
@@ -2510,35 +2510,9 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 1,
   },
-  filtersContainer: {
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderColor: colors.borderLight,
-    paddingBottom: 10,
-  },
-  filtersScroll: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  filterPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: colors.surfaceSecondary,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  filterPillActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  filterPillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  filterPillTextActive: {
-    color: colors.textWhite,
+  kpiLabelActive: {
+    color: colors.primary,
+    fontWeight: '800',
   },
   listContent: {
     padding: 16,
