@@ -237,7 +237,12 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
             <Text style={styles.emptyText}>No leads recorded yet.</Text>
           ) : (
             recentLeads.map((lead) => (
-              <View key={lead.id} style={styles.leadRow}>
+              <TouchableOpacity
+                key={lead.id}
+                style={styles.leadRow}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate('AdminLeadDetail', { leadId: lead.id, lead })}
+              >
                 <View style={styles.leadLeft}>
                   <Text style={styles.leadPatient}>{lead.patientName}</Text>
                   <Text style={styles.leadMeta}>
@@ -253,7 +258,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
                   </Text>
                   <Text style={styles.leadStatus}>{lead.status}</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))
           )}
         </View>

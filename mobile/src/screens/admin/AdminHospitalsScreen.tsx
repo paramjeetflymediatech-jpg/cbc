@@ -134,7 +134,9 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
   const [linkedHospitalServices, setLinkedHospitalServices] = useState<AdminHospitalServiceItem[]>([]);
 
   // Link / Edit Service Modal State
-  const [editServiceModalVisible, setEditServiceModalVisible] = useState<boolean>(false);
+  const [serviceModalTab, setServiceModalTab] = useState<'list' | 'form'>('list');
+  const [serviceDropdownOpen, setServiceDropdownOpen] = useState<boolean>(false);
+  const [serviceSearchQuery, setServiceSearchQuery] = useState<string>('');
   const [editingServiceSaving, setEditingServiceSaving] = useState<boolean>(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string>('');
   const [svcStartingPrice, setSvcStartingPrice] = useState<string>('');
@@ -143,15 +145,16 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
   const [svcTreatmentDetails, setSvcTreatmentDetails] = useState<string>('');
   const [svcStatus, setSvcStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
   const [isEditingExistingLink, setIsEditingExistingLink] = useState<boolean>(false);
+  const [editingHospitalServiceId, setEditingHospitalServiceId] = useState<string | number | null>(null);
 
   // Hospital Doctors Management Modal State
   const [doctorsModalVisible, setDoctorsModalVisible] = useState<boolean>(false);
+  const [doctorModalTab, setDoctorModalTab] = useState<'list' | 'form'>('list');
   const [loadingHospitalDoctors, setLoadingHospitalDoctors] = useState<boolean>(false);
   const [doctorHospital, setDoctorHospital] = useState<AdminHospitalItem | null>(null);
   const [hospitalDoctors, setHospitalDoctors] = useState<AdminDoctorItem[]>([]);
 
-  // Add / Edit Doctor Modal State
-  const [editDoctorModalVisible, setEditDoctorModalVisible] = useState<boolean>(false);
+  // Add / Edit Doctor State
   const [editingDoctorSaving, setEditingDoctorSaving] = useState<boolean>(false);
   const [editingDoctorIndex, setEditingDoctorIndex] = useState<number | null>(null);
   const [docName, setDocName] = useState<string>('');
@@ -412,9 +415,42 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
   const fetchHospitalServices = async (hospitalId: number | string) => {
     try {
       setLoadingHospitalServices(true);
-      const res = await api.get(`/admin/hospitals/${hospitalId}/services`);
-      setAllPlatformServices(Array.isArray(res.data?.allPlatformServices) ? res.data.allPlatformServices : []);
-      setLinkedHospitalServices(Array.isArray(res.data?.hospitalServices) ? res.data.hospitalServices : []);
+      let platformSvcs: AdminPlatformServiceItem[] = [];
+      let hospitalSvcs: AdminHospitalServiceItem[] = [];
+
+      try {
+        const res = await api.get(`/admin/hospitals/${hospitalId}/services`);
+        if (Array.isArray(res.data?.allPlatformServices) && res.data.allPlatformServices.length > 0) {
+          platformSvcs = res.data.allPlatformServices;
+        }
+        if (Array.isArray(res.data?.hospitalServices)) {
+          hospitalSvcs = res.data.hospitalServices;
+        }
+      } catch {
+        // Fallback below
+      }
+
+      // If platform services list is empty, fetch from /admin/services or /services
+      if (platformSvcs.length === 0) {
+        try {
+          const sRes = await api.get('/admin/services');
+          if (Array.isArray(sRes.data?.services)) {
+            platformSvcs = sRes.data.services;
+          }
+        } catch {
+          try {
+            const pubRes = await api.get('/services');
+            if (Array.isArray(pubRes.data?.services)) {
+              platformSvcs = pubRes.data.services;
+            }
+          } catch {
+            // Keep empty
+          }
+        }
+      }
+
+      setAllPlatformServices(platformSvcs);
+      setLinkedHospitalServices(hospitalSvcs);
     } catch {
       setAllPlatformServices([]);
       setLinkedHospitalServices([]);
@@ -425,11 +461,13 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
 
   const handleOpenServicesModal = (h: AdminHospitalItem) => {
     setServiceHospital(h);
+    setServiceModalTab('list');
     setServicesModalVisible(true);
     fetchHospitalServices(h.id);
   };
 
   const handleOpenAddService = () => {
+    setEditingHospitalServiceId(null);
     setIsEditingExistingLink(false);
     setSelectedServiceId('');
     setSvcStartingPrice('');
@@ -437,18 +475,23 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
     setSvcDescription('');
     setSvcTreatmentDetails('');
     setSvcStatus('ACTIVE');
-    setEditServiceModalVisible(true);
+    setServiceDropdownOpen(false);
+    setServiceSearchQuery('');
+    setServiceModalTab('form');
   };
 
   const handleOpenEditService = (hs: AdminHospitalServiceItem) => {
+    setEditingHospitalServiceId(hs.id);
     setIsEditingExistingLink(true);
-    setSelectedServiceId(String(hs.serviceId));
+    setSelectedServiceId(String(hs.serviceId || hs.service?.id || ''));
     setSvcStartingPrice(hs.startingPrice !== undefined && hs.startingPrice !== null ? String(hs.startingPrice) : '');
     setSvcSubServices(hs.subServices || '');
     setSvcDescription(hs.description || '');
     setSvcTreatmentDetails(hs.treatmentDetails || '');
     setSvcStatus(hs.status || 'ACTIVE');
-    setEditServiceModalVisible(true);
+    setServiceDropdownOpen(false);
+    setServiceSearchQuery('');
+    setServiceModalTab('form');
   };
 
   const handleSaveHospitalService = async () => {
@@ -461,6 +504,7 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
     try {
       setEditingServiceSaving(true);
       const res = await api.post(`/admin/hospitals/${serviceHospital.id}/services`, {
+        hospitalServiceId: editingHospitalServiceId,
         serviceId: Number(selectedServiceId),
         startingPrice: svcStartingPrice ? Number(svcStartingPrice) : null,
         subServices: svcSubServices.trim() || null,
@@ -471,7 +515,7 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
 
       if (res.data?.hospitalServices) {
         setLinkedHospitalServices(res.data.hospitalServices);
-        setEditServiceModalVisible(false);
+        setServiceModalTab('list');
         Alert.alert(
           'Success',
           isEditingExistingLink
@@ -560,6 +604,7 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
 
   const handleOpenDoctorsModal = (h: AdminHospitalItem) => {
     setDoctorHospital(h);
+    setDoctorModalTab('list');
     const initialDocs = parseDoctors(h.doctors);
     setHospitalDoctors(initialDocs);
     setDoctorsModalVisible(true);
@@ -577,7 +622,7 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
     setDocTreatments('');
     setDocShowOnHomepage(false);
     setDocRating('4.9');
-    setEditDoctorModalVisible(true);
+    setDoctorModalTab('form');
   };
 
   const handleOpenEditDoctor = (doc: AdminDoctorItem, index: number) => {
@@ -591,7 +636,7 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
     setDocTreatments(Array.isArray(doc.treatments) ? doc.treatments.join(', ') : (doc.treatments || ''));
     setDocShowOnHomepage(Boolean(doc.showOnHomepage));
     setDocRating(doc.rating !== undefined ? String(doc.rating) : '4.9');
-    setEditDoctorModalVisible(true);
+    setDoctorModalTab('form');
   };
 
   const handleSaveDoctor = async () => {
@@ -659,7 +704,7 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
         prev.map((h) => (h.id === doctorHospital.id ? { ...h, doctors: updatedDocs } : h))
       );
       setDoctorHospital((prev) => (prev ? { ...prev, doctors: updatedDocs } : null));
-      setEditDoctorModalVisible(false);
+      setDoctorModalTab('list');
       Alert.alert(
         'Success',
         editingDoctorIndex !== null
@@ -815,9 +860,17 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
           <Text style={styles.headerTitle}>Hospital Directory</Text>
           <Text style={styles.headerSub}>{totalCount} Registered Partners</Text>
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setAddModalVisible(true)}>
-          <Text style={styles.addBtnText}>+ Onboard</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+          <TouchableOpacity
+            style={styles.headerLeadsBtn}
+            onPress={() => navigation.navigate('AdminLeads')}
+          >
+            <Text style={styles.headerLeadsBtnText}>📋 Leads</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addBtn} onPress={() => setAddModalVisible(true)}>
+            <Text style={styles.addBtnText}>+ Onboard</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search Box */}
@@ -982,11 +1035,21 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
                       <Text style={styles.syncIcon}> 🔄</Text>
                     </TouchableOpacity>
 
-                    <View style={styles.leadPill}>
+                    <TouchableOpacity
+                      style={styles.leadPill}
+                      onPress={() =>
+                        navigation.navigate('AdminLeads', {
+                          hospitalId: h.id,
+                          hospitalName: h.name,
+                          search: h.name,
+                        })
+                      }
+                      activeOpacity={0.7}
+                    >
                       <Text style={styles.leadPillText}>
-                        ⚡ <Text style={{ fontWeight: '900' }}>{h.leadsRemaining ?? 0}</Text> Leads
+                        ⚡ <Text style={{ fontWeight: '900' }}>{h.leadsRemaining ?? 0}</Text> Leads →
                       </Text>
-                    </View>
+                    </TouchableOpacity>
                   </View>
 
                   {/* Action Buttons Row */}
@@ -999,6 +1062,22 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
                         <Text style={styles.approveBtnText}>✓ Approve Registration</Text>
                       </TouchableOpacity>
                     ) : null}
+
+                    {/* View Leads Button */}
+                    <TouchableOpacity
+                      style={[styles.btn, styles.leadsBtn]}
+                      onPress={() =>
+                        navigation.navigate('AdminLeads', {
+                          hospitalId: h.id,
+                          hospitalName: h.name,
+                          search: h.name,
+                        })
+                      }
+                    >
+                      <Text style={styles.leadsBtnText}>
+                        📋 Leads{h.leadsRemaining !== undefined ? ` (${h.leadsRemaining})` : ''}
+                      </Text>
+                    </TouchableOpacity>
 
                     {/* Edit Hospital Button (Pink Primary) */}
                     <TouchableOpacity
@@ -1482,605 +1561,815 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
       </Modal>
 
       {/* ======================================================== */}
-      {/* HOSPITAL SERVICES MANAGEMENT MODAL */}
+      {/* HOSPITAL SERVICES MANAGEMENT MODAL (Unified Single Modal) */}
       {/* ======================================================== */}
       <Modal visible={servicesModalVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setServicesModalVisible(false)}>
-              <Text style={styles.modalCancelText}>✕ Close</Text>
-            </TouchableOpacity>
-            <View style={styles.modalHeaderCenter}>
-              <Text style={styles.modalHeaderTitle}>Hospital Services</Text>
-              <Text style={styles.modalHeaderSub} numberOfLines={1}>
-                {serviceHospital?.name}
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.headerAddServiceBtn} onPress={handleOpenAddService}>
-              <Text style={styles.headerAddServiceBtnText}>+ Link Service</Text>
-            </TouchableOpacity>
-          </View>
-
-          {loadingHospitalServices ? (
-            <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.loadingText}>Loading hospital services...</Text>
-            </View>
-          ) : (
-            <ScrollView contentContainerStyle={styles.servicesScroll} showsVerticalScrollIndicator={false}>
-              {/* Info Banner */}
-              <View style={styles.serviceBanner}>
-                <Text style={styles.serviceBannerIcon}>🩺</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.serviceBannerTitle}>
-                    {linkedHospitalServices.length} Services Offered at {serviceHospital?.name}
-                  </Text>
-                  <Text style={styles.serviceBannerSub}>
-                    Link medical specialties, customize starting pricing, and manage available procedures.
+          {serviceModalTab === 'list' ? (
+            <>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setServicesModalVisible(false)}>
+                  <Text style={styles.modalCancelText}>✕ Close</Text>
+                </TouchableOpacity>
+                <View style={styles.modalHeaderCenter}>
+                  <Text style={styles.modalHeaderTitle}>Hospital Services</Text>
+                  <Text style={styles.modalHeaderSub} numberOfLines={1}>
+                    {serviceHospital?.name}
                   </Text>
                 </View>
+                <TouchableOpacity style={styles.headerAddServiceBtn} onPress={handleOpenAddService}>
+                  <Text style={styles.headerAddServiceBtnText}>+ Link Service</Text>
+                </TouchableOpacity>
               </View>
 
-              {linkedHospitalServices.length === 0 ? (
-                <View style={styles.emptyServicesBox}>
-                  <Text style={styles.emptyServicesIcon}>📋</Text>
-                  <Text style={styles.emptyServicesTitle}>No services linked yet</Text>
-                  <Text style={styles.emptyServicesSub}>
-                    Link medical services to this hospital so patients can browse procedures and request appointments.
-                  </Text>
-                  <TouchableOpacity style={styles.emptyAddBtn} onPress={handleOpenAddService}>
-                    <Text style={styles.emptyAddBtnText}>+ Link First Medical Service</Text>
-                  </TouchableOpacity>
+              {loadingHospitalServices ? (
+                <View style={styles.centerContainer}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={styles.loadingText}>Loading hospital services...</Text>
                 </View>
               ) : (
-                linkedHospitalServices.map((hs) => {
-                  const sName = hs.service?.name || `Service #${hs.serviceId}`;
-                  const sCat = hs.service?.category;
-                  const isActive = hs.status === 'ACTIVE';
-                  const subList = hs.subServices
-                    ? hs.subServices.split(',').map((s) => s.trim()).filter(Boolean)
-                    : [];
+                <ScrollView contentContainerStyle={styles.servicesScroll} showsVerticalScrollIndicator={false}>
+                  {/* Info Banner */}
+                  <View style={styles.serviceBanner}>
+                    <Text style={styles.serviceBannerIcon}>🩺</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.serviceBannerTitle}>
+                        {linkedHospitalServices.length} Services Offered at {serviceHospital?.name}
+                      </Text>
+                      <Text style={styles.serviceBannerSub}>
+                        Link medical specialties, customize starting pricing, and manage available procedures.
+                      </Text>
+                    </View>
+                  </View>
+
+                  {linkedHospitalServices.length === 0 ? (
+                    <View style={styles.emptyServicesBox}>
+                      <Text style={styles.emptyServicesIcon}>📋</Text>
+                      <Text style={styles.emptyServicesTitle}>No services linked yet</Text>
+                      <Text style={styles.emptyServicesSub}>
+                        Link medical services to this hospital so patients can browse procedures and request appointments.
+                      </Text>
+                      <TouchableOpacity style={styles.emptyAddBtn} onPress={handleOpenAddService}>
+                        <Text style={styles.emptyAddBtnText}>+ Link First Medical Service</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    linkedHospitalServices.map((hs) => {
+                      const sName = hs.service?.name || `Service #${hs.serviceId}`;
+                      const sCat = hs.service?.category;
+                      const isActive = hs.status === 'ACTIVE';
+                      const subList = hs.subServices
+                        ? hs.subServices.split(',').map((s) => s.trim()).filter(Boolean)
+                        : [];
+
+                      return (
+                        <View key={hs.id} style={styles.serviceCard}>
+                          <View style={styles.serviceCardHeader}>
+                            <View style={{ flex: 1, marginRight: 8 }}>
+                              <View style={styles.serviceTitleRow}>
+                                <Text style={styles.serviceName}>{sName}</Text>
+                                {sCat && (
+                                  <View style={styles.serviceCategoryBadge}>
+                                    <Text style={styles.serviceCategoryBadgeText}>{sCat}</Text>
+                                  </View>
+                                )}
+                              </View>
+                              {hs.startingPrice !== undefined && hs.startingPrice !== null ? (
+                                <Text style={styles.servicePriceText}>
+                                  Starting from{' '}
+                                  <Text style={styles.servicePriceHighlight}>
+                                    ₹{Number(hs.startingPrice).toLocaleString('en-IN')}
+                                  </Text>
+                                </Text>
+                              ) : (
+                                <Text style={styles.servicePriceMuted}>Price on consultation</Text>
+                              )}
+                            </View>
+
+                            <View style={[styles.statusBadge, isActive ? styles.statusApproved : styles.statusSuspended]}>
+                              <Text style={styles.statusBadgeText}>{hs.status || 'ACTIVE'}</Text>
+                            </View>
+                          </View>
+
+                          {/* Sub-services pills */}
+                          {subList.length > 0 && (
+                            <View style={styles.subServicesContainer}>
+                              <Text style={styles.subServicesLabel}>Procedures / Treatments:</Text>
+                              <View style={styles.subPillsWrap}>
+                                {subList.map((sub, idx) => (
+                                  <View key={idx} style={styles.subPill}>
+                                    <Text style={styles.subPillText}>{sub}</Text>
+                                  </View>
+                                ))}
+                              </View>
+                            </View>
+                          )}
+
+                          {/* Description / Treatment Details */}
+                          {hs.description ? (
+                            <Text style={styles.serviceDesc} numberOfLines={2}>
+                              {hs.description}
+                            </Text>
+                          ) : null}
+
+                          {/* Action buttons */}
+                          <View style={styles.serviceActionRow}>
+                            <TouchableOpacity
+                              style={styles.serviceEditBtn}
+                              onPress={() => handleOpenEditService(hs)}
+                            >
+                              <Text style={styles.serviceEditBtnText}>✏️ Edit Pricing & Details</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              style={styles.serviceDeleteBtn}
+                              onPress={() => handleRemoveHospitalService(hs)}
+                            >
+                              <Text style={styles.serviceDeleteBtnText}>🗑️ Remove</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      );
+                    })
+                  )}
+                </ScrollView>
+              )}
+            </>
+          ) : (
+            <>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity
+                  onPress={() => setServiceModalTab('list')}
+                  disabled={editingServiceSaving}
+                >
+                  <Text style={styles.modalCancelText}>← Back</Text>
+                </TouchableOpacity>
+                <View style={styles.modalHeaderCenter}>
+                  <Text style={styles.modalHeaderTitle}>
+                    {isEditingExistingLink ? 'Edit Service Link' : 'Link Medical Service'}
+                  </Text>
+                  <Text style={styles.modalHeaderSub} numberOfLines={1}>
+                    {serviceHospital?.name}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={handleSaveHospitalService}
+                  disabled={editingServiceSaving}
+                >
+                  <Text style={[styles.modalDoneText, editingServiceSaving && { opacity: 0.5 }]}>
+                    {editingServiceSaving ? 'Saving...' : 'Save ✓'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+            <ScrollView contentContainerStyle={styles.formScroll} showsVerticalScrollIndicator={false}>
+              {/* Service Selector (Website-style Dropdown List for both Add and Edit) */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={styles.formLabel}>Select Platform Medical Service *</Text>
+                <Text style={styles.formSubLabel}>
+                  {isEditingExistingLink
+                    ? `Select or change the medical specialty/service offered at ${serviceHospital?.name}`
+                    : `Choose which platform service to make available at ${serviceHospital?.name}`}
+                </Text>
+
+                {/* Dropdown Trigger */}
+                {(() => {
+                  const selectedService = allPlatformServices.find(
+                    (ps) => String(ps.id) === String(selectedServiceId)
+                  );
+                  const parentServices = allPlatformServices.filter(
+                    (ps) => !ps.parentId
+                  );
+                  const hasParents = parentServices.length > 0;
 
                   return (
-                    <View key={hs.id} style={styles.serviceCard}>
-                      <View style={styles.serviceCardHeader}>
-                        <View style={{ flex: 1, marginRight: 8 }}>
-                          <View style={styles.serviceTitleRow}>
-                            <Text style={styles.serviceName}>{sName}</Text>
-                            {sCat && (
-                              <View style={styles.serviceCategoryBadge}>
-                                <Text style={styles.serviceCategoryBadgeText}>{sCat}</Text>
-                              </View>
-                            )}
-                          </View>
-                          {hs.startingPrice !== undefined && hs.startingPrice !== null ? (
-                            <Text style={styles.servicePriceText}>
-                              Starting from{' '}
-                              <Text style={styles.servicePriceHighlight}>
-                                ₹{Number(hs.startingPrice).toLocaleString('en-IN')}
-                              </Text>
+                    <>
+                      <TouchableOpacity
+                        style={[
+                          styles.dropdownTrigger,
+                          serviceDropdownOpen && styles.dropdownTriggerOpen,
+                        ]}
+                        onPress={() => setServiceDropdownOpen(!serviceDropdownOpen)}
+                        activeOpacity={0.8}
+                      >
+                        {selectedService ? (
+                          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={{ fontSize: 16, marginRight: 8 }}>
+                              {selectedService.icon || '🩺'}
                             </Text>
-                          ) : (
-                            <Text style={styles.servicePriceMuted}>Price on consultation</Text>
-                          )}
-                        </View>
-
-                        <View style={[styles.statusBadge, isActive ? styles.statusApproved : styles.statusSuspended]}>
-                          <Text style={styles.statusBadgeText}>{hs.status || 'ACTIVE'}</Text>
-                        </View>
-                      </View>
-
-                      {/* Sub-services pills */}
-                      {subList.length > 0 && (
-                        <View style={styles.subServicesContainer}>
-                          <Text style={styles.subServicesLabel}>Procedures / Treatments:</Text>
-                          <View style={styles.subPillsWrap}>
-                            {subList.map((sub, idx) => (
-                              <View key={idx} style={styles.subPill}>
-                                <Text style={styles.subPillText}>{sub}</Text>
-                              </View>
-                            ))}
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.dropdownTriggerText} numberOfLines={1}>
+                                {selectedService.name}
+                              </Text>
+                              {selectedService.category ? (
+                                <Text style={styles.dropdownOptionSubText}>
+                                  {selectedService.category} {selectedService.parentId ? '• Procedure' : '• Specialty'}
+                                </Text>
+                              ) : null}
+                            </View>
                           </View>
+                        ) : (
+                          <Text style={styles.dropdownPlaceholder}>
+                            ▼ Select a Medical Specialty / Service...
+                          </Text>
+                        )}
+                        <Text style={styles.dropdownChevron}>
+                          {serviceDropdownOpen ? '▲' : '▼'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* Dropdown Menu List */}
+                      {serviceDropdownOpen && (
+                        <View style={styles.dropdownMenu}>
+                          <View style={styles.dropdownSearchBox}>
+                            <TextInput
+                              style={styles.dropdownSearchInput}
+                              placeholder="🔍 Search specialties or procedures..."
+                              placeholderTextColor={colors.textMuted}
+                              value={serviceSearchQuery}
+                              onChangeText={setServiceSearchQuery}
+                              autoFocus={false}
+                            />
+                          </View>
+
+                          <ScrollView
+                            style={styles.dropdownListScroll}
+                            nestedScrollEnabled={true}
+                            showsVerticalScrollIndicator={true}
+                            keyboardShouldPersistTaps="handled"
+                          >
+                            {allPlatformServices.length === 0 ? (
+                              <View style={{ padding: 16, alignItems: 'center' }}>
+                                <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 8 }}>
+                                  No specialties loaded.
+                                </Text>
+                                <TouchableOpacity
+                                  style={[styles.emptyAddBtn, { paddingVertical: 6, paddingHorizontal: 12 }]}
+                                  onPress={() => fetchHospitalServices(serviceHospital?.id || '')}
+                                >
+                                  <Text style={[styles.emptyAddBtnText, { fontSize: 12 }]}>🔄 Reload Specialties</Text>
+                                </TouchableOpacity>
+                              </View>
+                            ) : hasParents ? (
+                              parentServices
+                                .filter((parent) => {
+                                  const q = serviceSearchQuery.toLowerCase().trim();
+                                  if (!q) return true;
+                                  const matchesParent =
+                                    parent.name?.toLowerCase().includes(q) ||
+                                    parent.category?.toLowerCase().includes(q);
+                                  const matchesChild = allPlatformServices.some(
+                                    (sub) =>
+                                      sub.parentId === parent.id &&
+                                      (sub.name?.toLowerCase().includes(q) ||
+                                        sub.category?.toLowerCase().includes(q))
+                                  );
+                                  return matchesParent || matchesChild;
+                                })
+                                .map((parent) => {
+                                  const q = serviceSearchQuery.toLowerCase().trim();
+                                  const subs = allPlatformServices.filter(
+                                    (ps) =>
+                                      ps.parentId === parent.id &&
+                                      (!q || ps.name?.toLowerCase().includes(q))
+                                  );
+                                  const isParentLinked = linkedHospitalServices.some(
+                                    (lhs) =>
+                                      Number(lhs.serviceId || lhs.service?.id) === Number(parent.id) &&
+                                      String(lhs.id) !== String(editingHospitalServiceId)
+                                  );
+                                  const isParentSelected = String(selectedServiceId) === String(parent.id);
+
+                                  return (
+                                    <View key={parent.id}>
+                                      {/* Parent Category Option */}
+                                      <TouchableOpacity
+                                        style={[
+                                          styles.dropdownOption,
+                                          isParentSelected && styles.dropdownOptionSelected,
+                                          isParentLinked && styles.dropdownOptionDisabled,
+                                        ]}
+                                        onPress={() => {
+                                          if (isParentLinked) return;
+                                          setSelectedServiceId(String(parent.id));
+                                          setServiceDropdownOpen(false);
+                                          setServiceSearchQuery('');
+                                        }}
+                                      >
+                                        <View style={{ flex: 1 }}>
+                                          <Text
+                                            style={[
+                                              styles.dropdownOptionText,
+                                              isParentSelected && styles.dropdownOptionTextSelected,
+                                            ]}
+                                          >
+                                            {parent.icon || '🩺'} {parent.name} (General Specialty)
+                                          </Text>
+                                        </View>
+                                        {isParentLinked ? (
+                                          <View style={styles.dropdownAddedBadge}>
+                                            <Text style={styles.dropdownAddedText}>Already Added</Text>
+                                          </View>
+                                        ) : isParentSelected ? (
+                                          <Text style={styles.dropdownOptionTextSelected}>✓</Text>
+                                        ) : null}
+                                      </TouchableOpacity>
+
+                                      {/* Sub-services / Procedures */}
+                                      {subs.map((sub) => {
+                                        const isSubLinked = linkedHospitalServices.some(
+                                          (lhs) =>
+                                            Number(lhs.serviceId || lhs.service?.id) === Number(sub.id) &&
+                                            String(lhs.id) !== String(editingHospitalServiceId)
+                                        );
+                                        const isSubSelected = String(selectedServiceId) === String(sub.id);
+
+                                        return (
+                                          <TouchableOpacity
+                                            key={sub.id}
+                                            style={[
+                                              styles.dropdownOption,
+                                              styles.dropdownOptionSub,
+                                              isSubSelected && styles.dropdownOptionSelected,
+                                              isSubLinked && styles.dropdownOptionDisabled,
+                                            ]}
+                                            onPress={() => {
+                                              if (isSubLinked) return;
+                                              setSelectedServiceId(String(sub.id));
+                                              setServiceDropdownOpen(false);
+                                              setServiceSearchQuery('');
+                                            }}
+                                          >
+                                            <View style={{ flex: 1 }}>
+                                              <Text
+                                                style={[
+                                                  styles.dropdownOptionText,
+                                                  { fontSize: 12.5, fontWeight: '500' },
+                                                  isSubSelected && styles.dropdownOptionTextSelected,
+                                                ]}
+                                              >
+                                                -- {sub.name}
+                                              </Text>
+                                            </View>
+                                            {isSubLinked ? (
+                                              <View style={styles.dropdownAddedBadge}>
+                                                <Text style={styles.dropdownAddedText}>Already Added</Text>
+                                              </View>
+                                            ) : isSubSelected ? (
+                                              <Text style={styles.dropdownOptionTextSelected}>✓</Text>
+                                            ) : null}
+                                          </TouchableOpacity>
+                                        );
+                                      })}
+                                    </View>
+                                  );
+                                })
+                            ) : (
+                              allPlatformServices
+                                .filter(
+                                  (ps) =>
+                                    !serviceSearchQuery.trim() ||
+                                    ps.name?.toLowerCase().includes(serviceSearchQuery.toLowerCase()) ||
+                                    ps.category?.toLowerCase().includes(serviceSearchQuery.toLowerCase())
+                                )
+                                .map((ps) => {
+                                  const isLinked = linkedHospitalServices.some(
+                                    (lhs) =>
+                                      Number(lhs.serviceId || lhs.service?.id) === Number(ps.id) &&
+                                      String(lhs.id) !== String(editingHospitalServiceId)
+                                  );
+                                  const isSelected = String(selectedServiceId) === String(ps.id);
+
+                                  return (
+                                    <TouchableOpacity
+                                      key={ps.id}
+                                      style={[
+                                        styles.dropdownOption,
+                                        isSelected && styles.dropdownOptionSelected,
+                                        isLinked && styles.dropdownOptionDisabled,
+                                      ]}
+                                      onPress={() => {
+                                        if (isLinked) return;
+                                        setSelectedServiceId(String(ps.id));
+                                        setServiceDropdownOpen(false);
+                                        setServiceSearchQuery('');
+                                      }}
+                                    >
+                                      <View style={{ flex: 1 }}>
+                                        <Text
+                                          style={[
+                                            styles.dropdownOptionText,
+                                            isSelected && styles.dropdownOptionTextSelected,
+                                          ]}
+                                        >
+                                          {ps.icon || '🩺'} {ps.name}
+                                        </Text>
+                                        {ps.category ? (
+                                          <Text style={styles.dropdownOptionSubText}>{ps.category}</Text>
+                                        ) : null}
+                                      </View>
+                                      {isLinked ? (
+                                        <View style={styles.dropdownAddedBadge}>
+                                          <Text style={styles.dropdownAddedText}>Already Added</Text>
+                                        </View>
+                                      ) : isSelected ? (
+                                        <Text style={styles.dropdownOptionTextSelected}>✓</Text>
+                                      ) : null}
+                                    </TouchableOpacity>
+                                  );
+                                })
+                            )}
+                          </ScrollView>
                         </View>
                       )}
-
-                      {/* Description / Treatment Details */}
-                      {hs.description ? (
-                        <Text style={styles.serviceDesc} numberOfLines={2}>
-                          {hs.description}
-                        </Text>
-                      ) : null}
-
-                      {/* Action buttons */}
-                      <View style={styles.serviceActionRow}>
-                        <TouchableOpacity
-                          style={styles.serviceEditBtn}
-                          onPress={() => handleOpenEditService(hs)}
-                        >
-                          <Text style={styles.serviceEditBtnText}>✏️ Edit Pricing & Details</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={styles.serviceDeleteBtn}
-                          onPress={() => handleRemoveHospitalService(hs)}
-                        >
-                          <Text style={styles.serviceDeleteBtnText}>🗑️ Remove</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
+                    </>
                   );
-                })
-              )}
-            </ScrollView>
+                })()}
+              </View>
+
+                {/* Starting Price */}
+                <Text style={styles.formLabel}>Starting Price (₹ INR)</Text>
+                <Text style={styles.formSubLabel}>
+                  Minimum estimated procedure or consultation cost (e.g. 25000)
+                </Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="e.g. 50000"
+                  placeholderTextColor={colors.textMuted}
+                  value={svcStartingPrice}
+                  onChangeText={setSvcStartingPrice}
+                  keyboardType="numeric"
+                />
+
+                {/* Status Selector */}
+                <Text style={styles.formLabel}>Service Availability Status</Text>
+                <View style={styles.rolePickerRow}>
+                  {(['ACTIVE', 'INACTIVE'] as const).map((st) => (
+                    <TouchableOpacity
+                      key={st}
+                      style={[styles.roleOption, svcStatus === st && styles.roleOptionActive]}
+                      onPress={() => setSvcStatus(st)}
+                    >
+                      <Text style={[styles.roleOptionText, svcStatus === st && styles.roleOptionTextActive]}>
+                        {st === 'ACTIVE' ? '✓ ACTIVE (Visible to Patients)' : '✕ INACTIVE (Hidden)'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Sub-services */}
+                <Text style={styles.formLabel}>Procedures / Sub-Services (Comma Separated)</Text>
+                <Text style={styles.formSubLabel}>
+                  e.g. Angioplasty, Coronary Bypass, Valve Replacement, Pacemaker Implant
+                </Text>
+                <TextInput
+                  style={[styles.formInput, { minHeight: 64 }]}
+                  placeholder="Angioplasty, Valve Replacement, Bypass..."
+                  placeholderTextColor={colors.textMuted}
+                  value={svcSubServices}
+                  onChangeText={setSvcSubServices}
+                  multiline
+                />
+
+                {/* Description / Overview */}
+                <Text style={styles.formLabel}>Service Overview & Department Details</Text>
+                <TextInput
+                  style={[styles.formInput, { minHeight: 80 }]}
+                  placeholder="Highlight equipment (e.g. Cath Lab), surgeon expertise, and treatment package specifics..."
+                  placeholderTextColor={colors.textMuted}
+                  value={svcDescription}
+                  onChangeText={setSvcDescription}
+                  multiline
+                />
+
+                {/* Treatment Details */}
+                <Text style={styles.formLabel}>Special Notes / Instructions (Optional)</Text>
+                <TextInput
+                  style={[styles.formInput, { minHeight: 64 }]}
+                  placeholder="Pre-op tests required, insurance coverage notes..."
+                  placeholderTextColor={colors.textMuted}
+                  value={svcTreatmentDetails}
+                  onChangeText={setSvcTreatmentDetails}
+                  multiline
+                />
+
+                <TouchableOpacity
+                  style={[styles.saveSubmitBtn, editingServiceSaving && { opacity: 0.6 }]}
+                  onPress={handleSaveHospitalService}
+                  disabled={editingServiceSaving}
+                >
+                  <Text style={styles.saveSubmitBtnText}>
+                    {editingServiceSaving
+                      ? 'Saving Service...'
+                      : isEditingExistingLink
+                      ? 'Update Hospital Service ✓'
+                      : 'Link Service to Hospital ✓'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </>
           )}
         </SafeAreaView>
       </Modal>
 
       {/* ======================================================== */}
-      {/* ADD / EDIT SERVICE LINK MODAL */}
-      {/* ======================================================== */}
-      <Modal visible={editServiceModalVisible} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity
-              onPress={() => setEditServiceModalVisible(false)}
-              disabled={editingServiceSaving}
-            >
-              <Text style={styles.modalCancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <View style={styles.modalHeaderCenter}>
-              <Text style={styles.modalHeaderTitle}>
-                {isEditingExistingLink ? 'Edit Service Link' : 'Link Medical Service'}
-              </Text>
-              <Text style={styles.modalHeaderSub} numberOfLines={1}>
-                {serviceHospital?.name}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={handleSaveHospitalService}
-              disabled={editingServiceSaving}
-            >
-              <Text style={[styles.modalDoneText, editingServiceSaving && { opacity: 0.5 }]}>
-                {editingServiceSaving ? 'Saving...' : 'Save ✓'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView contentContainerStyle={styles.formScroll} showsVerticalScrollIndicator={false}>
-            {/* Service Selector (Only when adding a new link) */}
-            {!isEditingExistingLink ? (
-              <View style={{ marginBottom: 16 }}>
-                <Text style={styles.formLabel}>Select Medical Specialty / Service *</Text>
-                <Text style={styles.formSubLabel}>
-                  Choose which platform service to make available at {serviceHospital?.name}
-                </Text>
-                <View style={styles.serviceSelectWrap}>
-                  {allPlatformServices.map((ps) => {
-                    const isLinked = linkedHospitalServices.some((lhs) => lhs.serviceId === ps.id);
-                    const isSelected = selectedServiceId === String(ps.id);
-
-                    return (
-                      <TouchableOpacity
-                        key={ps.id}
-                        style={[
-                          styles.serviceSelectItem,
-                          isSelected && styles.serviceSelectItemActive,
-                          isLinked && styles.serviceSelectItemLinked,
-                        ]}
-                        onPress={() => setSelectedServiceId(String(ps.id))}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text
-                            style={[
-                              styles.serviceSelectName,
-                              isSelected && styles.serviceSelectNameActive,
-                            ]}
-                          >
-                            {ps.name} {isLinked ? ' (Already Linked)' : ''}
-                          </Text>
-                          {ps.category ? (
-                            <Text style={styles.serviceSelectCat}>{ps.category}</Text>
-                          ) : null}
-                        </View>
-                        {isSelected && <Text style={styles.serviceSelectCheck}>✓</Text>}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            ) : (
-              <View style={styles.editingServiceBanner}>
-                <Text style={styles.editingServiceTitle}>
-                  🩺 {linkedHospitalServices.find((lhs) => String(lhs.serviceId) === selectedServiceId)?.service?.name || 'Service Link'}
-                </Text>
-                <Text style={styles.editingServiceSub}>
-                  Updating service offerings and starting pricing for {serviceHospital?.name}
-                </Text>
-              </View>
-            )}
-
-            {/* Starting Price */}
-            <Text style={styles.formLabel}>Starting Price (₹ INR)</Text>
-            <Text style={styles.formSubLabel}>
-              Minimum estimated procedure or consultation cost (e.g. 25000)
-            </Text>
-            <TextInput
-              style={styles.formInput}
-              placeholder="e.g. 50000"
-              placeholderTextColor={colors.textMuted}
-              value={svcStartingPrice}
-              onChangeText={setSvcStartingPrice}
-              keyboardType="numeric"
-            />
-
-            {/* Status Selector */}
-            <Text style={styles.formLabel}>Service Availability Status</Text>
-            <View style={styles.rolePickerRow}>
-              {(['ACTIVE', 'INACTIVE'] as const).map((st) => (
-                <TouchableOpacity
-                  key={st}
-                  style={[styles.roleOption, svcStatus === st && styles.roleOptionActive]}
-                  onPress={() => setSvcStatus(st)}
-                >
-                  <Text style={[styles.roleOptionText, svcStatus === st && styles.roleOptionTextActive]}>
-                    {st === 'ACTIVE' ? '✓ ACTIVE (Visible to Patients)' : '✕ INACTIVE (Hidden)'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Sub-services */}
-            <Text style={styles.formLabel}>Procedures / Sub-Services (Comma Separated)</Text>
-            <Text style={styles.formSubLabel}>
-              e.g. Angioplasty, Coronary Bypass, Valve Replacement, Pacemaker Implant
-            </Text>
-            <TextInput
-              style={[styles.formInput, { minHeight: 64 }]}
-              placeholder="Angioplasty, Valve Replacement, Bypass..."
-              placeholderTextColor={colors.textMuted}
-              value={svcSubServices}
-              onChangeText={setSvcSubServices}
-              multiline
-            />
-
-            {/* Description / Overview */}
-            <Text style={styles.formLabel}>Service Overview & Department Details</Text>
-            <TextInput
-              style={[styles.formInput, { minHeight: 80 }]}
-              placeholder="Highlight equipment (e.g. Cath Lab), surgeon expertise, and treatment package specifics..."
-              placeholderTextColor={colors.textMuted}
-              value={svcDescription}
-              onChangeText={setSvcDescription}
-              multiline
-            />
-
-            {/* Treatment Details */}
-            <Text style={styles.formLabel}>Special Notes / Instructions (Optional)</Text>
-            <TextInput
-              style={[styles.formInput, { minHeight: 64 }]}
-              placeholder="Pre-op tests required, insurance coverage notes..."
-              placeholderTextColor={colors.textMuted}
-              value={svcTreatmentDetails}
-              onChangeText={setSvcTreatmentDetails}
-              multiline
-            />
-
-            <TouchableOpacity
-              style={[styles.saveSubmitBtn, editingServiceSaving && { opacity: 0.6 }]}
-              onPress={handleSaveHospitalService}
-              disabled={editingServiceSaving}
-            >
-              <Text style={styles.saveSubmitBtnText}>
-                {editingServiceSaving
-                  ? 'Saving Service...'
-                  : isEditingExistingLink
-                  ? 'Update Hospital Service ✓'
-                  : 'Link Service to Hospital ✓'}
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-
-      {/* ======================================================== */}
-      {/* HOSPITAL DOCTORS MANAGEMENT MODAL */}
+      {/* HOSPITAL DOCTORS MANAGEMENT MODAL (Unified Single Modal) */}
       {/* ======================================================== */}
       <Modal visible={doctorsModalVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setDoctorsModalVisible(false)}>
-              <Text style={styles.modalCancelText}>✕ Close</Text>
-            </TouchableOpacity>
-            <View style={styles.modalHeaderCenter}>
-              <Text style={styles.modalHeaderTitle}>Hospital Doctors</Text>
-              <Text style={styles.modalHeaderSub} numberOfLines={1}>
-                {doctorHospital?.name}
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.headerAddServiceBtn} onPress={handleOpenAddDoctor}>
-              <Text style={styles.headerAddServiceBtnText}>+ Add Doctor</Text>
-            </TouchableOpacity>
-          </View>
-
-          {loadingHospitalDoctors ? (
-            <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.loadingText}>Loading doctors & specialists...</Text>
-            </View>
-          ) : (
-            <ScrollView contentContainerStyle={styles.servicesScroll} showsVerticalScrollIndicator={false}>
-              {/* Info Banner */}
-              <View style={[styles.serviceBanner, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}>
-                <Text style={styles.serviceBannerIcon}>👨‍⚕️</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.serviceBannerTitle, { color: '#15803D' }]}>
-                    {hospitalDoctors.length} Specialists & Doctors at {doctorHospital?.name}
-                  </Text>
-                  <Text style={[styles.serviceBannerSub, { color: '#16A34A' }]}>
-                    Manage doctor qualifications, department specialties, experience, and profile bios.
+          {doctorModalTab === 'list' ? (
+            <>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setDoctorsModalVisible(false)}>
+                  <Text style={styles.modalCancelText}>✕ Close</Text>
+                </TouchableOpacity>
+                <View style={styles.modalHeaderCenter}>
+                  <Text style={styles.modalHeaderTitle}>Hospital Doctors</Text>
+                  <Text style={styles.modalHeaderSub} numberOfLines={1}>
+                    {doctorHospital?.name}
                   </Text>
                 </View>
+                <TouchableOpacity style={styles.headerAddServiceBtn} onPress={handleOpenAddDoctor}>
+                  <Text style={styles.headerAddServiceBtnText}>+ Add Doctor</Text>
+                </TouchableOpacity>
               </View>
 
-              {hospitalDoctors.length === 0 ? (
-                <View style={styles.emptyServicesBox}>
-                  <Text style={styles.emptyServicesIcon}>👨‍⚕️</Text>
-                  <Text style={styles.emptyServicesTitle}>No doctors added yet</Text>
-                  <Text style={styles.emptyServicesSub}>
-                    Add medical specialists and doctors for this hospital so patients can view profiles and book consultations.
-                  </Text>
-                  <TouchableOpacity style={styles.emptyAddBtn} onPress={handleOpenAddDoctor}>
-                    <Text style={styles.emptyAddBtnText}>+ Add First Doctor</Text>
-                  </TouchableOpacity>
+              {loadingHospitalDoctors ? (
+                <View style={styles.centerContainer}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={styles.loadingText}>Loading doctors & specialists...</Text>
                 </View>
               ) : (
-                hospitalDoctors.map((doc, idx) => {
-                  const treatmentList = Array.isArray(doc.treatments)
-                    ? doc.treatments
-                    : typeof doc.treatments === 'string'
-                    ? (doc.treatments as string).split(',').map((t) => t.trim()).filter(Boolean)
-                    : [];
+                <ScrollView contentContainerStyle={styles.servicesScroll} showsVerticalScrollIndicator={false}>
+                  {/* Info Banner */}
+                  <View style={[styles.serviceBanner, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}>
+                    <Text style={styles.serviceBannerIcon}>👨‍⚕️</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.serviceBannerTitle, { color: '#15803D' }]}>
+                        {hospitalDoctors.length} Specialists & Doctors at {doctorHospital?.name}
+                      </Text>
+                      <Text style={[styles.serviceBannerSub, { color: '#16A34A' }]}>
+                        Manage doctor qualifications, department specialties, experience, and profile bios.
+                      </Text>
+                    </View>
+                  </View>
 
-                  return (
-                    <View key={idx} style={styles.doctorCard}>
-                      <View style={styles.doctorCardHeader}>
-                        <View style={{ flex: 1, marginRight: 8 }}>
-                          <View style={styles.doctorTitleRow}>
-                            <Text style={styles.doctorName}>
-                              {doc.name.toLowerCase().startsWith('dr') ? doc.name : `Dr. ${doc.name}`}
-                            </Text>
-                            {doc.showOnHomepage && (
-                              <View style={styles.docFeaturedBadge}>
-                                <Text style={styles.docFeaturedBadgeText}>✨ Featured</Text>
+                  {hospitalDoctors.length === 0 ? (
+                    <View style={styles.emptyServicesBox}>
+                      <Text style={styles.emptyServicesIcon}>👨‍⚕️</Text>
+                      <Text style={styles.emptyServicesTitle}>No doctors added yet</Text>
+                      <Text style={styles.emptyServicesSub}>
+                        Add medical specialists and doctors for this hospital so patients can view profiles and book consultations.
+                      </Text>
+                      <TouchableOpacity style={styles.emptyAddBtn} onPress={handleOpenAddDoctor}>
+                        <Text style={styles.emptyAddBtnText}>+ Add First Doctor</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    hospitalDoctors.map((doc, idx) => {
+                      const treatmentList = Array.isArray(doc.treatments)
+                        ? doc.treatments
+                        : typeof doc.treatments === 'string'
+                        ? (doc.treatments as string).split(',').map((t) => t.trim()).filter(Boolean)
+                        : [];
+
+                      return (
+                        <View key={idx} style={styles.doctorCard}>
+                          <View style={styles.doctorCardHeader}>
+                            <View style={{ flex: 1, marginRight: 8 }}>
+                              <View style={styles.doctorTitleRow}>
+                                <Text style={styles.doctorName}>
+                                  {doc.name.toLowerCase().startsWith('dr') ? doc.name : `Dr. ${doc.name}`}
+                                </Text>
+                                {doc.showOnHomepage && (
+                                  <View style={styles.docFeaturedBadge}>
+                                    <Text style={styles.docFeaturedBadgeText}>✨ Featured</Text>
+                                  </View>
+                                )}
                               </View>
-                            )}
+
+                              <View style={styles.docSpecialtyRow}>
+                                <View style={styles.docSpecialtyBadge}>
+                                  <Text style={styles.docSpecialtyBadgeText}>{doc.specialty}</Text>
+                                </View>
+                                {doc.rating !== undefined ? (
+                                  <View style={styles.docRatingBadge}>
+                                    <Text style={styles.docRatingBadgeText}>⭐ {doc.rating}</Text>
+                                  </View>
+                                ) : null}
+                              </View>
+                            </View>
                           </View>
 
-                          <View style={styles.docSpecialtyRow}>
-                            <View style={styles.docSpecialtyBadge}>
-                              <Text style={styles.docSpecialtyBadgeText}>{doc.specialty}</Text>
-                            </View>
-                            {doc.rating !== undefined ? (
-                              <View style={styles.docRatingBadge}>
-                                <Text style={styles.docRatingBadgeText}>⭐ {doc.rating}</Text>
-                              </View>
+                          {/* Qualification & Experience */}
+                          <View style={styles.docMetaBox}>
+                            {doc.qualification ? (
+                              <Text style={styles.docMetaItem}>
+                                🎓 <Text style={{ fontWeight: '700' }}>{doc.qualification}</Text>
+                              </Text>
+                            ) : null}
+                            {doc.experience ? (
+                              <Text style={styles.docMetaItem}>
+                                ⏳ <Text style={{ fontWeight: '700' }}>{doc.experience}</Text>
+                              </Text>
                             ) : null}
                           </View>
-                        </View>
-                      </View>
 
-                      {/* Qualification & Experience */}
-                      <View style={styles.docMetaBox}>
-                        {doc.qualification ? (
-                          <Text style={styles.docMetaItem}>
-                            🎓 <Text style={{ fontWeight: '700' }}>{doc.qualification}</Text>
-                          </Text>
-                        ) : null}
-                        {doc.experience ? (
-                          <Text style={styles.docMetaItem}>
-                            ⏳ <Text style={{ fontWeight: '700' }}>{doc.experience}</Text>
-                          </Text>
-                        ) : null}
-                      </View>
-
-                      {/* Treatments pills */}
-                      {treatmentList.length > 0 && (
-                        <View style={styles.subServicesContainer}>
-                          <Text style={styles.subServicesLabel}>Key Procedures & Treatments:</Text>
-                          <View style={styles.subPillsWrap}>
-                            {treatmentList.map((t, tIdx) => (
-                              <View key={tIdx} style={styles.subPill}>
-                                <Text style={styles.subPillText}>{t}</Text>
+                          {/* Treatments pills */}
+                          {treatmentList.length > 0 && (
+                            <View style={styles.subServicesContainer}>
+                              <Text style={styles.subServicesLabel}>Key Procedures & Treatments:</Text>
+                              <View style={styles.subPillsWrap}>
+                                {treatmentList.map((t, tIdx) => (
+                                  <View key={tIdx} style={styles.subPill}>
+                                    <Text style={styles.subPillText}>{t}</Text>
+                                  </View>
+                                ))}
                               </View>
-                            ))}
+                            </View>
+                          )}
+
+                          {/* About snippet */}
+                          {doc.about ? (
+                            <Text style={styles.serviceDesc} numberOfLines={2}>
+                              {doc.about}
+                            </Text>
+                          ) : null}
+
+                          {/* Action buttons */}
+                          <View style={styles.serviceActionRow}>
+                            <TouchableOpacity
+                              style={styles.serviceEditBtn}
+                              onPress={() => handleOpenEditDoctor(doc, idx)}
+                            >
+                              <Text style={styles.serviceEditBtnText}>✏️ Edit Profile</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              style={styles.serviceDeleteBtn}
+                              onPress={() => handleRemoveDoctor(doc, idx)}
+                            >
+                              <Text style={styles.serviceDeleteBtnText}>🗑️ Remove</Text>
+                            </TouchableOpacity>
                           </View>
                         </View>
-                      )}
-
-                      {/* About snippet */}
-                      {doc.about ? (
-                        <Text style={styles.serviceDesc} numberOfLines={2}>
-                          {doc.about}
-                        </Text>
-                      ) : null}
-
-                      {/* Action buttons */}
-                      <View style={styles.serviceActionRow}>
-                        <TouchableOpacity
-                          style={styles.serviceEditBtn}
-                          onPress={() => handleOpenEditDoctor(doc, idx)}
-                        >
-                          <Text style={styles.serviceEditBtnText}>✏️ Edit Profile</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={styles.serviceDeleteBtn}
-                          onPress={() => handleRemoveDoctor(doc, idx)}
-                        >
-                          <Text style={styles.serviceDeleteBtnText}>🗑️ Remove</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  );
-                })
+                      );
+                    })
+                  )}
+                </ScrollView>
               )}
-            </ScrollView>
-          )}
-        </SafeAreaView>
-      </Modal>
-
-      {/* ======================================================== */}
-      {/* ADD / EDIT DOCTOR MODAL */}
-      {/* ======================================================== */}
-      <Modal visible={editDoctorModalVisible} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity
-              onPress={() => setEditDoctorModalVisible(false)}
-              disabled={editingDoctorSaving}
-            >
-              <Text style={styles.modalCancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <View style={styles.modalHeaderCenter}>
-              <Text style={styles.modalHeaderTitle}>
-                {editingDoctorIndex !== null ? 'Edit Doctor Profile' : 'Add Doctor / Specialist'}
-              </Text>
-              <Text style={styles.modalHeaderSub} numberOfLines={1}>
-                {doctorHospital?.name}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={handleSaveDoctor}
-              disabled={editingDoctorSaving}
-            >
-              <Text style={[styles.modalDoneText, editingDoctorSaving && { opacity: 0.5 }]}>
-                {editingDoctorSaving ? 'Saving...' : 'Save ✓'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView contentContainerStyle={styles.formScroll} showsVerticalScrollIndicator={false}>
-            {/* Doctor Name */}
-            <Text style={styles.formLabel}>Doctor Full Name *</Text>
-            <TextInput
-              style={styles.formInput}
-              placeholder="e.g. Dr. Rajesh Sharma"
-              placeholderTextColor={colors.textMuted}
-              value={docName}
-              onChangeText={setDocName}
-            />
-
-            {/* Specialty */}
-            <Text style={styles.formLabel}>Primary Specialty / Department *</Text>
-            <TextInput
-              style={styles.formInput}
-              placeholder="e.g. Cardiology, Orthopaedics, Neurology..."
-              placeholderTextColor={colors.textMuted}
-              value={docSpecialty}
-              onChangeText={setDocSpecialty}
-            />
-
-            {/* Qualification */}
-            <Text style={styles.formLabel}>Medical Qualification</Text>
-            <TextInput
-              style={styles.formInput}
-              placeholder="e.g. MBBS, MS, MCh (Cardio-Thoracic)"
-              placeholderTextColor={colors.textMuted}
-              value={docQualification}
-              onChangeText={setDocQualification}
-            />
-
-            {/* Experience & Rating Grid */}
-            <View style={styles.formGridRow}>
-              <View style={styles.formGridCol}>
-                <Text style={styles.formLabel}>Years of Experience</Text>
-                <TextInput
-                  style={styles.formInput}
-                  placeholder="e.g. 15+ Years"
-                  placeholderTextColor={colors.textMuted}
-                  value={docExperience}
-                  onChangeText={setDocExperience}
-                />
-              </View>
-              <View style={styles.formGridCol}>
-                <Text style={styles.formLabel}>Rating (1.0 - 5.0)</Text>
-                <TextInput
-                  style={styles.formInput}
-                  placeholder="4.9"
-                  placeholderTextColor={colors.textMuted}
-                  value={docRating}
-                  onChangeText={setDocRating}
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
-
-            {/* Photo URL */}
-            <Text style={styles.formLabel}>Doctor Photo URL (Optional)</Text>
-            <TextInput
-              style={styles.formInput}
-              placeholder="https://images.example.com/doctor.jpg"
-              placeholderTextColor={colors.textMuted}
-              value={docImage}
-              onChangeText={setDocImage}
-              autoCapitalize="none"
-            />
-
-            {/* Procedures / Treatments */}
-            <Text style={styles.formLabel}>Key Procedures & Treatments (Comma Separated)</Text>
-            <Text style={styles.formSubLabel}>
-              e.g. Angioplasty, Coronary Bypass, Heart Valve Surgery
-            </Text>
-            <TextInput
-              style={[styles.formInput, { minHeight: 64 }]}
-              placeholder="Angioplasty, Valve Replacement, Pacemaker..."
-              placeholderTextColor={colors.textMuted}
-              value={docTreatments}
-              onChangeText={setDocTreatments}
-              multiline
-            />
-
-            {/* About Doctor */}
-            <Text style={styles.formLabel}>About Doctor / Professional Biography</Text>
-            <TextInput
-              style={[styles.formInput, { minHeight: 80 }]}
-              placeholder="Write doctor's professional background, awards, fellowships, and clinical expertise..."
-              placeholderTextColor={colors.textMuted}
-              value={docAbout}
-              onChangeText={setDocAbout}
-              multiline
-            />
-
-            {/* Show on Homepage Switch */}
-            <View style={[styles.togglesCard, { marginTop: 14 }]}>
-              <View style={styles.toggleRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.toggleTitle}>Feature on Homepage</Text>
-                  <Text style={styles.toggleSubtitle}>Highlight doctor profile in Homepage Testimonial Carousel</Text>
+            </>
+          ) : (
+            <>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity
+                  onPress={() => setDoctorModalTab('list')}
+                  disabled={editingDoctorSaving}
+                >
+                  <Text style={styles.modalCancelText}>← Back</Text>
+                </TouchableOpacity>
+                <View style={styles.modalHeaderCenter}>
+                  <Text style={styles.modalHeaderTitle}>
+                    {editingDoctorIndex !== null ? 'Edit Doctor Profile' : 'Add Doctor / Specialist'}
+                  </Text>
+                  <Text style={styles.modalHeaderSub} numberOfLines={1}>
+                    {doctorHospital?.name}
+                  </Text>
                 </View>
-                <Switch
-                  value={docShowOnHomepage}
-                  onValueChange={setDocShowOnHomepage}
-                  trackColor={{ false: '#E2E8F0', true: colors.primaryLight }}
-                  thumbColor={docShowOnHomepage ? colors.primary : '#94A3B8'}
-                />
+                <TouchableOpacity
+                  onPress={handleSaveDoctor}
+                  disabled={editingDoctorSaving}
+                >
+                  <Text style={[styles.modalDoneText, editingDoctorSaving && { opacity: 0.5 }]}>
+                    {editingDoctorSaving ? 'Saving...' : 'Save ✓'}
+                  </Text>
+                </TouchableOpacity>
               </View>
-            </View>
 
-            <TouchableOpacity
-              style={[styles.saveSubmitBtn, editingDoctorSaving && { opacity: 0.6 }]}
-              onPress={handleSaveDoctor}
-              disabled={editingDoctorSaving}
-            >
-              <Text style={styles.saveSubmitBtnText}>
-                {editingDoctorSaving
-                  ? 'Saving Doctor Profile...'
-                  : editingDoctorIndex !== null
-                  ? 'Update Doctor Details ✓'
-                  : 'Save & Add Doctor ✓'}
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
+              <ScrollView contentContainerStyle={styles.formScroll} showsVerticalScrollIndicator={false}>
+                {/* Doctor Name */}
+                <Text style={styles.formLabel}>Doctor Full Name *</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="e.g. Dr. Rajesh Sharma"
+                  placeholderTextColor={colors.textMuted}
+                  value={docName}
+                  onChangeText={setDocName}
+                />
+
+                {/* Specialty */}
+                <Text style={styles.formLabel}>Primary Specialty / Department *</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="e.g. Cardiology, Orthopaedics, Neurology..."
+                  placeholderTextColor={colors.textMuted}
+                  value={docSpecialty}
+                  onChangeText={setDocSpecialty}
+                />
+
+                {/* Qualification */}
+                <Text style={styles.formLabel}>Medical Qualification</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="e.g. MBBS, MS, MCh (Cardio-Thoracic)"
+                  placeholderTextColor={colors.textMuted}
+                  value={docQualification}
+                  onChangeText={setDocQualification}
+                />
+
+                {/* Experience & Rating Grid */}
+                <View style={styles.formGridRow}>
+                  <View style={styles.formGridCol}>
+                    <Text style={styles.formLabel}>Years of Experience</Text>
+                    <TextInput
+                      style={styles.formInput}
+                      placeholder="e.g. 15+ Years"
+                      placeholderTextColor={colors.textMuted}
+                      value={docExperience}
+                      onChangeText={setDocExperience}
+                    />
+                  </View>
+                  <View style={styles.formGridCol}>
+                    <Text style={styles.formLabel}>Rating (1.0 - 5.0)</Text>
+                    <TextInput
+                      style={styles.formInput}
+                      placeholder="4.9"
+                      placeholderTextColor={colors.textMuted}
+                      value={docRating}
+                      onChangeText={setDocRating}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+
+                {/* Photo URL */}
+                <Text style={styles.formLabel}>Doctor Photo URL (Optional)</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="https://images.example.com/doctor.jpg"
+                  placeholderTextColor={colors.textMuted}
+                  value={docImage}
+                  onChangeText={setDocImage}
+                  autoCapitalize="none"
+                />
+
+                {/* Procedures / Treatments */}
+                <Text style={styles.formLabel}>Key Procedures & Treatments (Comma Separated)</Text>
+                <Text style={styles.formSubLabel}>
+                  e.g. Angioplasty, Coronary Bypass, Heart Valve Surgery
+                </Text>
+                <TextInput
+                  style={[styles.formInput, { minHeight: 64 }]}
+                  placeholder="Angioplasty, Valve Replacement, Pacemaker..."
+                  placeholderTextColor={colors.textMuted}
+                  value={docTreatments}
+                  onChangeText={setDocTreatments}
+                  multiline
+                />
+
+                {/* About Doctor */}
+                <Text style={styles.formLabel}>About Doctor / Professional Biography</Text>
+                <TextInput
+                  style={[styles.formInput, { minHeight: 80 }]}
+                  placeholder="Write doctor's professional background, awards, fellowships, and clinical expertise..."
+                  placeholderTextColor={colors.textMuted}
+                  value={docAbout}
+                  onChangeText={setDocAbout}
+                  multiline
+                />
+
+                {/* Show on Homepage Switch */}
+                <View style={[styles.togglesCard, { marginTop: 14 }]}>
+                  <View style={styles.toggleRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.toggleTitle}>Feature on Homepage</Text>
+                      <Text style={styles.toggleSubtitle}>Highlight doctor profile in Homepage Testimonial Carousel</Text>
+                    </View>
+                    <Switch
+                      value={docShowOnHomepage}
+                      onValueChange={setDocShowOnHomepage}
+                      trackColor={{ false: '#E2E8F0', true: colors.primaryLight }}
+                      thumbColor={docShowOnHomepage ? colors.primary : '#94A3B8'}
+                    />
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.saveSubmitBtn, editingDoctorSaving && { opacity: 0.6 }]}
+                  onPress={handleSaveDoctor}
+                  disabled={editingDoctorSaving}
+                >
+                  <Text style={styles.saveSubmitBtnText}>
+                    {editingDoctorSaving
+                      ? 'Saving Doctor Profile...'
+                      : editingDoctorIndex !== null
+                      ? 'Update Doctor Details ✓'
+                      : 'Save & Add Doctor ✓'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </>
+          )}
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -2135,6 +2424,19 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontWeight: '600',
     marginTop: 1,
+  },
+  headerLeadsBtn: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  headerLeadsBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1D4ED8',
   },
   addBtn: {
     backgroundColor: colors.primary,
@@ -2417,6 +2719,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  leadsBtn: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 10,
+  },
+  leadsBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#B45309',
   },
   editHospitalBtn: {
     backgroundColor: colors.primary,
@@ -2942,45 +3255,130 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#DC2626',
   },
-  serviceSelectWrap: {
-    gap: 8,
-    marginTop: 6,
-  },
-  serviceSelectItem: {
+  // Service Dropdown Selector Styles (Website-like)
+  dropdownTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: colors.surfaceSecondary,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 4,
   },
-  serviceSelectItemActive: {
-    backgroundColor: '#FFF1F2',
+  dropdownTriggerOpen: {
     borderColor: colors.primary,
+    backgroundColor: '#FFFFFF',
   },
-  serviceSelectItemLinked: {
-    opacity: 0.7,
-  },
-  serviceSelectName: {
-    fontSize: 13,
+  dropdownTriggerText: {
+    fontSize: 14,
     fontWeight: '700',
     color: colors.textPrimary,
   },
-  serviceSelectNameActive: {
+  dropdownPlaceholder: {
+    fontSize: 13,
+    color: colors.textMuted,
+    fontWeight: '500',
+  },
+  dropdownChevron: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginLeft: 8,
+  },
+  dropdownMenu: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    marginTop: 6,
+    marginBottom: 8,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  dropdownSearchBox: {
+    padding: 8,
+    borderBottomWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+  },
+  dropdownSearchInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  dropdownListScroll: {
+    maxHeight: 240,
+  },
+  dropdownGroupHeader: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  dropdownGroupTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#F1F5F9',
+  },
+  dropdownOptionSub: {
+    paddingLeft: 26,
+    backgroundColor: '#FAFAFA',
+  },
+  dropdownOptionSelected: {
+    backgroundColor: '#FFF0F5',
+  },
+  dropdownOptionDisabled: {
+    opacity: 0.6,
+    backgroundColor: '#F8FAFC',
+  },
+  dropdownOptionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  dropdownOptionTextSelected: {
     color: colors.primary,
     fontWeight: '800',
   },
-  serviceSelectCat: {
+  dropdownOptionSubText: {
     fontSize: 11,
     color: colors.textMuted,
     marginTop: 2,
   },
-  serviceSelectCheck: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.primary,
-    marginLeft: 8,
+  dropdownAddedBadge: {
+    backgroundColor: '#E2E8F0',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  dropdownAddedText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
   },
   editingServiceBanner: {
     backgroundColor: '#EFF6FF',

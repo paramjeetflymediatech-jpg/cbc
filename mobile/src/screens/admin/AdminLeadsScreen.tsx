@@ -18,16 +18,22 @@ import api from '../../services/api';
 
 interface AdminLeadsScreenProps {
   navigation: any;
+  route?: any;
 }
 
 const STATUS_FILTERS = ['ALL', 'NEW', 'UNASSIGNED', 'CONTACTED', 'IN_PROGRESS', 'CONVERTED', 'EXPIRED'];
 
-export const AdminLeadsScreen: React.FC<AdminLeadsScreenProps> = ({ navigation }) => {
+export const AdminLeadsScreen: React.FC<AdminLeadsScreenProps> = ({ navigation, route }) => {
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [hospitalFilter, setHospitalFilter] = useState<{ id?: number | string; name?: string } | null>(
+    route?.params?.hospitalId || route?.params?.hospitalName
+      ? { id: route.params.hospitalId, name: route.params.hospitalName }
+      : null
+  );
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -46,6 +52,15 @@ export const AdminLeadsScreen: React.FC<AdminLeadsScreenProps> = ({ navigation }
   useEffect(() => {
     fetchLeads();
   }, [fetchLeads]);
+
+  useEffect(() => {
+    if (route?.params?.hospitalId || route?.params?.hospitalName) {
+      setHospitalFilter({
+        id: route.params.hospitalId,
+        name: route.params.hospitalName,
+      });
+    }
+  }, [route?.params?.hospitalId, route?.params?.hospitalName]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -85,6 +100,11 @@ export const AdminLeadsScreen: React.FC<AdminLeadsScreenProps> = ({ navigation }
   };
 
   const filtered = leads.filter((l) => {
+    const matchHospital =
+      !hospitalFilter ||
+      (hospitalFilter.id && String(l.hospitalId) === String(hospitalFilter.id)) ||
+      (hospitalFilter.name && l.hospital?.name?.toLowerCase().includes(hospitalFilter.name.toLowerCase()));
+
     const matchStatus = selectedStatus === 'ALL' || l.status === selectedStatus;
     const q = search.toLowerCase().trim();
     const matchSearch =
@@ -95,7 +115,7 @@ export const AdminLeadsScreen: React.FC<AdminLeadsScreenProps> = ({ navigation }
       l.hospital?.name?.toLowerCase().includes(q) ||
       l.service?.name?.toLowerCase().includes(q);
 
-    return matchStatus && matchSearch;
+    return matchHospital && matchStatus && matchSearch;
   });
 
   return (
@@ -107,11 +127,28 @@ export const AdminLeadsScreen: React.FC<AdminLeadsScreenProps> = ({ navigation }
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.backBtnText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>All Platform Leads</Text>
+        <Text style={styles.headerTitle}>
+          {hospitalFilter?.name ? `${hospitalFilter.name} Leads` : 'All Platform Leads'}
+        </Text>
         <View style={styles.countBadge}>
           <Text style={styles.countBadgeText}>{filtered.length}</Text>
         </View>
       </View>
+
+      {/* Active Hospital Filter Banner */}
+      {hospitalFilter && (
+        <View style={styles.filterBanner}>
+          <Text style={styles.filterBannerText} numberOfLines={1}>
+            🏥 Filtering leads for <Text style={{ fontWeight: '800' }}>{hospitalFilter.name || 'Selected Hospital'}</Text>
+          </Text>
+          <TouchableOpacity
+            style={styles.clearFilterBtn}
+            onPress={() => setHospitalFilter(null)}
+          >
+            <Text style={styles.clearFilterBtnText}>Show All ✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
@@ -168,7 +205,12 @@ export const AdminLeadsScreen: React.FC<AdminLeadsScreenProps> = ({ navigation }
             </View>
           ) : (
             filtered.map((lead) => (
-              <View key={lead.id} style={styles.leadCard}>
+              <TouchableOpacity
+                key={lead.id}
+                style={styles.leadCard}
+                activeOpacity={0.88}
+                onPress={() => navigation.navigate('AdminLeadDetail', { leadId: lead.id, lead })}
+              >
                 <View style={styles.cardHeader}>
                   <View style={styles.patientCol}>
                     <Text style={styles.patientName}>{lead.patientName}</Text>
@@ -183,7 +225,9 @@ export const AdminLeadsScreen: React.FC<AdminLeadsScreenProps> = ({ navigation }
 
                 {lead.message ? (
                   <View style={styles.messageBox}>
-                    <Text style={styles.messageText}>{lead.message}</Text>
+                    <Text style={styles.messageText} numberOfLines={2}>
+                      {lead.message}
+                    </Text>
                   </View>
                 ) : null}
 
@@ -202,6 +246,13 @@ export const AdminLeadsScreen: React.FC<AdminLeadsScreenProps> = ({ navigation }
 
                 {/* Actions */}
                 <View style={styles.actionRow}>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, styles.viewBtn]}
+                    onPress={() => navigation.navigate('AdminLeadDetail', { leadId: lead.id, lead })}
+                  >
+                    <Text style={styles.viewBtnText}>👁️ View Info</Text>
+                  </TouchableOpacity>
+
                   <TouchableOpacity
                     style={[styles.actionBtn, styles.callBtn]}
                     onPress={() => handleCall(lead.phone)}
@@ -223,7 +274,7 @@ export const AdminLeadsScreen: React.FC<AdminLeadsScreenProps> = ({ navigation }
                     <Text style={styles.deleteBtnText}>🗑️</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))
           )}
         </ScrollView>
@@ -434,6 +485,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
+  viewBtn: {
+    flex: 1.1,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  viewBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0284C7',
+  },
   callBtn: {
     flex: 1,
     backgroundColor: '#DCFCE7',
@@ -476,5 +538,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textMuted,
     marginTop: 4,
+  },
+  filterBanner: {
+    backgroundColor: '#EFF6FF',
+    borderBottomWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  filterBannerText: {
+    fontSize: 13,
+    color: '#1E40AF',
+    flex: 1,
+    marginRight: 8,
+  },
+  clearFilterBtn: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  clearFilterBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1D4ED8',
   },
 });

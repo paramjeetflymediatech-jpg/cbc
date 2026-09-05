@@ -44,6 +44,7 @@ import { AdminLeadsScreen } from '../screens/admin/AdminLeadsScreen';
 import { AdminUsersScreen } from '../screens/admin/AdminUsersScreen';
 import { AdminUserDetailScreen } from '../screens/admin/AdminUserDetailScreen';
 import { AdminServicesScreen } from '../screens/admin/AdminServicesScreen';
+import { AdminLeadDetailScreen } from '../screens/admin/AdminLeadDetailScreen';
 
 
 const Tab = createBottomTabNavigator();
@@ -185,6 +186,7 @@ export function AppNavigator() {
           <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
           <Stack.Screen name="AdminHospitals" component={AdminHospitalsScreen} />
           <Stack.Screen name="AdminLeads" component={AdminLeadsScreen} />
+          <Stack.Screen name="AdminLeadDetail" component={AdminLeadDetailScreen} />
           <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
           <Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} />
           <Stack.Screen name="AdminServices" component={AdminServicesScreen} />

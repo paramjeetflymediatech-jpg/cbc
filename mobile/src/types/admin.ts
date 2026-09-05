@@ -176,6 +176,8 @@ export interface AdminPlatformServiceItem {
   category?: string;
   icon?: string;
   image?: string;
+  parentId?: number | null;
+  subServices?: any[];
   status?: string;
 }
 
@@ -192,4 +194,63 @@ export interface AdminHospitalServiceItem {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface AdminLeadNote {
+  content: string;
+  author: string;
+  createdAt: string;
+}
+
+export interface AdminLeadDetailItem {
+  id: number | string;
+  userId?: number | null;
+  patientName: string;
+  phone: string;
+  email: string;
+  city?: string;
+  serviceId?: number;
+  hospitalId?: number;
+  message?: string | null;
+  preferredContactTime?: string | null;
+  status: 'NEW' | 'CONTACTED' | 'IN_PROGRESS' | 'CONVERTED' | 'LOST' | 'CANCELLED' | 'UNASSIGNED' | 'EXPIRED';
+  notes?: AdminLeadNote[] | null;
+  deletedByUser?: boolean;
+  hospital?: {
+    id: number;
+    name: string;
+    slug?: string;
+    city?: string;
+    state?: string;
+    district?: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    rating?: number;
+    leadsRemaining?: number;
+  };
+  service?: {
+    id: number;
+    name: string;
+    slug?: string;
+    category?: string;
+    icon?: string;
+    image?: string;
+  };
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    phone?: string;
+    role?: string;
+  };
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AdminLeadDetailResponse {
+  success: boolean;
+  lead: AdminLeadDetailItem;
+  message?: string;
+}
+
 

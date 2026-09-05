@@ -28,7 +28,6 @@ export async function GET(
     }
 
     const allPlatformServices = await Service.findAll({
-      where: { status: 'ACTIVE' },
       order: [['name', 'ASC']],
     });
 
@@ -70,33 +69,56 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { serviceId, startingPrice, description, treatmentDetails, subServices, status } = body;
+    const { hospitalServiceId, id: recordId, serviceId, startingPrice, description, treatmentDetails, subServices, status } = body;
 
     if (!serviceId) {
       return NextResponse.json({ error: 'Service ID is required' }, { status: 400 });
     }
 
-    const [hs, created] = await HospitalService.findOrCreate({
-      where: { hospitalId, serviceId: Number(serviceId) },
-      defaults: {
-        hospitalId,
-        serviceId: Number(serviceId),
-        startingPrice: startingPrice !== undefined && startingPrice !== '' ? Number(startingPrice) : null,
-        description: description || null,
-        treatmentDetails: treatmentDetails || null,
-        subServices: subServices || null,
-        status: status || 'ACTIVE',
-      },
-    });
+    let hs;
+    let created = false;
 
-    if (!created) {
-      await hs.update({
-        startingPrice: startingPrice !== undefined && startingPrice !== '' ? Number(startingPrice) : hs.startingPrice,
-        description: description !== undefined ? description : hs.description,
-        treatmentDetails: treatmentDetails !== undefined ? treatmentDetails : hs.treatmentDetails,
-        subServices: subServices !== undefined ? subServices : hs.subServices,
-        status: status || hs.status,
+    const targetRecordId = hospitalServiceId || recordId;
+    if (targetRecordId) {
+      hs = await HospitalService.findOne({
+        where: { id: Number(targetRecordId), hospitalId },
       });
+      if (hs) {
+        await hs.update({
+          serviceId: Number(serviceId),
+          startingPrice: startingPrice !== undefined && startingPrice !== '' ? Number(startingPrice) : null,
+          description: description !== undefined ? description : hs.description,
+          treatmentDetails: treatmentDetails !== undefined ? treatmentDetails : hs.treatmentDetails,
+          subServices: subServices !== undefined ? subServices : hs.subServices,
+          status: status || hs.status,
+        });
+      }
+    }
+
+    if (!hs) {
+      const result = await HospitalService.findOrCreate({
+        where: { hospitalId, serviceId: Number(serviceId) },
+        defaults: {
+          hospitalId,
+          serviceId: Number(serviceId),
+          startingPrice: startingPrice !== undefined && startingPrice !== '' ? Number(startingPrice) : null,
+          description: description || null,
+          treatmentDetails: treatmentDetails || null,
+          subServices: subServices || null,
+          status: status || 'ACTIVE',
+        },
+      });
+      hs = result[0];
+      created = result[1];
+      if (!created) {
+        await hs.update({
+          startingPrice: startingPrice !== undefined && startingPrice !== '' ? Number(startingPrice) : hs.startingPrice,
+          description: description !== undefined ? description : hs.description,
+          treatmentDetails: treatmentDetails !== undefined ? treatmentDetails : hs.treatmentDetails,
+          subServices: subServices !== undefined ? subServices : hs.subServices,
+          status: status || hs.status,
+        });
+      }
     }
 
     // Refetch updated list

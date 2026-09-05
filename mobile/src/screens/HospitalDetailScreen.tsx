@@ -11,6 +11,8 @@ import {
   Linking,
   Modal,
   TextInput,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Hospital } from '../types';
@@ -46,24 +48,222 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
   const [hospitalData, setHospitalData] = useState<Hospital>(route.params?.hospital || ({} as Hospital));
   const hospital = hospitalData;
 
-  useEffect(() => {
-    const fetchFreshHospitalData = async () => {
-      if (!hospitalData.slug) return;
-      try {
-        const res = await api.get(`/hospitals/${hospitalData.slug}`);
-        if (res.data && res.data.hospital) {
-          setHospitalData(res.data.hospital);
-        }
-      } catch (err) {
-        console.warn('Failed to fetch fresh hospital details:', err);
-      }
-    };
-
-    fetchFreshHospitalData();
-  }, []);
-
   const { location, user, toggleSaveHospital, savedHospitalIds } = useAuth();
   const { showAlert } = useSweetAlert();
+
+  const isAuthorizedManager =
+    user?.role === 'SUPER_ADMIN' ||
+    user?.role === 'ADMIN' ||
+    (user?.role === 'HOSPITAL' && Number((user as any)?.hospitalId) === Number(hospital.id));
+
+  // Services Management State
+  const [allPlatformServices, setAllPlatformServices] = useState<any[]>([]);
+  const [serviceDropdownOpen, setServiceDropdownOpen] = useState<boolean>(false);
+  const [serviceSearchQuery, setServiceSearchQuery] = useState<string>('');
+  const [serviceModalVisible, setServiceModalVisible] = useState<boolean>(false);
+  const [editingServiceSaving, setEditingServiceSaving] = useState<boolean>(false);
+  const [isEditingExistingLink, setIsEditingExistingLink] = useState<boolean>(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string>('');
+  const [svcStartingPrice, setSvcStartingPrice] = useState<string>('');
+  const [svcSubServices, setSvcSubServices] = useState<string>('');
+  const [svcDescription, setSvcDescription] = useState<string>('');
+  const [svcStatus, setSvcStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
+  const [editingHospitalServiceId, setEditingHospitalServiceId] = useState<string | number | null>(null);
+
+  const fetchFreshHospitalData = async () => {
+    const targetSlugOrId = hospitalData.slug || hospitalData.id || route.params?.hospitalId || route.params?.id;
+    if (!targetSlugOrId) return;
+    try {
+      const res = await api.get(`/hospitals/${targetSlugOrId}`);
+      if (res.data && res.data.hospital) {
+        setHospitalData(res.data.hospital);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch fresh hospital details:', err);
+    }
+  };
+
+  const fetchPlatformServices = async () => {
+    try {
+      let platformSvcs: any[] = [];
+      const hospId = hospital.id || route.params?.id || route.params?.hospitalId;
+
+      if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') {
+        try {
+          const res = await api.get(`/admin/hospitals/${hospId}/services`);
+          if (Array.isArray(res.data?.allPlatformServices) && res.data.allPlatformServices.length > 0) {
+            platformSvcs = res.data.allPlatformServices;
+          }
+          if (res.data?.hospitalServices) {
+            setHospitalData((prev) => ({ ...prev, hospitalServices: res.data.hospitalServices }));
+          }
+        } catch {
+          // Fallback below
+        }
+      }
+
+      if (platformSvcs.length === 0) {
+        try {
+          const sRes = await api.get('/admin/services');
+          if (Array.isArray(sRes.data?.services)) {
+            platformSvcs = sRes.data.services;
+          }
+        } catch {
+          try {
+            const pubRes = await api.get('/services');
+            if (Array.isArray(pubRes.data?.services)) {
+              platformSvcs = pubRes.data.services;
+            }
+          } catch {
+            try {
+              const hRes = await api.get('/hospital/services');
+              if (Array.isArray(hRes.data?.allPlatformServices)) {
+                platformSvcs = hRes.data.allPlatformServices;
+              }
+            } catch {
+              // Ignore
+            }
+          }
+        }
+      }
+
+      setAllPlatformServices(platformSvcs);
+    } catch {
+      // Ignore
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthorizedManager) {
+      fetchPlatformServices();
+    }
+  }, [hospitalData.slug, hospitalData.id]);
+
+  const handleOpenAddService = () => {
+    setEditingHospitalServiceId(null);
+    setIsEditingExistingLink(false);
+    setSelectedServiceId('');
+    setSvcStartingPrice('');
+    setSvcSubServices('');
+    setSvcDescription('');
+    setSvcStatus('ACTIVE');
+    setServiceDropdownOpen(false);
+    setServiceSearchQuery('');
+    if (allPlatformServices.length === 0) {
+      fetchPlatformServices();
+    }
+    setServiceModalVisible(true);
+  };
+
+  const handleOpenEditService = (hs: any) => {
+    setEditingHospitalServiceId(hs.id || null);
+    setIsEditingExistingLink(true);
+    setSelectedServiceId(String(hs.serviceId || hs.service?.id || hs.id));
+    setSvcStartingPrice(hs.startingPrice !== undefined && hs.startingPrice !== null ? String(hs.startingPrice) : '');
+    setSvcSubServices(hs.subServices || '');
+    setSvcDescription(hs.description || '');
+    setSvcStatus(hs.status || 'ACTIVE');
+    setServiceDropdownOpen(false);
+    setServiceSearchQuery('');
+    if (allPlatformServices.length === 0) {
+      fetchPlatformServices();
+    }
+    setServiceModalVisible(true);
+  };
+
+  const handleSaveHospitalService = async () => {
+    const hospId = hospital.id || route.params?.id || route.params?.hospitalId;
+    if (!hospId) {
+      Alert.alert('Error', 'Hospital identifier not found.');
+      return;
+    }
+    if (!selectedServiceId) {
+      Alert.alert('Selection Required', 'Please choose a platform medical specialty to link.');
+      return;
+    }
+
+    try {
+      setEditingServiceSaving(true);
+      const payload = {
+        hospitalServiceId: editingHospitalServiceId,
+        serviceId: Number(selectedServiceId),
+        startingPrice: svcStartingPrice.trim() ? Number(svcStartingPrice) : null,
+        subServices: svcSubServices.trim() || null,
+        description: svcDescription.trim() || null,
+        status: svcStatus,
+      };
+
+      if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') {
+        const res = await api.post(`/admin/hospitals/${hospId}/services`, payload);
+        if (res.data?.hospitalServices) {
+          setHospitalData((prev) => ({ ...prev, hospitalServices: res.data.hospitalServices }));
+        }
+      } else {
+        const res = await api.post('/hospital/services', payload);
+        if (res.data?.hospitalServices) {
+          setHospitalData((prev) => ({ ...prev, hospitalServices: res.data.hospitalServices }));
+        }
+      }
+
+      setServiceModalVisible(false);
+      setTimeout(() => {
+        showAlert({
+          title: 'Service Updated',
+          message: isEditingExistingLink
+            ? 'Hospital service details have been updated.'
+            : 'Service linked to hospital successfully.',
+          type: 'success',
+        });
+      }, 150);
+      fetchFreshHospitalData();
+    } catch (err: any) {
+      Alert.alert('Save Failed', err?.response?.data?.error || 'Failed to save hospital service.');
+    } finally {
+      setEditingServiceSaving(false);
+    }
+  };
+
+  const handleRemoveHospitalService = (hs: any) => {
+    const hospId = hospital.id || route.params?.id || route.params?.hospitalId;
+    if (!hospId) return;
+    const serviceName = hs.service?.name || 'this service';
+    Alert.alert(
+      'Remove Hospital Service',
+      `Are you sure you want to remove "${serviceName}" from ${hospital.name}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove Service',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') {
+                const res = await api.delete(
+                  `/admin/hospitals/${hospId}/services?hospitalServiceId=${hs.id}`
+                );
+                if (res.data?.hospitalServices) {
+                  setHospitalData((prev) => ({ ...prev, hospitalServices: res.data.hospitalServices }));
+                }
+              } else {
+                await api.post('/hospital/services', {
+                  serviceId: hs.serviceId,
+                  status: 'INACTIVE',
+                });
+              }
+              showAlert({
+                title: 'Service Removed',
+                message: `"${serviceName}" has been removed from hospital offerings.`,
+                type: 'success',
+              });
+              fetchFreshHospitalData();
+            } catch (err: any) {
+              Alert.alert('Error', err?.response?.data?.error || 'Failed to remove service.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const savedAddressParts = [
     user?.address,
@@ -276,6 +476,32 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
       <ScrollView contentContainerStyle={styles.scrollBody} showsVerticalScrollIndicator={false}>
         {activeTab === 'Overview' && (
           <View style={styles.tabContent}>
+            {/* Manager Admin Action Bar */}
+            {isAuthorizedManager && (
+              <View style={styles.managerServiceBar}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.managerServiceTitle}>🛡️ Partner Management</Text>
+                  <Text style={styles.managerServiceSub}>View patient inquiries and manage clinic profile</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.managerLeadsBtn}
+                  onPress={() => {
+                    if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') {
+                      navigation.navigate('AdminLeads', {
+                        hospitalId: hospital.id,
+                        hospitalName: hospital.name,
+                        search: hospital.name,
+                      });
+                    } else {
+                      navigation.navigate('HospitalLeads');
+                    }
+                  }}
+                >
+                  <Text style={styles.managerLeadsBtnText}>📋 View Leads</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* About Box */}
             <View style={styles.card}>
               <Text style={styles.cardHeaderTitle}>About Hospital</Text>
@@ -321,6 +547,37 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
 
         {activeTab === 'Treatments' && (
           <View style={styles.tabContent}>
+            {/* Manager Control Bar */}
+            {isAuthorizedManager && (
+              <View style={styles.managerServiceBar}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.managerServiceTitle}>⚙️ Manage Medical Services</Text>
+                  <Text style={styles.managerServiceSub}>Link specialties, customize pricing & procedures</Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                  <TouchableOpacity
+                    style={styles.managerLeadsBtn}
+                    onPress={() => {
+                      if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') {
+                        navigation.navigate('AdminLeads', {
+                          hospitalId: hospital.id,
+                          hospitalName: hospital.name,
+                          search: hospital.name,
+                        });
+                      } else {
+                        navigation.navigate('HospitalLeads');
+                      }
+                    }}
+                  >
+                    <Text style={styles.managerLeadsBtnText}>📋 Leads</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.managerAddBtn} onPress={handleOpenAddService}>
+                    <Text style={styles.managerAddBtnText}>+ Link Service</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
             {hospital.treatments && hospital.treatments.length > 0 ? (
               hospital.treatments.map((tr) => (
                 <View key={tr.id} style={styles.treatmentCard}>
@@ -348,7 +605,7 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
             ) : hospital.hospitalServices && hospital.hospitalServices.length > 0 ? (
               hospital.hospitalServices.map((hs, idx) => {
                 const subList = hs.subServices
-                  ? hs.subServices.split(',').map((s) => s.trim()).filter(Boolean)
+                  ? hs.subServices.split(',').map((s: string) => s.trim()).filter(Boolean)
                   : [];
                 return (
                   <View key={hs.id || idx} style={styles.serviceCategoryCard}>
@@ -364,8 +621,8 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
                     
                     {subList.length > 0 && (
                       <View style={styles.subServicesList}>
-                        {subList.map((sub, idx) => (
-                          <View key={idx} style={styles.subServiceRow}>
+                        {subList.map((sub: string, subIdx: number) => (
+                          <View key={subIdx} style={styles.subServiceRow}>
                             <Text style={styles.subServiceBullet}>✓</Text>
                             <Text style={styles.subServiceText}>{sub}</Text>
                           </View>
@@ -373,23 +630,53 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
                       </View>
                     )}
                     
-                    <TouchableOpacity
-                      style={styles.enquireServiceBtn}
-                      onPress={() =>
-                        navigation.navigate('Enquiry', {
-                          preferredHospital: hospital.name,
-                          hospitalId: hospital.id,
-                          serviceName: hs.service?.name,
-                          serviceId: hs.service?.id,
-                        })
-                      }
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.enquireServiceBtnText}>Enquire Specialty Services →</Text>
-                    </TouchableOpacity>
+                    {/* Admin Edit / Delete Actions */}
+                    {isAuthorizedManager ? (
+                      <View style={styles.serviceManagerRow}>
+                        <TouchableOpacity
+                          style={styles.serviceEditChip}
+                          onPress={() => handleOpenEditService(hs)}
+                        >
+                          <Text style={styles.serviceEditChipText}>✏️ Edit Offering</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.serviceDeleteChip}
+                          onPress={() => handleRemoveHospitalService(hs)}
+                        >
+                          <Text style={styles.serviceDeleteChipText}>🗑️ Remove</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.enquireServiceBtn}
+                        onPress={() =>
+                          navigation.navigate('Enquiry', {
+                            preferredHospital: hospital.name,
+                            hospitalId: hospital.id,
+                            serviceName: hs.service?.name,
+                            serviceId: hs.service?.id,
+                          })
+                        }
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.enquireServiceBtnText}>Enquire Specialty Services →</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 );
               })
+            ) : isAuthorizedManager ? (
+              <View style={styles.emptyManagerCard}>
+                <Text style={styles.emptyManagerIcon}>🩺</Text>
+                <Text style={styles.emptyManagerTitle}>No medical services linked</Text>
+                <Text style={styles.emptyManagerSub}>
+                  Link medical specialties, pricing, and available procedures to this hospital.
+                </Text>
+                <TouchableOpacity style={styles.emptyManagerAddBtn} onPress={handleOpenAddService}>
+                  <Text style={styles.emptyManagerAddBtnText}>+ Link First Medical Service</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
               <View style={styles.card}>
                 <Text style={styles.bodyText}>All major surgical and diagnostic procedures available on enquiry.</Text>
@@ -627,6 +914,371 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
           </View>
         </View>
       </Modal>
+
+      {/* ======================================================== */}
+      {/* LINK / EDIT HOSPITAL SERVICE MODAL */}
+      {/* ======================================================== */}
+      <Modal visible={serviceModalVisible} animationType="slide" presentationStyle="pageSheet">
+        <SafeAreaView style={styles.sheetModalContainer}>
+          <View style={styles.sheetModalHeader}>
+            <TouchableOpacity
+              onPress={() => setServiceModalVisible(false)}
+              disabled={editingServiceSaving}
+            >
+              <Text style={styles.sheetModalCancel}>Cancel</Text>
+            </TouchableOpacity>
+            <View style={styles.sheetModalCenter}>
+              <Text style={styles.sheetModalTitle}>
+                {isEditingExistingLink ? 'Edit Service Offering' : 'Link Medical Specialty'}
+              </Text>
+              <Text style={styles.sheetModalSub} numberOfLines={1}>{hospital.name}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={handleSaveHospitalService}
+              disabled={editingServiceSaving}
+            >
+              <Text style={[styles.sheetModalDone, editingServiceSaving && { opacity: 0.5 }]}>
+                {editingServiceSaving ? 'Saving...' : 'Save ✓'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.sheetFormScroll} showsVerticalScrollIndicator={false}>
+            {/* Service Selector (Website-style Dropdown List for both Add and Edit) */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={styles.formLabel}>Select Platform Medical Service *</Text>
+              <Text style={styles.formSubLabel}>
+                {isEditingExistingLink
+                  ? `Select or change the medical specialty/service offered at ${hospital.name}`
+                  : `Choose which platform service to make available at ${hospital.name}`}
+              </Text>
+
+              {/* Dropdown Trigger */}
+              {(() => {
+                const selectedService = allPlatformServices.find(
+                  (ps) => String(ps.id) === String(selectedServiceId)
+                );
+                const parentServices = allPlatformServices.filter(
+                  (ps) => !ps.parentId
+                );
+                const hasParents = parentServices.length > 0;
+
+                return (
+                  <>
+                    <TouchableOpacity
+                      style={[
+                        styles.dropdownTrigger,
+                        serviceDropdownOpen && styles.dropdownTriggerOpen,
+                      ]}
+                      onPress={() => setServiceDropdownOpen(!serviceDropdownOpen)}
+                      activeOpacity={0.8}
+                    >
+                      {selectedService ? (
+                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 16, marginRight: 8 }}>
+                            {selectedService.icon || '🩺'}
+                          </Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.dropdownTriggerText} numberOfLines={1}>
+                              {selectedService.name}
+                            </Text>
+                            {selectedService.category ? (
+                              <Text style={styles.dropdownOptionSubText}>
+                                {selectedService.category} {selectedService.parentId ? '• Procedure' : '• Specialty'}
+                              </Text>
+                            ) : null}
+                          </View>
+                        </View>
+                      ) : (
+                        <Text style={styles.dropdownPlaceholder}>
+                          ▼ Select a Medical Specialty / Service...
+                        </Text>
+                      )}
+                      <Text style={styles.dropdownChevron}>
+                        {serviceDropdownOpen ? '▲' : '▼'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Dropdown Menu List */}
+                    {serviceDropdownOpen && (
+                      <View style={styles.dropdownMenu}>
+                        <View style={styles.dropdownSearchBox}>
+                          <TextInput
+                            style={styles.dropdownSearchInput}
+                            placeholder="🔍 Search specialties or procedures..."
+                            placeholderTextColor={colors.textMuted}
+                            value={serviceSearchQuery}
+                            onChangeText={setServiceSearchQuery}
+                            autoFocus={false}
+                          />
+                        </View>
+
+                        <ScrollView
+                          style={styles.dropdownListScroll}
+                          nestedScrollEnabled={true}
+                          showsVerticalScrollIndicator={true}
+                          keyboardShouldPersistTaps="handled"
+                        >
+                          {allPlatformServices.length === 0 ? (
+                            <View style={{ padding: 16, alignItems: 'center' }}>
+                              <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 8 }}>
+                                No specialties loaded.
+                              </Text>
+                              <TouchableOpacity
+                                style={[styles.emptyManagerAddBtn, { paddingVertical: 6, paddingHorizontal: 12 }]}
+                                onPress={fetchPlatformServices}
+                              >
+                                <Text style={[styles.emptyManagerAddBtnText, { fontSize: 12 }]}>🔄 Reload Specialties</Text>
+                              </TouchableOpacity>
+                            </View>
+                          ) : hasParents ? (
+                            parentServices
+                              .filter((parent) => {
+                                const q = serviceSearchQuery.toLowerCase().trim();
+                                if (!q) return true;
+                                const matchesParent =
+                                  parent.name?.toLowerCase().includes(q) ||
+                                  parent.category?.toLowerCase().includes(q);
+                                const matchesChild = allPlatformServices.some(
+                                  (sub) =>
+                                    sub.parentId === parent.id &&
+                                    (sub.name?.toLowerCase().includes(q) ||
+                                      sub.category?.toLowerCase().includes(q))
+                                );
+                                return matchesParent || matchesChild;
+                              })
+                              .map((parent) => {
+                                const q = serviceSearchQuery.toLowerCase().trim();
+                                const subs = allPlatformServices.filter(
+                                  (ps) =>
+                                    ps.parentId === parent.id &&
+                                    (!q || ps.name?.toLowerCase().includes(q))
+                                );
+                                const isParentLinked = (hospital.hospitalServices || []).some(
+                                  (hs: any) =>
+                                    Number(hs.serviceId || hs.service?.id) === Number(parent.id) &&
+                                    String(hs.id) !== String(editingHospitalServiceId)
+                                );
+                                const isParentSelected = String(selectedServiceId) === String(parent.id);
+
+                                return (
+                                  <View key={parent.id}>
+                                    {/* Parent Category Option */}
+                                    <TouchableOpacity
+                                      style={[
+                                        styles.dropdownOption,
+                                        isParentSelected && styles.dropdownOptionSelected,
+                                        isParentLinked && styles.dropdownOptionDisabled,
+                                      ]}
+                                      onPress={() => {
+                                        if (isParentLinked) return;
+                                        setSelectedServiceId(String(parent.id));
+                                        setServiceDropdownOpen(false);
+                                        setServiceSearchQuery('');
+                                      }}
+                                    >
+                                      <View style={{ flex: 1 }}>
+                                        <Text
+                                          style={[
+                                            styles.dropdownOptionText,
+                                            isParentSelected && styles.dropdownOptionTextSelected,
+                                          ]}
+                                        >
+                                          {parent.icon || '🩺'} {parent.name} (General Specialty)
+                                        </Text>
+                                      </View>
+                                      {isParentLinked ? (
+                                        <View style={styles.dropdownAddedBadge}>
+                                          <Text style={styles.dropdownAddedText}>Already Added</Text>
+                                        </View>
+                                      ) : isParentSelected ? (
+                                        <Text style={styles.dropdownOptionTextSelected}>✓</Text>
+                                      ) : null}
+                                    </TouchableOpacity>
+
+                                    {/* Sub-services / Procedures */}
+                                    {subs.map((sub) => {
+                                      const isSubLinked = (hospital.hospitalServices || []).some(
+                                        (hs: any) =>
+                                          Number(hs.serviceId || hs.service?.id) === Number(sub.id) &&
+                                          String(hs.id) !== String(editingHospitalServiceId)
+                                      );
+                                      const isSubSelected = String(selectedServiceId) === String(sub.id);
+
+                                      return (
+                                        <TouchableOpacity
+                                          key={sub.id}
+                                          style={[
+                                            styles.dropdownOption,
+                                            styles.dropdownOptionSub,
+                                            isSubSelected && styles.dropdownOptionSelected,
+                                            isSubLinked && styles.dropdownOptionDisabled,
+                                          ]}
+                                          onPress={() => {
+                                            if (isSubLinked) return;
+                                            setSelectedServiceId(String(sub.id));
+                                            setServiceDropdownOpen(false);
+                                            setServiceSearchQuery('');
+                                          }}
+                                        >
+                                          <View style={{ flex: 1 }}>
+                                            <Text
+                                              style={[
+                                                styles.dropdownOptionText,
+                                                { fontSize: 12.5, fontWeight: '500' },
+                                                isSubSelected && styles.dropdownOptionTextSelected,
+                                              ]}
+                                            >
+                                              -- {sub.name}
+                                            </Text>
+                                          </View>
+                                          {isSubLinked ? (
+                                            <View style={styles.dropdownAddedBadge}>
+                                              <Text style={styles.dropdownAddedText}>Already Added</Text>
+                                            </View>
+                                          ) : isSubSelected ? (
+                                            <Text style={styles.dropdownOptionTextSelected}>✓</Text>
+                                          ) : null}
+                                        </TouchableOpacity>
+                                      );
+                                    })}
+                                  </View>
+                                );
+                              })
+                          ) : (
+                            allPlatformServices
+                              .filter(
+                                (ps) =>
+                                  !serviceSearchQuery.trim() ||
+                                  ps.name?.toLowerCase().includes(serviceSearchQuery.toLowerCase()) ||
+                                  ps.category?.toLowerCase().includes(serviceSearchQuery.toLowerCase())
+                              )
+                              .map((ps) => {
+                                const isLinked = (hospital.hospitalServices || []).some(
+                                  (hs: any) =>
+                                    Number(hs.serviceId || hs.service?.id) === Number(ps.id) &&
+                                    String(hs.id) !== String(editingHospitalServiceId)
+                                );
+                                const isSelected = String(selectedServiceId) === String(ps.id);
+
+                                return (
+                                  <TouchableOpacity
+                                    key={ps.id}
+                                    style={[
+                                      styles.dropdownOption,
+                                      isSelected && styles.dropdownOptionSelected,
+                                      isLinked && styles.dropdownOptionDisabled,
+                                    ]}
+                                    onPress={() => {
+                                      if (isLinked) return;
+                                      setSelectedServiceId(String(ps.id));
+                                      setServiceDropdownOpen(false);
+                                      setServiceSearchQuery('');
+                                    }}
+                                  >
+                                    <View style={{ flex: 1 }}>
+                                      <Text
+                                        style={[
+                                          styles.dropdownOptionText,
+                                          isSelected && styles.dropdownOptionTextSelected,
+                                        ]}
+                                      >
+                                        {ps.icon || '🩺'} {ps.name}
+                                      </Text>
+                                      {ps.category ? (
+                                        <Text style={styles.dropdownOptionSubText}>{ps.category}</Text>
+                                      ) : null}
+                                    </View>
+                                    {isLinked ? (
+                                      <View style={styles.dropdownAddedBadge}>
+                                        <Text style={styles.dropdownAddedText}>Already Added</Text>
+                                      </View>
+                                    ) : isSelected ? (
+                                      <Text style={styles.dropdownOptionTextSelected}>✓</Text>
+                                    ) : null}
+                                  </TouchableOpacity>
+                                );
+                              })
+                          )}
+                        </ScrollView>
+                      </View>
+                    )}
+                  </>
+                );
+              })()}
+            </View>
+
+            {/* Starting Price */}
+            <Text style={styles.formLabel}>Starting Price (₹ INR)</Text>
+            <Text style={styles.formSubLabel}>
+              Minimum estimated package or procedure price (e.g. 50000)
+            </Text>
+            <TextInput
+              style={styles.sheetInput}
+              placeholder="e.g. 50000"
+              placeholderTextColor={colors.textMuted}
+              value={svcStartingPrice}
+              onChangeText={setSvcStartingPrice}
+              keyboardType="numeric"
+            />
+
+            {/* Status */}
+            <Text style={styles.formLabel}>Availability Status</Text>
+            <View style={styles.statusPickerRow}>
+              {(['ACTIVE', 'INACTIVE'] as const).map((st) => (
+                <TouchableOpacity
+                  key={st}
+                  style={[styles.statusOption, svcStatus === st && styles.statusOptionActive]}
+                  onPress={() => setSvcStatus(st)}
+                >
+                  <Text style={[styles.statusOptionText, svcStatus === st && styles.statusOptionTextActive]}>
+                    {st === 'ACTIVE' ? '✓ ACTIVE (Visible to Patients)' : '✕ INACTIVE (Hidden)'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Sub-services */}
+            <Text style={styles.formLabel}>Procedures / Sub-Services (Comma Separated)</Text>
+            <Text style={styles.formSubLabel}>
+              e.g. Angioplasty, Valve Replacement, Pacemaker, Bypass Surgery
+            </Text>
+            <TextInput
+              style={[styles.sheetInput, { minHeight: 64 }]}
+              placeholder="Angioplasty, Bypass, Valve Surgery..."
+              placeholderTextColor={colors.textMuted}
+              value={svcSubServices}
+              onChangeText={setSvcSubServices}
+              multiline
+            />
+
+            {/* Description */}
+            <Text style={styles.formLabel}>Department Overview & Description</Text>
+            <TextInput
+              style={[styles.sheetInput, { minHeight: 80 }]}
+              placeholder="Specialized care units, surgeon expertise, high-tech diagnostic support..."
+              placeholderTextColor={colors.textMuted}
+              value={svcDescription}
+              onChangeText={setSvcDescription}
+              multiline
+            />
+
+            <TouchableOpacity
+              style={[styles.sheetSubmitBtn, editingServiceSaving && { opacity: 0.6 }]}
+              onPress={handleSaveHospitalService}
+              disabled={editingServiceSaving}
+            >
+              <Text style={styles.sheetSubmitBtnText}>
+                {editingServiceSaving
+                  ? 'Saving Service...'
+                  : isEditingExistingLink
+                  ? 'Update Hospital Service ✓'
+                  : 'Link Service to Hospital ✓'}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -636,10 +1288,362 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  // Manager Service Controls Styles
+  managerServiceBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    marginBottom: 8,
+  },
+  managerServiceTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1D4ED8',
+  },
+  managerServiceSub: {
+    fontSize: 11,
+    color: '#3B82F6',
+    marginTop: 1,
+  },
+  managerLeadsBtn: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  managerLeadsBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#B45309',
+  },
+  managerAddBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  managerAddBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.textWhite,
+  },
+  serviceManagerRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderColor: colors.borderLight,
+    paddingTop: 10,
+  },
+  serviceEditChip: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  serviceEditChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1D4ED8',
+  },
+  serviceDeleteChip: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  serviceDeleteChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  emptyManagerCard: {
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  emptyManagerIcon: {
+    fontSize: 40,
+    marginBottom: 8,
+  },
+  emptyManagerTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  emptyManagerSub: {
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  emptyManagerAddBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  emptyManagerAddBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.textWhite,
+  },
+  sheetModalContainer: {
+    flex: 1,
+    backgroundColor: colors.surface,
+  },
+  sheetModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.surface,
+  },
+  sheetModalCenter: {
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 8,
+  },
+  sheetModalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  sheetModalSub: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  sheetModalCancel: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  sheetModalDone: {
+    fontSize: 15,
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  sheetFormScroll: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  formLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    marginTop: 12,
+    marginBottom: 2,
+  },
+  formSubLabel: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginBottom: 8,
+  },
+  // Service Dropdown Selector Styles (Website-like)
+  dropdownTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surfaceSecondary,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  dropdownTriggerOpen: {
+    borderColor: colors.primary,
+    backgroundColor: '#FFFFFF',
+  },
+  dropdownTriggerText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  dropdownPlaceholder: {
+    fontSize: 13,
+    color: colors.textMuted,
+    fontWeight: '500',
+  },
+  dropdownChevron: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginLeft: 8,
+  },
+  dropdownMenu: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    marginTop: 6,
+    marginBottom: 8,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  dropdownSearchBox: {
+    padding: 8,
+    borderBottomWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+  },
+  dropdownSearchInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  dropdownListScroll: {
+    maxHeight: 240,
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#F1F5F9',
+  },
+  dropdownOptionSub: {
+    paddingLeft: 26,
+    backgroundColor: '#FAFAFA',
+  },
+  dropdownOptionSelected: {
+    backgroundColor: '#FFF0F5',
+  },
+  dropdownOptionDisabled: {
+    opacity: 0.6,
+    backgroundColor: '#F8FAFC',
+  },
+  dropdownOptionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  dropdownOptionTextSelected: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  dropdownOptionSubText: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  dropdownAddedBadge: {
+    backgroundColor: '#E2E8F0',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  dropdownAddedText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  editingBanner: {
+    backgroundColor: '#EFF6FF',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    marginBottom: 8,
+  },
+  editingBannerTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1D4ED8',
+  },
+  editingBannerSub: {
+    fontSize: 12,
+    color: '#3B82F6',
+    marginTop: 2,
+  },
+  sheetInput: {
+    backgroundColor: colors.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  statusPickerRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  statusOption: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    backgroundColor: colors.surfaceSecondary,
+  },
+  statusOptionActive: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#86EFAC',
+  },
+  statusOptionText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  statusOptionTextActive: {
+    color: '#15803D',
+  },
+  sheetSubmitBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginTop: 24,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  sheetSubmitBtnText: {
+    color: colors.textWhite,
+    fontSize: 15,
+    fontWeight: '800',
+  },
   bannerContainer: {
-    height: 220,
     position: 'relative',
-    backgroundColor: colors.secondary,
+    height: 240,
+    backgroundColor: colors.surfaceSecondary,
   },
   bannerImage: {
     width: '100%',
@@ -647,47 +1651,48 @@ const styles = StyleSheet.create({
   },
   bannerOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   topActionsRow: {
     position: 'absolute',
-    top: 12,
+    top: 16,
     left: 16,
     right: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     zIndex: 10,
-  },
-  rightActions: {
-    flexDirection: 'row',
-    gap: 8,
   },
   iconCircleBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   iconBtnText: {
+    fontSize: 18,
     color: colors.textWhite,
-    fontSize: 16,
-    fontWeight: '700',
+  },
+  rightActions: {
+    flexDirection: 'row',
+    gap: 10,
   },
   bannerContent: {
     position: 'absolute',
     bottom: 16,
-    left: 20,
-    right: 20,
+    left: 16,
+    right: 16,
   },
   badgeRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   verifiedBadge: {
-    backgroundColor: colors.success,
+    backgroundColor: colors.primary,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
@@ -695,18 +1700,18 @@ const styles = StyleSheet.create({
   verifiedCheck: {
     color: colors.textWhite,
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   ratingBadge: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
   },
   starText: {
-    color: '#D97706',
-    fontSize: 11,
-    fontWeight: '800',
+    color: '#FCD34D',
+    fontSize: 12,
+    fontWeight: '700',
   },
   titleWithLogoRow: {
     flexDirection: 'row',
