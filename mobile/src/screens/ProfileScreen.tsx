@@ -213,7 +213,18 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             />
           </View>
           <View style={styles.userMeta}>
-            <Text style={styles.userName}>{user?.name || 'Guest User'}</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.userName}>{user?.name || 'Guest User'}</Text>
+              {user?.role === 'SUPER_ADMIN' ? (
+                <View style={[styles.rolePill, { backgroundColor: '#FDF2F8' }]}>
+                  <Text style={[styles.rolePillText, { color: '#BE185D' }]}>ADMIN</Text>
+                </View>
+              ) : user?.role === 'HOSPITAL' ? (
+                <View style={[styles.rolePill, { backgroundColor: '#EFF6FF' }]}>
+                  <Text style={[styles.rolePillText, { color: '#1D4ED8' }]}>HOSPITAL</Text>
+                </View>
+              ) : null}
+            </View>
             <Text style={styles.userContact}>{user?.phone || '+91 98765 43210'}</Text>
             <Text style={styles.userEmail}>{user?.email || 'patient@clinicbychoice.com'}</Text>
           </View>
@@ -231,6 +242,116 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Super Admin Control Center Hub (for SUPER_ADMIN or ADMIN) */}
+        {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
+          <View style={styles.adminHubCard}>
+            <View style={styles.adminHubHeader}>
+              <View style={styles.adminHubTitleRow}>
+                <Text style={styles.adminHubIcon}>🛡️</Text>
+                <View>
+                  <Text style={styles.adminHubTitle}>Super Admin Center</Text>
+                  <Text style={styles.adminHubSubtitle}>Manage platform clinics, leads & users</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.adminHubEnterBtn}
+                onPress={() => navigation.navigate('AdminDashboard')}
+              >
+                <Text style={styles.adminHubEnterBtnText}>Open Center →</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.hubShortcutsGrid}>
+              <TouchableOpacity
+                style={styles.hubShortcutTile}
+                onPress={() => navigation.navigate('AdminHospitals')}
+              >
+                <Text style={styles.hubShortcutIcon}>🏥</Text>
+                <Text style={styles.hubShortcutText}>Hospitals</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.hubShortcutTile}
+                onPress={() => navigation.navigate('AdminLeads')}
+              >
+                <Text style={styles.hubShortcutIcon}>📋</Text>
+                <Text style={styles.hubShortcutText}>All Leads</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.hubShortcutTile}
+                onPress={() => navigation.navigate('AdminUsers')}
+              >
+                <Text style={styles.hubShortcutIcon}>👥</Text>
+                <Text style={styles.hubShortcutText}>Users</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.hubShortcutTile}
+                onPress={() => navigation.navigate('AdminServices')}
+              >
+                <Text style={styles.hubShortcutIcon}>🩺</Text>
+                <Text style={styles.hubShortcutText}>Specialties</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Hospital Partner Management Hub (for HOSPITAL role) */}
+        {user?.role === 'HOSPITAL' && (
+          <View style={styles.hospitalHubCard}>
+            <View style={styles.adminHubHeader}>
+              <View style={styles.adminHubTitleRow}>
+                <Text style={styles.adminHubIcon}>🏥</Text>
+                <View>
+                  <Text style={styles.hospitalHubTitle}>Hospital Partner Portal</Text>
+                  <Text style={styles.hospitalHubSubtitle}>Manage patient leads, doctors & services</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.hospitalHubEnterBtn}
+                onPress={() => navigation.navigate('HospitalDashboard')}
+              >
+                <Text style={styles.hospitalHubEnterBtnText}>Dashboard →</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.hubShortcutsGrid}>
+              <TouchableOpacity
+                style={styles.hubShortcutTile}
+                onPress={() => navigation.navigate('HospitalLeads')}
+              >
+                <Text style={styles.hubShortcutIcon}>📥</Text>
+                <Text style={styles.hubShortcutText}>Leads</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.hubShortcutTile}
+                onPress={() => navigation.navigate('HospitalDoctors')}
+              >
+                <Text style={styles.hubShortcutIcon}>👨‍⚕️</Text>
+                <Text style={styles.hubShortcutText}>Doctors</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.hubShortcutTile}
+                onPress={() => navigation.navigate('HospitalServices')}
+              >
+                <Text style={styles.hubShortcutIcon}>🩺</Text>
+                <Text style={styles.hubShortcutText}>Services</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.hubShortcutTile}
+                onPress={() => navigation.navigate('HospitalPackages')}
+              >
+                <Text style={styles.hubShortcutIcon}>⚡</Text>
+                <Text style={styles.hubShortcutText}>Packages</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Menu Groups */}
         {menuSections.map((group, idx) => (
@@ -268,7 +389,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           </TouchableOpacity>
         )}
 
-        <Text style={styles.appVersionText}>Clinic By Choice Mobile • v1.0.0 (Production Build)</Text>
+        <Text style={styles.appVersionText}>Clinic By Choice Mobile • v1.0.1 (Production Build)</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -351,6 +472,127 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: colors.primary,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rolePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  rolePillText: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  adminHubCard: {
+    backgroundColor: '#1E1B4B',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#312E81',
+    shadowColor: colors.shadowColor,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  hospitalHubCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+    shadowColor: colors.shadowColor,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  adminHubHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  adminHubTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
+  },
+  adminHubIcon: {
+    fontSize: 24,
+    marginRight: 10,
+  },
+  adminHubTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: colors.textWhite,
+  },
+  adminHubSubtitle: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 1,
+  },
+  adminHubEnterBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  adminHubEnterBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.textWhite,
+  },
+  hospitalHubTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: colors.textWhite,
+  },
+  hospitalHubSubtitle: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 1,
+  },
+  hospitalHubEnterBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  hospitalHubEnterBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.textWhite,
+  },
+  hubShortcutsGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  hubShortcutTile: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  hubShortcutIcon: {
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  hubShortcutText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textWhite,
   },
   groupContainer: {
     marginBottom: 20,

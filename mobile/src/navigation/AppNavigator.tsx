@@ -29,6 +29,23 @@ import { HelpScreen } from '../screens/HelpScreen';
 import { AboutScreen } from '../screens/AboutScreen';
 import { EditProfileScreen } from '../screens/EditProfileScreen';
 
+// Hospital Admin Screens
+import { HospitalDashboardScreen } from '../screens/hospital/HospitalDashboardScreen';
+import { HospitalLeadsScreen } from '../screens/hospital/HospitalLeadsScreen';
+import { HospitalDoctorsScreen } from '../screens/hospital/HospitalDoctorsScreen';
+import { HospitalServicesScreen } from '../screens/hospital/HospitalServicesScreen';
+import { HospitalProfileScreen } from '../screens/hospital/HospitalProfileScreen';
+import { HospitalPackagesScreen } from '../screens/hospital/HospitalPackagesScreen';
+
+// Super Admin Screens
+import { AdminDashboardScreen } from '../screens/admin/AdminDashboardScreen';
+import { AdminHospitalsScreen } from '../screens/admin/AdminHospitalsScreen';
+import { AdminLeadsScreen } from '../screens/admin/AdminLeadsScreen';
+import { AdminUsersScreen } from '../screens/admin/AdminUsersScreen';
+import { AdminUserDetailScreen } from '../screens/admin/AdminUserDetailScreen';
+import { AdminServicesScreen } from '../screens/admin/AdminServicesScreen';
+
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -155,6 +172,23 @@ export function AppNavigator() {
           <Stack.Screen name="Help" component={HelpScreen} />
           <Stack.Screen name="About" component={AboutScreen} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+
+          {/* Hospital Management Screens */}
+          <Stack.Screen name="HospitalDashboard" component={HospitalDashboardScreen} />
+          <Stack.Screen name="HospitalLeads" component={HospitalLeadsScreen} />
+          <Stack.Screen name="HospitalDoctors" component={HospitalDoctorsScreen} />
+          <Stack.Screen name="HospitalServices" component={HospitalServicesScreen} />
+          <Stack.Screen name="HospitalProfile" component={HospitalProfileScreen} />
+          <Stack.Screen name="HospitalPackages" component={HospitalPackagesScreen} />
+
+          {/* Super Admin Control Center Screens */}
+          <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+          <Stack.Screen name="AdminHospitals" component={AdminHospitalsScreen} />
+          <Stack.Screen name="AdminLeads" component={AdminLeadsScreen} />
+          <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
+          <Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} />
+          <Stack.Screen name="AdminServices" component={AdminServicesScreen} />
+
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

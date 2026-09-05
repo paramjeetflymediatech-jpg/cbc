@@ -132,7 +132,7 @@ export async function POST(req: Request) {
 
     await connectDB();
     const body = await req.json();
-    const { name, email, password, role, phone, city, state, hospitalId } = body;
+    const { name, email, password, role, phone, city, state, address, pincode, hospitalId, status } = body;
 
     if (!name || !email || !password || !role) {
       return NextResponse.json({ error: 'Name, email, password and role are required' }, { status: 400 });
@@ -154,9 +154,12 @@ export async function POST(req: Request) {
       phone: phone ? phone.trim() : null,
       city: city ? city.trim() : null,
       state: state ? state.trim() : null,
+      address: address ? address.trim() : null,
+      pincode: pincode ? pincode.trim() : null,
       hospitalId: hospitalId ? Number(hospitalId) : null,
-      status: 'ACTIVE',
+      status: status || 'ACTIVE',
     });
+
 
     return NextResponse.json({
       success: true,

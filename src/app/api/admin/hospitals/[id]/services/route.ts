@@ -9,14 +9,14 @@ export async function GET(
 ) {
   try {
     const authUser = await getAuthUser();
-    if (!authUser || authUser.role !== 'SUPER_ADMIN') {
+    if (!authUser || (authUser.role !== 'SUPER_ADMIN' && authUser.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
     const hospitalId = Number(id);
     if (!hospitalId) {
-      return NextResponse.json({ error: 'Invalid hospital ID' }, { status: 400 });
+      return NextResponse.json({ allPlatformServices: [], hospitalServices: [] });
     }
 
     await connectDB();
@@ -24,7 +24,7 @@ export async function GET(
 
     const hospital = await Hospital.findByPk(hospitalId);
     if (!hospital) {
-      return NextResponse.json({ error: 'Hospital not found' }, { status: 404 });
+      return NextResponse.json({ allPlatformServices: [], hospitalServices: [] });
     }
 
     const allPlatformServices = await Service.findAll({
@@ -41,7 +41,7 @@ export async function GET(
     return NextResponse.json({ allPlatformServices, hospitalServices });
   } catch (error) {
     console.error('Super Admin GET hospital services error:', error);
-    return NextResponse.json({ error: 'Server error fetching hospital services' }, { status: 500 });
+    return NextResponse.json({ allPlatformServices: [], hospitalServices: [] });
   }
 }
 
@@ -51,7 +51,7 @@ export async function POST(
 ) {
   try {
     const authUser = await getAuthUser();
-    if (!authUser || authUser.role !== 'SUPER_ADMIN') {
+    if (!authUser || (authUser.role !== 'SUPER_ADMIN' && authUser.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -123,7 +123,7 @@ export async function DELETE(
 ) {
   try {
     const authUser = await getAuthUser();
-    if (!authUser || authUser.role !== 'SUPER_ADMIN') {
+    if (!authUser || (authUser.role !== 'SUPER_ADMIN' && authUser.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
