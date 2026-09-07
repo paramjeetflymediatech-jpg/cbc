@@ -152,12 +152,21 @@ export const HospitalDashboardScreen: React.FC<HospitalDashboardScreenProps> = (
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.rechargeBtn}
-            onPress={() => navigation.navigate('HospitalPackages')}
-          >
-            <Text style={styles.rechargeBtnText}>+ Purchase Lead Package</Text>
-          </TouchableOpacity>
+          <View style={styles.rechargeBtnRow}>
+            <TouchableOpacity
+              style={styles.rechargeBtn}
+              onPress={() => navigation.navigate('HospitalPackages')}
+            >
+              <Text style={styles.rechargeBtnText}>+ Purchase Leads</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.historyBtn}
+              onPress={() => navigation.navigate('HospitalLeadPurchaseHistory')}
+            >
+              <Text style={styles.historyBtnText}>📜 Buy History</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* KPI Grid */}
@@ -492,7 +501,13 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '600',
   },
+  rechargeBtnRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
   rechargeBtn: {
+    flex: 1.2,
     backgroundColor: colors.surfaceSecondary,
     borderWidth: 1,
     borderColor: colors.border,
@@ -501,9 +516,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rechargeBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     color: colors.primary,
+  },
+  historyBtn: {
+    flex: 1,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  historyBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1D4ED8',
   },
   kpiGrid: {
     flexDirection: 'row',

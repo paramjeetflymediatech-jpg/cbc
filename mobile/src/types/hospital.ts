@@ -50,7 +50,9 @@ export interface HospitalLeadItem {
   preferredContactTime?: string;
   message?: string;
   status: 'NEW' | 'CONTACTED' | 'IN_PROGRESS' | 'CONVERTED' | 'CANCELLED' | 'UNASSIGNED' | 'EXPIRED';
+  notes?: Array<{ content: string; author: string; createdAt: string }>;
   createdAt: string;
+  updatedAt?: string;
   service?: {
     id: number | string;
     name: string;

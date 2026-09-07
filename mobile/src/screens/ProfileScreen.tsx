@@ -294,6 +294,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                 <Text style={styles.hubShortcutIcon}>🩺</Text>
                 <Text style={styles.hubShortcutText}>Specialties</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.hubShortcutTile}
+                onPress={() => navigation.navigate('AdminPackages')}
+              >
+                <Text style={styles.hubShortcutIcon}>⚡</Text>
+                <Text style={styles.hubShortcutText}>Packages</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}

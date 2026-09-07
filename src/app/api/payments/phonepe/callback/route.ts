@@ -3,6 +3,8 @@ import { connectDB, sequelize } from '@/lib/db';
 import { Payment, Hospital, LeadPackage, HospitalPackage, LeadTransaction, Notification } from '@/models';
 import { verifyPhonePeStatus } from '@/lib/phonepe';
 import { sendPackagePurchaseEmail } from '@/lib/mailer';
+import { getAuthUser } from '@/lib/auth';
+import { Op } from 'sequelize';
 
 export async function POST(req: Request) {
   return handleCallback(req);
@@ -19,20 +21,90 @@ async function handleCallback(req: Request) {
     await connectDB();
     const urlObj = new URL(req.url);
 
-    let merchantTransactionId = urlObj.searchParams.get('merchantTransactionId');
-    let code = urlObj.searchParams.get('code');
+    let merchantTransactionId =
+      urlObj.searchParams.get('merchantTransactionId') ||
+      urlObj.searchParams.get('merchantOrderId') ||
+      urlObj.searchParams.get('transactionId') ||
+      urlObj.searchParams.get('orderId') ||
+      urlObj.searchParams.get('id');
 
-    // If POST form data from PhonePe
+    let code = urlObj.searchParams.get('code') || urlObj.searchParams.get('state');
+
+    // If POST from PhonePe webhook or form post
     if (req.method === 'POST') {
-      try {
-        const formData = await req.formData();
-        const bodyMerchantTxnId = formData.get('merchantTransactionId')?.toString();
-        const bodyCode = formData.get('code')?.toString();
+      const contentType = req.headers.get('content-type') || '';
+      if (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data')) {
+        try {
+          const formData = await req.formData();
+          const bodyMerchantTxnId =
+            formData.get('merchantTransactionId')?.toString() ||
+            formData.get('merchantOrderId')?.toString() ||
+            formData.get('transactionId')?.toString();
+          const bodyCode = formData.get('code')?.toString() || formData.get('state')?.toString();
+          const rawResponse = formData.get('response')?.toString();
 
-        if (bodyMerchantTxnId) merchantTransactionId = bodyMerchantTxnId;
-        if (bodyCode) code = bodyCode;
-      } catch {
-        // body parsing optional
+          if (bodyMerchantTxnId) merchantTransactionId = bodyMerchantTxnId;
+          if (bodyCode) code = bodyCode;
+
+          if (rawResponse) {
+            try {
+              const decoded = JSON.parse(Buffer.from(rawResponse, 'base64').toString('utf-8'));
+              if (decoded?.data?.merchantTransactionId) merchantTransactionId = decoded.data.merchantTransactionId;
+              if (decoded?.data?.merchantOrderId) merchantTransactionId = decoded.data.merchantOrderId;
+              if (decoded?.code) code = decoded.code;
+            } catch (b64Err) {
+              console.warn('Could not decode base64 PhonePe response:', b64Err);
+            }
+          }
+        } catch {
+          // form parsing fallback
+        }
+      } else if (contentType.includes('application/json')) {
+        try {
+          const jsonBody = await req.json();
+          if (jsonBody?.merchantTransactionId) merchantTransactionId = jsonBody.merchantTransactionId;
+          if (jsonBody?.merchantOrderId) merchantTransactionId = jsonBody.merchantOrderId;
+          if (jsonBody?.data?.merchantTransactionId) merchantTransactionId = jsonBody.data.merchantTransactionId;
+          if (jsonBody?.code) code = jsonBody.code;
+
+          if (jsonBody?.response) {
+            try {
+              const decoded = JSON.parse(Buffer.from(jsonBody.response, 'base64').toString('utf-8'));
+              if (decoded?.data?.merchantTransactionId) merchantTransactionId = decoded.data.merchantTransactionId;
+              if (decoded?.data?.merchantOrderId) merchantTransactionId = decoded.data.merchantOrderId;
+              if (decoded?.code) code = decoded.code;
+            } catch (b64Err) {
+              console.warn('Could not decode base64 PhonePe json response:', b64Err);
+            }
+          }
+        } catch {
+          // json body parsing fallback
+        }
+      }
+    }
+
+    // Smart fallback: If transaction ID not found, check the most recent pending payment
+    if (!merchantTransactionId) {
+      try {
+        const authUser = await getAuthUser();
+        if (authUser?.hospitalId) {
+          const latestPending = await Payment.findOne({
+            where: {
+              hospitalId: authUser.hospitalId,
+              status: 'PENDING',
+              createdAt: {
+                [Op.gte]: new Date(Date.now() - 60 * 60 * 1000), // last 60 minutes
+              },
+            },
+            order: [['createdAt', 'DESC']],
+          });
+
+          if (latestPending) {
+            merchantTransactionId = latestPending.merchantTransactionId;
+          }
+        }
+      } catch (authErr) {
+        console.warn('Auth user lookup in callback fallback:', authErr);
       }
     }
 

@@ -2,8 +2,8 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Text, View, StyleSheet } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Text, View, StyleSheet, Platform } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
@@ -36,6 +36,12 @@ import { HospitalDoctorsScreen } from '../screens/hospital/HospitalDoctorsScreen
 import { HospitalServicesScreen } from '../screens/hospital/HospitalServicesScreen';
 import { HospitalProfileScreen } from '../screens/hospital/HospitalProfileScreen';
 import { HospitalPackagesScreen } from '../screens/hospital/HospitalPackagesScreen';
+import { HospitalPackageDetailScreen } from '../screens/hospital/HospitalPackageDetailScreen';
+import { HospitalLeadDetailScreen } from '../screens/hospital/HospitalLeadDetailScreen';
+import { HospitalLeadPurchaseHistoryScreen } from '../screens/hospital/HospitalLeadPurchaseHistoryScreen';
+import { HospitalLeadPurchaseDetailScreen } from '../screens/hospital/HospitalLeadPurchaseDetailScreen';
+import { HospitalInvoiceScreen } from '../screens/hospital/HospitalInvoiceScreen';
+import { HospitalPaymentCheckoutScreen } from '../screens/hospital/HospitalPaymentCheckoutScreen';
 
 // Super Admin Screens
 import { AdminDashboardScreen } from '../screens/admin/AdminDashboardScreen';
@@ -45,6 +51,8 @@ import { AdminUsersScreen } from '../screens/admin/AdminUsersScreen';
 import { AdminUserDetailScreen } from '../screens/admin/AdminUserDetailScreen';
 import { AdminServicesScreen } from '../screens/admin/AdminServicesScreen';
 import { AdminLeadDetailScreen } from '../screens/admin/AdminLeadDetailScreen';
+import { AdminPackagesScreen } from '../screens/admin/AdminPackagesScreen';
+import { AdminPackageDetailScreen } from '../screens/admin/AdminPackageDetailScreen';
 
 
 const Tab = createBottomTabNavigator();
@@ -61,20 +69,34 @@ function CustomTabIcon({ icon, focused }: { icon: string; focused: boolean }) {
 function MainTabs() {
   const { isAuthenticated, userEnquiries } = useAuth();
   const { showAlert } = useSweetAlert();
+  const insets = useSafeAreaInsets();
+
+  const bottomInset = insets.bottom;
+  const tabHeight =
+    Platform.OS === 'ios'
+      ? 56 + Math.max(bottomInset, 16)
+      : 60 + Math.max(bottomInset, 0);
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        tabBarPosition: 'bottom',
+        tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
-          height: 64,
+          height: tabHeight,
           backgroundColor: colors.surface,
           borderTopWidth: 1,
           borderColor: colors.borderLight,
-          paddingBottom: 8,
+          paddingBottom:
+            Platform.OS === 'ios'
+              ? Math.max(bottomInset, 16)
+              : Math.max(bottomInset, 6),
           paddingTop: 6,
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
           shadowColor: colors.shadowColor,
           shadowOffset: { width: 0, height: -3 },
           shadowOpacity: 0.05,
@@ -181,6 +203,12 @@ export function AppNavigator() {
           <Stack.Screen name="HospitalServices" component={HospitalServicesScreen} />
           <Stack.Screen name="HospitalProfile" component={HospitalProfileScreen} />
           <Stack.Screen name="HospitalPackages" component={HospitalPackagesScreen} />
+          <Stack.Screen name="HospitalPackageDetail" component={HospitalPackageDetailScreen} />
+          <Stack.Screen name="HospitalLeadDetail" component={HospitalLeadDetailScreen} />
+          <Stack.Screen name="HospitalLeadPurchaseHistory" component={HospitalLeadPurchaseHistoryScreen} />
+          <Stack.Screen name="HospitalLeadPurchaseDetail" component={HospitalLeadPurchaseDetailScreen} />
+          <Stack.Screen name="HospitalInvoice" component={HospitalInvoiceScreen} />
+          <Stack.Screen name="HospitalPaymentCheckout" component={HospitalPaymentCheckoutScreen} />
 
           {/* Super Admin Control Center Screens */}
           <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
@@ -190,6 +218,8 @@ export function AppNavigator() {
           <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
           <Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} />
           <Stack.Screen name="AdminServices" component={AdminServicesScreen} />
+          <Stack.Screen name="AdminPackages" component={AdminPackagesScreen} />
+          <Stack.Screen name="AdminPackageDetail" component={AdminPackageDetailScreen} />
 
         </Stack.Navigator>
       </NavigationContainer>

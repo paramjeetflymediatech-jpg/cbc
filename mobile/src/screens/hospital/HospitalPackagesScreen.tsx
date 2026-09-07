@@ -21,20 +21,14 @@ interface HospitalPackagesScreenProps {
 
 export const HospitalPackagesScreen: React.FC<HospitalPackagesScreenProps> = ({ navigation }) => {
   const [packages, setPackages] = useState<any[]>([]);
-  const [recentPayments, setRecentPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const fetchPackages = useCallback(async () => {
     try {
       const res = await api.get('/hospital/packages');
-      if (res.data) {
-        if (Array.isArray(res.data.packages)) {
-          setPackages(res.data.packages);
-        }
-        if (Array.isArray(res.data.recentPayments)) {
-          setRecentPayments(res.data.recentPayments);
-        }
+      if (res.data && Array.isArray(res.data.packages)) {
+        setPackages(res.data.packages);
       }
     } catch (err) {
       console.log('Error fetching packages:', err);
@@ -48,21 +42,51 @@ export const HospitalPackagesScreen: React.FC<HospitalPackagesScreenProps> = ({ 
     fetchPackages();
   }, [fetchPackages]);
 
+  const [initiatingId, setInitiatingId] = useState<number | null>(null);
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchPackages();
   };
 
-  const handleSupportRecharge = (pkg: any) => {
+  const handleBuyWithPhonePe = (pkg: any) => {
+    const leadCount = pkg.leadsCount || pkg.leadCount || 0;
+    const price = Number(pkg.price || 0);
+
     Alert.alert(
-      `Purchase ${pkg.name}`,
-      `Total: ₹${Number(pkg.price).toLocaleString('en-IN')} for ${pkg.leadsCount} patient leads. Would you like to connect with our Partner Billing Desk?`,
+      `Recharge ${pkg.name}`,
+      `⚡ ${leadCount} Patient Leads\n💰 ₹${price.toLocaleString('en-IN')} (Incl. 18% GST)\n\nProceed to secure payment with PhonePe?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Contact Billing',
-          onPress: () => {
-            Linking.openURL('tel:+919876543210').catch(() => {});
+          text: 'Pay with PhonePe',
+          onPress: async () => {
+            try {
+              setInitiatingId(pkg.id);
+              const res = await api.post('/payments/phonepe/initiate', { packageId: pkg.id });
+              if (res.data?.success && res.data?.redirectUrl) {
+                navigation.navigate('HospitalPaymentCheckout', {
+                  redirectUrl: res.data.redirectUrl,
+                  merchantTransactionId: res.data.merchantTransactionId,
+                  packageInfo: {
+                    id: pkg.id,
+                    name: pkg.name,
+                    leadCount: leadCount,
+                    price: price,
+                  },
+                });
+              } else {
+                Alert.alert('Payment Error', res.data?.error || 'Could not initiate PhonePe payment order.');
+              }
+            } catch (err: any) {
+              console.log('Payment initiate error:', err);
+              Alert.alert(
+                'Payment Error',
+                err?.response?.data?.error || 'Failed to connect to PhonePe gateway. Please try again.'
+              );
+            } finally {
+              setInitiatingId(null);
+            }
           },
         },
       ]
@@ -79,7 +103,12 @@ export const HospitalPackagesScreen: React.FC<HospitalPackagesScreenProps> = ({ 
           <Text style={styles.backBtnText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Lead Packages</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          style={styles.historyHeaderBtn}
+          onPress={() => navigation.navigate('HospitalLeadPurchaseHistory')}
+        >
+          <Text style={styles.historyHeaderBtnText}>📜 History</Text>
+        </TouchableOpacity>
       </View>
 
       {loading && !refreshing ? (
@@ -112,11 +141,21 @@ export const HospitalPackagesScreen: React.FC<HospitalPackagesScreenProps> = ({ 
             packages.map((pkg) => {
               const perLead = pkg.pricePerLead || (pkg.leadsCount > 0 ? Math.round(pkg.price / pkg.leadsCount) : 0);
               return (
-                <View key={pkg.id} style={styles.packageCard}>
+                <TouchableOpacity
+                  key={pkg.id}
+                  style={styles.packageCard}
+                  activeOpacity={0.9}
+                  onPress={() =>
+                    navigation.navigate('HospitalPackageDetail', {
+                      packageId: pkg.id,
+                      initialPackage: pkg,
+                    })
+                  }
+                >
                   <View style={styles.packageTop}>
-                    <View>
+                    <View style={{ flex: 1, paddingRight: 8 }}>
                       <Text style={styles.packageName}>{pkg.name}</Text>
-                      <Text style={styles.leadsCount}>{pkg.leadsCount} Verified Leads</Text>
+                      <Text style={styles.leadsCount}>⚡ {pkg.leadsCount || pkg.leadCount} Verified Leads</Text>
                     </View>
                     <View style={styles.priceCol}>
                       <Text style={styles.packagePrice}>₹{Number(pkg.price).toLocaleString('en-IN')}</Text>
@@ -125,45 +164,39 @@ export const HospitalPackagesScreen: React.FC<HospitalPackagesScreenProps> = ({ 
                   </View>
 
                   {pkg.description ? (
-                    <Text style={styles.pkgDesc}>{pkg.description}</Text>
+                    <Text style={styles.pkgDesc} numberOfLines={2}>
+                      {pkg.description.replace(/<[^>]*>?/gm, '')}
+                    </Text>
                   ) : null}
 
-                  <TouchableOpacity
-                    style={styles.selectBtn}
-                    onPress={() => handleSupportRecharge(pkg)}
-                  >
-                    <Text style={styles.selectBtnText}>Select Package →</Text>
-                  </TouchableOpacity>
-                </View>
+                  <View style={styles.cardActionsRow}>
+                    <TouchableOpacity
+                      style={styles.detailsBtn}
+                      onPress={() =>
+                        navigation.navigate('HospitalPackageDetail', {
+                          packageId: pkg.id,
+                          initialPackage: pkg,
+                        })
+                      }
+                    >
+                      <Text style={styles.detailsBtnText}>👁️ View Details</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.selectBtn, initiatingId === pkg.id && { opacity: 0.7 }]}
+                      onPress={() => handleBuyWithPhonePe(pkg)}
+                      disabled={initiatingId === pkg.id}
+                    >
+                      {initiatingId === pkg.id ? (
+                        <ActivityIndicator size="small" color="#FFF" />
+                      ) : (
+                        <Text style={styles.selectBtnText}>⚡ Pay PhonePe</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
               );
             })
-          )}
-
-          {/* Recent Invoices / Payments */}
-          {recentPayments.length > 0 && (
-            <View style={styles.historySection}>
-              <Text style={styles.sectionHeading}>Recharge History</Text>
-              {recentPayments.map((p) => (
-                <View key={p.id} style={styles.historyRow}>
-                  <View>
-                    <Text style={styles.historyTitle}>{p.package?.name || 'Lead Top-up'}</Text>
-                    <Text style={styles.historyDate}>
-                      {new Date(p.createdAt).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </Text>
-                  </View>
-                  <View style={styles.historyRight}>
-                    <Text style={styles.historyAmount}>₹{Number(p.amount).toLocaleString('en-IN')}</Text>
-                    <View style={[styles.statusPill, p.status === 'SUCCESS' ? styles.statusSuccess : styles.statusPending]}>
-                      <Text style={styles.statusPillText}>{p.status}</Text>
-                    </View>
-                  </View>
-                </View>
-              ))}
-            </View>
           )}
         </ScrollView>
       )}
@@ -210,6 +243,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
     color: colors.textPrimary,
+  },
+  historyHeaderBtn: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  historyHeaderBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#2563EB',
   },
   scrollContent: {
     padding: 16,
@@ -294,17 +338,38 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: 14,
   },
+  cardActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 6,
+  },
+  detailsBtn: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  detailsBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
   selectBtn: {
+    flex: 1.2,
     backgroundColor: colors.surfaceSecondary,
     borderWidth: 1,
     borderColor: colors.border,
     paddingVertical: 10,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 6,
   },
   selectBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     color: colors.primary,
   },
@@ -315,54 +380,5 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 13,
     color: colors.textMuted,
-  },
-  historySection: {
-    marginTop: 16,
-  },
-  historyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  historyTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  historyDate: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  historyRight: {
-    alignItems: 'flex-end',
-  },
-  historyAmount: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginTop: 3,
-  },
-  statusSuccess: {
-    backgroundColor: '#DCFCE7',
-  },
-  statusPending: {
-    backgroundColor: '#FEF3C7',
-  },
-  statusPillText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.textPrimary,
   },
 });

@@ -16,6 +16,9 @@ import {
   Package as PackageIcon,
   Sparkles,
   Clock,
+  FileText,
+  Printer,
+  Download,
 } from 'lucide-react';
 
 interface LeadPackage {
@@ -57,6 +60,8 @@ export default function HospitalPackagesPage() {
   const [purchasingId, setPurchasingId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [selectedSubscription, setSelectedSubscription] = useState<PackageSubscription | null>(null);
+  const [invoiceData, setInvoiceData] = useState<any | null>(null);
+  const [loadingInvoice, setLoadingInvoice] = useState(false);
 
   // Pagination for Active Package Subscriptions
   const [currentPage, setCurrentPage] = useState(1);
@@ -71,6 +76,23 @@ export default function HospitalPackagesPage() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  const handleFetchInvoice = async (subscriptionId: number) => {
+    setLoadingInvoice(true);
+    try {
+      const res = await fetch(`/api/invoices?subscriptionId=${subscriptionId}`);
+      const data = await res.json();
+      if (res.ok && data.success && data.invoice) {
+        setInvoiceData(data.invoice);
+      } else {
+        alert(data.error || 'Failed to generate tax invoice.');
+      }
+    } catch {
+      alert('Error fetching tax invoice.');
+    } finally {
+      setLoadingInvoice(false);
+    }
+  };
 
   const totalPages = Math.ceil(activePackages.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -239,13 +261,23 @@ export default function HospitalPackagesPage() {
                     </span>
                   </td>
                   <td className="p-3 text-right">
-                    <button
-                      onClick={() => setSelectedSubscription(ap)}
-                      className="px-3 py-1 bg-[#ec2c6c]/10 text-[#ec2c6c] hover:bg-[#ec2c6c] hover:text-white transition-colors rounded-lg text-xs font-bold inline-flex items-center space-x-1 cursor-pointer"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>View Details</span>
-                    </button>
+                    <div className="flex items-center justify-end space-x-2">
+                      <button
+                        onClick={() => handleFetchInvoice(ap.id)}
+                        disabled={loadingInvoice}
+                        className="px-3 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-colors rounded-lg text-xs font-bold inline-flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Invoice</span>
+                      </button>
+                      <button
+                        onClick={() => setSelectedSubscription(ap)}
+                        className="px-3 py-1 bg-[#ec2c6c]/10 text-[#ec2c6c] hover:bg-[#ec2c6c] hover:text-white transition-colors rounded-lg text-xs font-bold inline-flex items-center space-x-1 cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>View Details</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -451,13 +483,166 @@ export default function HospitalPackagesPage() {
             )}
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-end space-x-3 pt-2">
+            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+              <button
+                onClick={() => {
+                  const subId = selectedSubscription.id;
+                  setSelectedSubscription(null);
+                  handleFetchInvoice(subId);
+                }}
+                disabled={loadingInvoice}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-md transition-all cursor-pointer disabled:opacity-50"
+              >
+                {loadingInvoice ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                <span>🧾 View Official Tax Invoice</span>
+              </button>
+
               <button
                 onClick={() => setSelectedSubscription(null)}
                 className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-bold transition-colors cursor-pointer"
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tax Invoice Document Modal */}
+      {invoiceData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-gray-200 relative my-8 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 pb-4 print:hidden">
+              <div className="flex items-center space-x-2">
+                <span className="p-2 bg-emerald-100 text-emerald-800 rounded-xl">
+                  <FileText className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-extrabold text-gray-900">Tax Invoice</h3>
+                  <p className="text-xs text-gray-500 font-mono">Invoice #{invoiceData.invoiceNumber}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-[#ec2c6c] hover:bg-[#d61e5b] text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Print / PDF</span>
+                </button>
+                <button
+                  onClick={() => setInvoiceData(null)}
+                  className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Invoice Sheet */}
+            <div id="tax-invoice-sheet" className="space-y-6 text-xs text-gray-800 font-medium">
+              {/* Header */}
+              <div className="flex justify-between items-start border-b border-gray-200 pb-4">
+                <div>
+                  <h2 className="text-xl font-black tracking-tight text-gray-900">{invoiceData.seller.name}</h2>
+                  <p className="text-gray-500 mt-1 max-w-xs">{invoiceData.seller.address}</p>
+                  <p className="text-gray-600 mt-1">
+                    <strong className="text-gray-800">GSTIN:</strong> {invoiceData.seller.gstin} | <strong className="text-gray-800">PAN:</strong> {invoiceData.seller.pan}
+                  </p>
+                  <p className="text-gray-600">Email: {invoiceData.seller.email} | Phone: {invoiceData.seller.phone}</p>
+                </div>
+
+                <div className="text-right space-y-1">
+                  <span className="px-3 py-1 bg-gray-900 text-white rounded-lg text-xs font-black uppercase tracking-wider inline-block">
+                    TAX INVOICE
+                  </span>
+                  <p className="font-mono font-bold text-gray-900 pt-1">Invoice #{invoiceData.invoiceNumber}</p>
+                  <p className="text-gray-500">Date: {invoiceData.invoiceDate}</p>
+                  <p className="text-gray-500">Place of Supply: {invoiceData.placeOfSupply}</p>
+                </div>
+              </div>
+
+              {/* Bill To */}
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">BILLED TO (BUYER)</p>
+                  <p className="font-extrabold text-sm text-gray-900 mt-1">{invoiceData.buyer.name}</p>
+                  <p className="text-gray-600 mt-0.5">{invoiceData.buyer.address}</p>
+                  <p className="text-gray-600">{invoiceData.buyer.city}, {invoiceData.buyer.state}</p>
+                  {invoiceData.buyer.gstin && <p className="text-gray-700 font-bold mt-1">GSTIN: {invoiceData.buyer.gstin}</p>}
+                </div>
+
+                <div className="space-y-1 sm:text-right">
+                  <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">PAYMENT DETAILS</p>
+                  <p className="text-gray-700 mt-1"><strong className="text-gray-900">Txn ID:</strong> {invoiceData.payment.transactionId}</p>
+                  <p className="text-gray-700"><strong className="text-gray-900">Mode:</strong> {invoiceData.payment.gateway}</p>
+                  <p className="text-gray-700"><strong className="text-gray-900">Status:</strong> <span className="text-emerald-700 font-bold">{invoiceData.payment.status}</span></p>
+                  <p className="text-gray-700"><strong className="text-gray-900">SAC Code:</strong> {invoiceData.item.sacCode}</p>
+                </div>
+              </div>
+
+              {/* Line Items Table */}
+              <div className="overflow-x-auto border border-gray-200 rounded-2xl">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-100/70 text-[10px] font-black uppercase text-gray-600 border-b border-gray-200">
+                    <tr>
+                      <th className="p-3">Description</th>
+                      <th className="p-3 text-center">SAC</th>
+                      <th className="p-3 text-center">Qty</th>
+                      <th className="p-3 text-right">Taxable Value</th>
+                      <th className="p-3 text-right">CGST (9%)</th>
+                      <th className="p-3 text-right">SGST (9%)</th>
+                      <th className="p-3 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    <tr>
+                      <td className="p-3 font-bold text-gray-900">
+                        {invoiceData.item.description}
+                        <span className="block text-[11px] font-normal text-gray-500">Verified Patient Consultation Leads</span>
+                      </td>
+                      <td className="p-3 text-center font-mono">{invoiceData.item.sacCode}</td>
+                      <td className="p-3 text-center font-bold">{invoiceData.item.quantity}</td>
+                      <td className="p-3 text-right">₹{Number(invoiceData.item.taxableValue).toLocaleString('en-IN')}</td>
+                      <td className="p-3 text-right">₹{Number(invoiceData.item.cgst).toLocaleString('en-IN')}</td>
+                      <td className="p-3 text-right">₹{Number(invoiceData.item.sgst).toLocaleString('en-IN')}</td>
+                      <td className="p-3 text-right font-black text-gray-900">₹{Number(invoiceData.item.total).toLocaleString('en-IN')}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Summary Breakdown & Amount in Words */}
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pt-2">
+                <div className="space-y-2 max-w-xs">
+                  <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">AMOUNT IN WORDS</p>
+                  <p className="font-extrabold text-xs text-gray-900 bg-gray-50 p-2.5 rounded-xl border border-gray-200">
+                    {invoiceData.item.amountInWords}
+                  </p>
+                  <p className="text-[11px] text-gray-400 italic">This is a computer-generated tax invoice and requires no physical signature.</p>
+                </div>
+
+                <div className="w-full sm:w-56 space-y-2">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Taxable Subtotal:</span>
+                    <span className="font-bold">₹{Number(invoiceData.item.taxableValue).toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>CGST (9%):</span>
+                    <span className="font-bold">₹{Number(invoiceData.item.cgst).toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>SGST (9%):</span>
+                    <span className="font-bold">₹{Number(invoiceData.item.sgst).toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-black text-gray-900 border-t-2 border-gray-900 pt-2">
+                    <span>Grand Total:</span>
+                    <span>₹{Number(invoiceData.item.total).toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

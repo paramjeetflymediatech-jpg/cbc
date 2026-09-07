@@ -30,8 +30,10 @@ export async function POST(req: Request) {
 
     const merchantTransactionId = `CBC_TXN_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const redirectUrl = `${appUrl}/api/payments/phonepe/callback`;
-    const callbackUrl = `${appUrl}/api/payments/phonepe/callback`;
+    
+    // Explicitly include merchantTransactionId in redirect and callback URLs
+    const redirectUrl = `${appUrl}/api/payments/phonepe/callback?merchantTransactionId=${merchantTransactionId}`;
+    const callbackUrl = `${appUrl}/api/payments/phonepe/callback?merchantTransactionId=${merchantTransactionId}`;
 
     // Create pending Payment record in MySQL
     const paymentRecord = await Payment.create({

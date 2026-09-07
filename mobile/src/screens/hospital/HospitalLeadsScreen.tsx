@@ -219,7 +219,17 @@ export const HospitalLeadsScreen: React.FC<HospitalLeadsScreenProps> = ({ naviga
               const isLocked = lead.status === 'UNASSIGNED' || lead.status === 'EXPIRED';
 
               return (
-                <View key={lead.id} style={styles.leadCard}>
+                <TouchableOpacity
+                  key={lead.id}
+                  style={styles.leadCard}
+                  activeOpacity={0.9}
+                  onPress={() =>
+                    navigation.navigate('HospitalLeadDetail', {
+                      leadId: lead.id,
+                      initialLead: lead,
+                    })
+                  }
+                >
                   {/* Top Bar */}
                   <View style={styles.cardTop}>
                     <View style={styles.patientMeta}>
@@ -242,7 +252,7 @@ export const HospitalLeadsScreen: React.FC<HospitalLeadsScreenProps> = ({ naviga
                   {/* Message / Treatment Detail */}
                   {lead.message ? (
                     <View style={styles.messageBox}>
-                      <Text style={styles.messageText}>{lead.message}</Text>
+                      <Text style={styles.messageText} numberOfLines={2}>{lead.message}</Text>
                     </View>
                   ) : null}
 
@@ -276,10 +286,22 @@ export const HospitalLeadsScreen: React.FC<HospitalLeadsScreenProps> = ({ naviga
                   {/* Action Buttons */}
                   <View style={styles.cardActions}>
                     <TouchableOpacity
+                      style={[styles.actionBtn, styles.detailsBtn]}
+                      onPress={() =>
+                        navigation.navigate('HospitalLeadDetail', {
+                          leadId: lead.id,
+                          initialLead: lead,
+                        })
+                      }
+                    >
+                      <Text style={styles.detailsBtnText}>👁️ History</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
                       style={[styles.actionBtn, styles.callBtn, isLocked && { opacity: 0.5 }]}
                       onPress={() => handleCall(lead.phone)}
                     >
-                      <Text style={styles.callBtnText}>📞 Call Patient</Text>
+                      <Text style={styles.callBtnText}>📞 Call</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -293,10 +315,10 @@ export const HospitalLeadsScreen: React.FC<HospitalLeadsScreenProps> = ({ naviga
                       style={[styles.actionBtn, styles.statusBtn, isLocked && { opacity: 0.5 }]}
                       onPress={() => openStatusModal(lead)}
                     >
-                      <Text style={styles.statusBtnText}>Status ⚙️</Text>
+                      <Text style={styles.statusBtnText}>⚙️</Text>
                     </TouchableOpacity>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })
           )}
@@ -552,6 +574,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  detailsBtn: {
+    backgroundColor: '#FDF2F8',
+    borderWidth: 1,
+    borderColor: '#FBCFE8',
+  },
+  detailsBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.primary,
   },
   callBtn: {
     backgroundColor: '#DCFCE7',

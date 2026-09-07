@@ -3,17 +3,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 // In development:
-// - Android Emulator uses 10.0.2.2 to refer to host machine's localhost
-// - iOS Simulator uses localhost
-// - Physical device uses your local IP (e.g. 192.168.x.x)
-// const DEV_API_URL = Platform.select({
-//   android: 'http://10.0.2.2:3000/api',
-//   ios: 'http://localhost:3000/api',
-//   default: 'http://localhost:3000/api',
-// });
+// - iOS Simulator connects via localhost (http://localhost:3000/api)
+// - Android Emulator connects via 10.0.2.2 (http://10.0.2.2:3000/api)
+// - Physical device on local WiFi uses machine IP (http://192.168.1.116:3000/api)
+// - Production uses https://clinicbychoice.com/api
 
-// export const API_BASE_URL = DEV_API_URL;
-export const API_BASE_URL = 'https://clinicbychoice.com/api';
+const LOCAL_IP = '192.168.1.116'; // Your Mac's local network IP
+
+const DEV_API_URL = Platform.select({
+  ios: 'http://localhost:3000/api',
+  android: 'http://10.0.2.2:3000/api',
+  default: `http://${LOCAL_IP}:3000/api`,
+});
+
+// Use local dev server by default, or change to production when deploying
+export const API_BASE_URL = DEV_API_URL || `http://${LOCAL_IP}:3000/api`;
+// export const API_BASE_URL = 'https://clinicbychoice.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

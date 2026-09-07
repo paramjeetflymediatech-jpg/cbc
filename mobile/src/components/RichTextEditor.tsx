@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -6,9 +6,9 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Modal,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { colors } from '../theme/colors';
 
 interface RichTextEditorProps {
@@ -21,136 +21,249 @@ interface RichTextEditorProps {
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
-  placeholder = 'Write detailed hospital description and patient overview...',
-  minHeight = 160,
+  placeholder = 'Write detailed content here...',
+  minHeight = 220,
 }) => {
-  const [activeTab, setActiveTab] = useState<'visual' | 'html' | 'preview'>('visual');
+  const [activeTab, setActiveTab] = useState<'ckeditor' | 'toolbar' | 'html' | 'preview'>('ckeditor');
+  const [editorReady, setEditorReady] = useState(false);
   const [selection, setSelection] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
+  const [hasWebViewError, setHasWebViewError] = useState(false);
+
+  const webViewRef = useRef<any>(null);
   const inputRef = useRef<any>(null);
+  const lastValueRef = useRef<string>(value || '');
+  const initialValueRef = useRef<string>(value || '');
+  const isInternalChangeRef = useRef<boolean>(false);
 
-  // Link Dialog Modal State
-  const [linkModalVisible, setLinkModalVisible] = useState(false);
-  const [linkUrl, setLinkUrl] = useState('');
-  const [linkText, setLinkText] = useState('');
+  const rawContent = value || '';
 
-  // Helper to wrap or insert tags around current cursor selection
-  const wrapTag = (openTag: string, closeTag: string, defaultText: string = 'text') => {
-    const text = value || '';
-    const start = Math.min(selection.start, selection.end);
-    const end = Math.max(selection.start, selection.end);
-
-    let newText = '';
-    let newCursorPos = start + openTag.length;
-
-    if (start !== end) {
-      // User has selected a substring
-      const selectedSub = text.substring(start, end);
-      newText = text.substring(0, start) + openTag + selectedSub + closeTag + text.substring(end);
-      newCursorPos = start + openTag.length + selectedSub.length + closeTag.length;
-    } else {
-      // No selection: insert template
-      newText = text.substring(0, start) + openTag + defaultText + closeTag + text.substring(start);
-      newCursorPos = start + openTag.length + defaultText.length + closeTag.length;
-    }
-
-    onChange(newText);
-    setSelection({ start: newCursorPos, end: newCursorPos });
-  };
-
-  const handleBold = () => wrapTag('<strong>', '</strong>', 'Bold text');
-  const handleItalic = () => wrapTag('<em>', '</em>', 'Italic text');
-  const handleUnderline = () => wrapTag('<u>', '</u>', 'Underline text');
-  const handleH2 = () => wrapTag('<h2>', '</h2>', 'Main Heading');
-  const handleH3 = () => wrapTag('<h3>', '</h3>', 'Section Heading');
-  const handleParagraph = () => wrapTag('<p>', '</p>', 'Paragraph text');
-  const handleQuote = () => wrapTag('<blockquote>', '</blockquote>', 'Quote text');
-  
-  const handleBulletList = () => {
-    const listHtml = '\n<ul>\n  <li>Item 1</li>\n  <li>Item 2</li>\n</ul>\n';
-    const text = value || '';
-    const start = selection.start;
-    const newText = text.substring(0, start) + listHtml + text.substring(start);
-    onChange(newText);
-  };
-
-  const handleNumberedList = () => {
-    const listHtml = '\n<ol>\n  <li>First step</li>\n  <li>Second step</li>\n</ol>\n';
-    const text = value || '';
-    const start = selection.start;
-    const newText = text.substring(0, start) + listHtml + text.substring(start);
-    onChange(newText);
-  };
-
-  const handleOpenLinkModal = () => {
-    const text = value || '';
-    const start = Math.min(selection.start, selection.end);
-    const end = Math.max(selection.start, selection.end);
-    if (start !== end) {
-      setLinkText(text.substring(start, end));
-    } else {
-      setLinkText('');
-    }
-    setLinkUrl('https://');
-    setLinkModalVisible(true);
-  };
-
-  const handleInsertLink = () => {
-    if (!linkUrl.trim()) {
-      Alert.alert('Link Required', 'Please enter a valid link URL.');
+  // Synchronize incoming EXTERNAL changes to CKEditor
+  useEffect(() => {
+    if (isInternalChangeRef.current) {
+      isInternalChangeRef.current = false;
       return;
     }
-    const label = linkText.trim() || linkUrl.trim();
-    const linkHtml = `<a href="${linkUrl.trim()}">${label}</a>`;
 
-    const text = value || '';
-    const start = Math.min(selection.start, selection.end);
-    const end = Math.max(selection.start, selection.end);
+    if (value !== lastValueRef.current) {
+      lastValueRef.current = value || '';
+      if (editorReady && webViewRef.current && activeTab === 'ckeditor') {
+        const jsCode = `if (window.setEditorData) { window.setEditorData(${JSON.stringify(value || '')}); } true;`;
+        webViewRef.current?.injectJavaScript(jsCode);
+      }
+    }
+  }, [value, editorReady, activeTab]);
 
-    const newText = text.substring(0, start) + linkHtml + text.substring(end);
-    onChange(newText);
-    setLinkModalVisible(false);
+  const handleMessage = (event: any) => {
+    try {
+      const msg = JSON.parse(event.nativeEvent.data);
+      if (msg.type === 'ready') {
+        setEditorReady(true);
+        // Inject the initial value once ready
+        const jsCode = `if (window.setEditorData) { window.setEditorData(${JSON.stringify(initialValueRef.current || '')}); } true;`;
+        webViewRef.current?.injectJavaScript(jsCode);
+      } else if (msg.type === 'change') {
+        isInternalChangeRef.current = true;
+        lastValueRef.current = msg.data;
+        onChange(msg.data);
+      }
+    } catch {
+      // ignore
+    }
   };
 
-  const handleClearFormat = () => {
-    if (!value) return;
-    Alert.alert(
-      'Clean Formatting',
-      'Convert all HTML tags to clean plain text paragraphs?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clean HTML',
-          onPress: () => {
-            const stripped = value
-              .replace(/<\/(p|div|h[1-6]|blockquote|section)>/gi, '\n\n')
-              .replace(/<li[^>]*>/gi, '• ')
-              .replace(/<\/li>/gi, '\n')
-              .replace(/<br\s*\/?>/gi, '\n')
-              .replace(/<[^>]+>/g, '')
-              .replace(/&amp;/g, '&')
-              .replace(/&lt;/g, '<')
-              .replace(/&gt;/g, '>')
-              .replace(/&quot;/g, '"')
-              .replace(/&#39;/g, "'")
-              .replace(/&nbsp;/g, ' ')
-              .replace(/\n{3,}/g, '\n\n')
-              .trim();
-            onChange(stripped);
-          },
-        },
-      ]
-    );
+  // Helper formatting for native toolbar
+  const applyTag = (openTag: string, closeTag: string, placeholderText = 'text') => {
+    const { start, end } = selection;
+    const before = rawContent.slice(0, start);
+    const selected = rawContent.slice(start, end);
+    const after = rawContent.slice(end);
+
+    const inserted = selected.length > 0 ? selected : placeholderText;
+    const newContent = `${before}${openTag}${inserted}${closeTag}${after}`;
+    isInternalChangeRef.current = false;
+    onChange(newContent);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 50);
   };
 
-  // Render HTML preview with styled blocks
-  const renderPreviewContent = () => {
-    if (!value || !value.trim()) {
-      return <Text style={styles.previewEmptyText}>No content written yet. Tap Editor tab to start writing.</Text>;
+  const applyBlockTag = (tag: string, placeholderText = 'Heading or block text') => {
+    const { start, end } = selection;
+    const before = rawContent.slice(0, start);
+    const selected = rawContent.slice(start, end);
+    const after = rawContent.slice(end);
+
+    const text = selected.length > 0 ? selected : placeholderText;
+    const prefix = before.endsWith('\n') || before.length === 0 ? '' : '\n';
+    const suffix = after.startsWith('\n') || after.length === 0 ? '' : '\n';
+
+    const newContent = `${before}${prefix}<${tag}>${text}</${tag}>${suffix}${after}`;
+    isInternalChangeRef.current = false;
+    onChange(newContent);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 50);
+  };
+
+  const applyList = (isOrdered: boolean) => {
+    const { start, end } = selection;
+    const before = rawContent.slice(0, start);
+    const selected = rawContent.slice(start, end);
+    const after = rawContent.slice(end);
+
+    const listTag = isOrdered ? 'ol' : 'ul';
+    const items = selected.length > 0
+      ? selected.split('\n').filter(Boolean).map((item) => `  <li>${item.trim()}</li>`).join('\n')
+      : `  <li>Feature item 1</li>\n  <li>Feature item 2</li>`;
+
+    const prefix = before.endsWith('\n') || before.length === 0 ? '' : '\n';
+    const suffix = after.startsWith('\n') || after.length === 0 ? '' : '\n';
+
+    const newContent = `${before}${prefix}<${listTag}>\n${items}\n</${listTag}>${suffix}${after}`;
+    isInternalChangeRef.current = false;
+    onChange(newContent);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 50);
+  };
+
+  const clearFormatting = () => {
+    const stripped = rawContent.replace(/<[^>]*>?/gm, '');
+    isInternalChangeRef.current = false;
+    onChange(stripped);
+  };
+
+  // Static HTML template for CKEditor 5 (memorized so it NEVER reloads WebView on keystrokes)
+  const ckeditorHtml = useMemo(() => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <script src="https://cdn.ckeditor.com/ckeditor5/41.2.1/classic/ckeditor.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      height: 100%;
+      width: 100%;
+      overflow-x: hidden;
+    }
+    #editor-container {
+      padding: 0;
+      min-height: 100%;
+    }
+    .ck.ck-editor {
+      width: 100% !important;
+      border: none !important;
+    }
+    .ck-editor__editable_inline {
+      min-height: ${minHeight}px !important;
+      padding: 12px 14px !important;
+      font-size: 14px !important;
+      line-height: 1.6 !important;
+      color: #111827 !important;
+      background: #FFFFFF !important;
+    }
+    .ck.ck-toolbar {
+      background: #F8FAFC !important;
+      border-top: none !important;
+      border-left: none !important;
+      border-right: none !important;
+      border-bottom: 1px solid #E2E8F0 !important;
+      padding: 4px 6px !important;
+    }
+    .ck.ck-toolbar__items {
+      flex-wrap: wrap !important;
+    }
+    .ck.ck-button {
+      border-radius: 6px !important;
+      padding: 4px 6px !important;
+      font-size: 12px !important;
+    }
+    .ck.ck-button:hover, .ck.ck-button.ck-on {
+      background: #FCE7F3 !important;
+      color: #BE185D !important;
+    }
+    .ck.ck-editor__main > .ck-editor__editable {
+      border: none !important;
+      box-shadow: none !important;
+    }
+    .ck.ck-editor__editable:not(.ck-editor__nested-editable).ck-focused {
+      outline: none !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="editor-container">
+    <div id="editor"></div>
+  </div>
+
+  <script>
+    var editorInstance = null;
+    var isExternalChange = false;
+
+    ClassicEditor.create(document.querySelector('#editor'), {
+      placeholder: ${JSON.stringify(placeholder)},
+      toolbar: {
+        items: [
+          'heading', '|',
+          'bold', 'italic', 'underline', '|',
+          'bulletedList', 'numberedList', '|',
+          'blockQuote', 'insertTable', '|',
+          'undo', 'redo'
+        ],
+        shouldNotGroupWhenFull: true
+      },
+      table: {
+        contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
+      }
+    }).then(function(editor) {
+      editorInstance = editor;
+
+      editor.model.document.on('change:data', function() {
+        if (isExternalChange) return;
+        var data = editor.getData();
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'change', data: data }));
+        }
+      });
+
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ready' }));
+      }
+    }).catch(function(error) {
+      console.error('CKEditor Init Error:', error);
+    });
+
+    window.setEditorData = function(html) {
+      if (!editorInstance) return;
+      var current = editorInstance.getData();
+      if (current !== (html || '')) {
+        isExternalChange = true;
+        editorInstance.setData(html || '');
+        isExternalChange = false;
+      }
+    };
+  </script>
+</body>
+</html>
+`, [minHeight, placeholder]);
+
+  // Render Preview for Preview tab
+  const renderPreview = () => {
+    if (!rawContent.trim()) {
+      return (
+        <Text style={styles.previewEmptyText}>
+          No content written yet. Switch to CKEditor tab to write content.
+        </Text>
+      );
     }
 
-    // Split content by major tags or blocks for visual preview
-    const raw = value;
-    const cleanLines = raw
+    const cleanLines = rawContent
       .replace(/<h2[^>]*>(.*?)<\/h2>/gi, '\n§§H2§§$1§§END§§\n')
       .replace(/<h3[^>]*>(.*?)<\/h3>/gi, '\n§§H3§§$1§§END§§\n')
       .replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gi, '\n§§QUOTE§§$1§§END§§\n')
@@ -194,7 +307,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             );
           }
 
-          // Strip remaining tags for standard paragraph
           const cleanParagraph = block.replace(/<[^>]+>/g, '').trim();
           if (!cleanParagraph) return null;
 
@@ -210,15 +322,24 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Editor Header / Mode Selector */}
+      {/* Header Bar with Tabs */}
       <View style={styles.headerBar}>
-        <View style={styles.modeTabs}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modeTabs}>
           <TouchableOpacity
-            style={[styles.modeTab, activeTab === 'visual' && styles.modeTabActive]}
-            onPress={() => setActiveTab('visual')}
+            style={[styles.modeTab, activeTab === 'ckeditor' && styles.modeTabActive]}
+            onPress={() => setActiveTab('ckeditor')}
           >
-            <Text style={[styles.modeTabText, activeTab === 'visual' && styles.modeTabTextActive]}>
-              ✏️ Editor
+            <Text style={[styles.modeTabText, activeTab === 'ckeditor' && styles.modeTabTextActive]}>
+              ✨ CKEditor 5
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.modeTab, activeTab === 'toolbar' && styles.modeTabActive]}
+            onPress={() => setActiveTab('toolbar')}
+          >
+            <Text style={[styles.modeTabText, activeTab === 'toolbar' && styles.modeTabTextActive]}>
+              🛠️ Quick Format
             </Text>
           </TouchableOpacity>
 
@@ -227,7 +348,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             onPress={() => setActiveTab('html')}
           >
             <Text style={[styles.modeTabText, activeTab === 'html' && styles.modeTabTextActive]}>
-              💻 HTML
+              💻 HTML Code
             </Text>
           </TouchableOpacity>
 
@@ -239,136 +360,137 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               👁️ Preview
             </Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
 
-        <TouchableOpacity style={styles.clearBtn} onPress={handleClearFormat}>
-          <Text style={styles.clearBtnText}>🧹 Clean</Text>
-        </TouchableOpacity>
+        <View style={styles.brandBadge}>
+          <Text style={styles.brandBadgeText}>CKEDITOR</Text>
+        </View>
       </View>
 
-      {/* Rich Formatting Toolbar (Active in Editor & HTML modes) */}
-      {activeTab !== 'preview' && (
-        <View style={styles.toolbar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toolbarScroll}>
-            <TouchableOpacity style={styles.toolBtn} onPress={handleBold}>
-              <Text style={[styles.toolBtnText, { fontWeight: '900' }]}>B</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.toolBtn} onPress={handleItalic}>
-              <Text style={[styles.toolBtnText, { fontStyle: 'italic', fontWeight: '800' }]}>I</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.toolBtn} onPress={handleUnderline}>
-              <Text style={[styles.toolBtnText, { textDecorationLine: 'underline', fontWeight: '800' }]}>U</Text>
-            </TouchableOpacity>
-
-            <View style={styles.divider} />
-
-            <TouchableOpacity style={styles.toolBtn} onPress={handleH2}>
-              <Text style={styles.toolBtnText}>H2</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.toolBtn} onPress={handleH3}>
-              <Text style={styles.toolBtnText}>H3</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.toolBtn} onPress={handleParagraph}>
-              <Text style={styles.toolBtnText}>P</Text>
-            </TouchableOpacity>
-
-            <View style={styles.divider} />
-
-            <TouchableOpacity style={styles.toolBtn} onPress={handleBulletList}>
-              <Text style={styles.toolBtnText}>• List</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.toolBtn} onPress={handleNumberedList}>
-              <Text style={styles.toolBtnText}>1. List</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.toolBtn} onPress={handleQuote}>
-              <Text style={styles.toolBtnText}>❝ Quote</Text>
-            </TouchableOpacity>
-
-            <View style={styles.divider} />
-
-            <TouchableOpacity style={styles.toolBtn} onPress={handleOpenLinkModal}>
-              <Text style={styles.toolBtnText}>🔗 Link</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
+      {/* Quick Formatting Toolbar when on toolbar tab */}
+      {activeTab === 'toolbar' && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.toolbarContent}
+          style={styles.toolbarScroll}
+        >
+          <TouchableOpacity style={styles.toolBtn} onPress={() => applyTag('<strong>', '</strong>', 'bold text')}>
+            <Text style={[styles.toolBtnText, { fontWeight: '900' }]}>B</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toolBtn} onPress={() => applyTag('<em>', '</em>', 'italic text')}>
+            <Text style={[styles.toolBtnText, { fontStyle: 'italic', fontFamily: 'serif' }]}>I</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toolBtn} onPress={() => applyTag('<u>', '</u>', 'underlined text')}>
+            <Text style={[styles.toolBtnText, { textDecorationLine: 'underline' }]}>U</Text>
+          </TouchableOpacity>
+          <View style={styles.toolDivider} />
+          <TouchableOpacity style={styles.toolBtn} onPress={() => applyBlockTag('h2', 'Section Heading')}>
+            <Text style={[styles.toolBtnText, { fontWeight: '800' }]}>H2</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toolBtn} onPress={() => applyBlockTag('h3', 'Sub Heading')}>
+            <Text style={[styles.toolBtnText, { fontWeight: '700' }]}>H3</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toolBtn} onPress={() => applyBlockTag('p', 'Paragraph content')}>
+            <Text style={styles.toolBtnText}>P</Text>
+          </TouchableOpacity>
+          <View style={styles.toolDivider} />
+          <TouchableOpacity style={styles.toolBtn} onPress={() => applyList(false)}>
+            <Text style={styles.toolBtnText}>• List</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toolBtn} onPress={() => applyList(true)}>
+            <Text style={styles.toolBtnText}>1. List</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toolBtn} onPress={() => applyBlockTag('blockquote', 'Quote text')}>
+            <Text style={styles.toolBtnText}>“ Quote</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toolBtn} onPress={() => applyTag('<code>', '</code>', 'code')}>
+            <Text style={[styles.toolBtnText, { fontFamily: 'Courier' }]}>&lt;/&gt;</Text>
+          </TouchableOpacity>
+          <View style={styles.toolDivider} />
+          <TouchableOpacity style={styles.toolBtn} onPress={clearFormatting}>
+            <Text style={[styles.toolBtnText, { color: '#EF4444' }]}>🧹 Strip</Text>
+          </TouchableOpacity>
+        </ScrollView>
       )}
 
-      {/* Editor Body Area */}
-      <View style={[styles.bodyContainer, { minHeight }]}>
-        {activeTab === 'preview' ? (
-          <ScrollView style={styles.previewScroll} showsVerticalScrollIndicator={false}>
-            {renderPreviewContent()}
-          </ScrollView>
-        ) : (
+      {/* Editor Body */}
+      <View style={[styles.bodyContainer, { height: minHeight + 110 }]}>
+        {activeTab === 'ckeditor' && !hasWebViewError && (
+          <View style={styles.webViewWrapper}>
+            {!editorReady && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.loadingText}>Loading CKEditor 5...</Text>
+              </View>
+            )}
+            <WebView
+              ref={webViewRef}
+              originWhitelist={['*']}
+              source={{ html: ckeditorHtml }}
+              onMessage={handleMessage}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              scrollEnabled={true}
+              keyboardDisplayRequiresUserAction={false}
+              automaticallyAdjustContentInsets={false}
+              onError={() => setHasWebViewError(true)}
+              style={[styles.webView, !editorReady && { opacity: 0 }]}
+            />
+          </View>
+        )}
+
+        {(activeTab === 'toolbar' || (activeTab === 'ckeditor' && hasWebViewError)) && (
           <TextInput
             ref={inputRef}
-            style={[
-              styles.input,
-              { minHeight },
-              activeTab === 'html' && styles.htmlInput,
-            ]}
-            value={value}
-            onChangeText={onChange}
+            style={[styles.editorInput, { height: minHeight + 100 }]}
+            value={rawContent}
+            onChangeText={(t) => {
+              isInternalChangeRef.current = false;
+              onChange(t);
+            }}
+            onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
             placeholder={placeholder}
             placeholderTextColor={colors.textMuted}
             multiline
             textAlignVertical="top"
-            onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
           />
+        )}
+
+        {activeTab === 'html' && (
+          <TextInput
+            style={[styles.htmlInput, { height: minHeight + 100 }]}
+            value={rawContent}
+            onChangeText={(t) => {
+              isInternalChangeRef.current = false;
+              onChange(t);
+            }}
+            placeholder="<p>Write HTML code here...</p>"
+            placeholderTextColor={colors.textMuted}
+            multiline
+            textAlignVertical="top"
+          />
+        )}
+
+        {activeTab === 'preview' && (
+          <ScrollView
+            style={[styles.previewScroll, { height: minHeight + 100 }]}
+            showsVerticalScrollIndicator={false}
+          >
+            {renderPreview()}
+          </ScrollView>
         )}
       </View>
 
-      {/* Link Dialog Modal */}
-      <Modal visible={linkModalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Insert Web Link</Text>
-            <Text style={styles.modalSub}>Link text will navigate patients to the website destination.</Text>
-
-            <Text style={styles.inputLabel}>Link Display Text</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="e.g. View Treatment Details"
-              placeholderTextColor={colors.textMuted}
-              value={linkText}
-              onChangeText={setLinkText}
-            />
-
-            <Text style={styles.inputLabel}>Destination URL</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="https://clinicbychoice.com"
-              placeholderTextColor={colors.textMuted}
-              value={linkUrl}
-              onChangeText={setLinkUrl}
-              autoCapitalize="none"
-              keyboardType="url"
-            />
-
-            <View style={styles.modalActionRow}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setLinkModalVisible(false)}
-              >
-                <Text style={styles.modalCancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.modalInsertBtn}
-                onPress={handleInsertLink}
-              >
-                <Text style={styles.modalInsertBtnText}>Insert Link ✓</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* Footer Info */}
+      <View style={styles.footerBar}>
+        <Text style={styles.footerText}>
+          {rawContent.length} chars • CKEditor 5 Enabled
+        </Text>
+        <Text style={styles.footerHint}>
+          Lead Package Feature Editor
+        </Text>
+      </View>
     </View>
   );
 };
@@ -376,29 +498,36 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.surface,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1.5,
     borderColor: colors.borderLight,
     overflow: 'hidden',
     marginTop: 6,
     marginBottom: 14,
+    shadowColor: colors.shadowColor,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#F8FAFC',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderColor: colors.borderLight,
+    gap: 8,
   },
   modeTabs: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 5,
+    alignItems: 'center',
   },
   modeTab: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 8,
     backgroundColor: colors.surface,
@@ -417,63 +546,94 @@ const styles = StyleSheet.create({
   modeTabTextActive: {
     color: colors.textWhite,
   },
-  clearBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: '#FEE2E2',
+  brandBadge: {
+    backgroundColor: '#FDF2F8',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  clearBtnText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#B91C1C',
-  },
-  toolbar: {
-    backgroundColor: '#F1F5F9',
-    borderBottomWidth: 1,
-    borderColor: colors.borderLight,
-    paddingVertical: 6,
+  brandBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: colors.primary,
+    letterSpacing: 0.5,
   },
   toolbarScroll: {
-    paddingHorizontal: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  toolbarContent: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   toolBtn: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 7,
+    paddingVertical: 6,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: '#CBD5E1',
+    minWidth: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
   toolBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: '#334155',
   },
-  divider: {
+  toolDivider: {
     width: 1,
     height: 18,
     backgroundColor: '#CBD5E1',
-    marginHorizontal: 2,
+    marginHorizontal: 3,
   },
   bodyContainer: {
     backgroundColor: colors.surface,
   },
-  input: {
+  webViewWrapper: {
+    flex: 1,
+    position: 'relative',
+  },
+  webView: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  editorInput: {
     padding: 12,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 14,
     color: colors.textPrimary,
+    lineHeight: 20,
+    backgroundColor: '#FFFFFF',
   },
   htmlInput: {
+    padding: 12,
     fontFamily: 'Courier',
-    fontSize: 12,
+    fontSize: 13,
     color: '#0F766E',
     backgroundColor: '#F0FDFA',
+    lineHeight: 19,
   },
   previewScroll: {
     padding: 14,
@@ -524,72 +684,24 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: '#9F1239',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  modalCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  modalSub: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 2,
-    marginBottom: 14,
-  },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  modalInput: {
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    fontSize: 13,
-    color: colors.textPrimary,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: 12,
-  },
-  modalActionRow: {
+  footerBar: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 4,
-  },
-  modalCancelBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#F8FAFC',
+    borderTopWidth: 1,
+    borderColor: colors.borderLight,
   },
-  modalCancelBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textSecondary,
+  footerText: {
+    fontSize: 10,
+    color: colors.textMuted,
+    fontWeight: '600',
   },
-  modalInsertBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-  },
-  modalInsertBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textWhite,
+  footerHint: {
+    fontSize: 10,
+    color: colors.primary,
+    fontWeight: '600',
   },
 });

@@ -253,4 +253,61 @@ export interface AdminLeadDetailResponse {
   message?: string;
 }
 
+export interface AdminLeadPackageItem {
+  id: number;
+  name: string;
+  leadCount: number;
+  price: number;
+  currency?: string;
+  validityDays?: number | null;
+  description?: string | null;
+  status: 'ACTIVE' | 'INACTIVE';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AdminHospitalPackageSubscription {
+  id: number;
+  hospitalId: number;
+  packageId: number;
+  paymentId?: number;
+  leadLimit: number;
+  leadsUsed: number;
+  leadsRemaining: number;
+  purchasePrice: number;
+  currency: string;
+  status: string;
+  purchasedAt: string;
+  expiresAt?: string | null;
+  hospital?: {
+    id: number;
+    name: string;
+    slug?: string;
+    city?: string;
+    email?: string;
+    phone?: string;
+    leadsRemaining?: number;
+  };
+  package?: AdminLeadPackageItem;
+  payment?: {
+    id: number;
+    merchantTransactionId?: string;
+    providerReferenceId?: string;
+    gateway?: string;
+    status: string;
+    amount: number;
+    currency: string;
+    createdAt: string;
+  };
+}
+
+export interface AdminPackageStats {
+  totalPackages: number;
+  totalSubscriptions: number;
+  activeSubscriptions: number;
+  totalRevenue: number;
+  totalLeadsSold: number;
+}
+
+
 

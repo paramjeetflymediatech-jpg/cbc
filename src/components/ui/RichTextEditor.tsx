@@ -1,333 +1,199 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  Bold,
-  Italic,
-  Underline,
-  Heading2,
-  Heading3,
-  List,
-  ListOrdered,
-  Quote,
-  Link as LinkIcon,
-  Image as ImageIcon,
-  Code,
-  Eye,
-  RemoveFormatting,
-  Upload,
-  Loader2,
-} from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
 interface RichTextEditorProps {
   value: string;
   onChange: (content: string) => void;
   placeholder?: string;
+  minHeight?: number;
+}
+
+declare global {
+  interface Window {
+    ClassicEditor?: any;
+  }
 }
 
 export default function RichTextEditor({
   value,
   onChange,
-  placeholder = 'Write your blog post content here...',
+  placeholder = 'Write content here...',
+  minHeight = 220,
 }: RichTextEditorProps) {
-  const [isCodeView, setIsCodeView] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const editorRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const editorInstanceRef = useRef<any>(null);
+  const [loading, setLoading] = useState(true);
+  const isUpdatingRef = useRef(false);
 
-  // Sync value into contentEditable when value changes externally (e.g. edit blog load)
   useEffect(() => {
-    if (editorRef.current && !isCodeView) {
-      if (editorRef.current.innerHTML !== value) {
-        editorRef.current.innerHTML = value || '';
+    let isMounted = true;
+
+    // Load CKEditor 5 Classic Build via CDN
+    const loadCKEditor = async () => {
+      if (typeof window === 'undefined') return;
+
+      if (!window.ClassicEditor) {
+        await new Promise<void>((resolve, reject) => {
+          const existingScript = document.getElementById('ckeditor-script');
+          if (existingScript) {
+            existingScript.addEventListener('load', () => resolve());
+            return;
+          }
+
+          const script = document.createElement('script');
+          script.id = 'ckeditor-script';
+          script.src = 'https://cdn.ckeditor.com/ckeditor5/41.2.1/classic/ckeditor.js';
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = (err) => reject(err);
+          document.body.appendChild(script);
+        });
       }
-    }
-  }, [value, isCodeView]);
 
-  const updateContent = () => {
-    if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
-    }
-  };
+      if (!isMounted || !containerRef.current) return;
 
-  const execCommand = (command: string, val: string | undefined = undefined) => {
-    if (!editorRef.current) return;
-    editorRef.current.focus();
-    document.execCommand(command, false, val);
-    updateContent();
-  };
-
-  const insertImageHtml = (url: string) => {
-    if (!url) return;
-    const imgHtml = `<img src="${url}" alt="Blog Image" class="blog-inline-img" style="max-width:100%; height:auto; display:block; margin:16px 0; border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />`;
-
-    if (isCodeView) {
-      onChange((value || '') + '\n' + imgHtml);
-      return;
-    }
-
-    if (editorRef.current) {
-      editorRef.current.focus();
-      const inserted = document.execCommand('insertHTML', false, imgHtml);
-      if (!inserted) {
-        // Fallback: append node directly if execCommand failed
-        const div = document.createElement('div');
-        div.innerHTML = imgHtml;
-        const imgNode = div.firstChild;
-        if (imgNode) {
-          editorRef.current.appendChild(imgNode);
+      try {
+        // Destroy existing instance if any
+        if (editorInstanceRef.current) {
+          await editorInstanceRef.current.destroy();
+          editorInstanceRef.current = null;
         }
+
+        const editor = await window.ClassicEditor.create(containerRef.current, {
+          placeholder,
+          toolbar: [
+            'heading',
+            '|',
+            'bold',
+            'italic',
+            'underline',
+            'strikethrough',
+            '|',
+            'bulletedList',
+            'numberedList',
+            '|',
+            'outdent',
+            'indent',
+            '|',
+            'link',
+            'blockQuote',
+            'insertTable',
+            '|',
+            'undo',
+            'redo',
+          ],
+          table: {
+            contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells'],
+          },
+        });
+
+        if (!isMounted) {
+          editor.destroy();
+          return;
+        }
+
+        editorInstanceRef.current = editor;
+
+        // Set initial value
+        if (value) {
+          isUpdatingRef.current = true;
+          editor.setData(value);
+          isUpdatingRef.current = false;
+        }
+
+        // Listen for user changes
+        editor.model.document.on('change:data', () => {
+          if (isUpdatingRef.current) return;
+          const data = editor.getData();
+          onChange(data);
+        });
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to initialize CKEditor:', error);
+        setLoading(false);
       }
-      updateContent();
-    }
-  };
+    };
 
-  const handleAddLink = () => {
-    let url = prompt('Enter web link URL (e.g. https://clinicbychoice.com or /hospitals):');
-    if (url) {
-      url = url.trim().replace(/^["']+|["']+$/g, '').replace(/^%22|%22$/gi, '');
-      if (
-        !url.startsWith('http://') &&
-        !url.startsWith('https://') &&
-        !url.startsWith('/') &&
-        !url.startsWith('#') &&
-        !url.startsWith('mailto:') &&
-        !url.startsWith('tel:')
-      ) {
-        url = 'https://' + url;
+    loadCKEditor();
+
+    return () => {
+      isMounted = false;
+      if (editorInstanceRef.current) {
+        editorInstanceRef.current.destroy().catch(() => {});
+        editorInstanceRef.current = null;
       }
-      execCommand('createLink', url);
-    }
-  };
+    };
+  }, []);
 
-  const handleAddImage = () => {
-    const url = prompt('Enter image URL:');
-    if (url) {
-      insertImageHtml(url);
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('category', 'blogs-inline');
-
-    try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (res.ok && data.url) {
-        insertImageHtml(data.url);
-      } else {
-        alert(data.error || 'Failed to upload image');
+  // Update editor data when value prop changes externally (e.g., when editing another item or resetting)
+  useEffect(() => {
+    if (editorInstanceRef.current && !loading) {
+      const currentData = editorInstanceRef.current.getData();
+      const normalizedProp = value || '';
+      if (currentData !== normalizedProp) {
+        isUpdatingRef.current = true;
+        editorInstanceRef.current.setData(normalizedProp);
+        isUpdatingRef.current = false;
       }
-    } catch {
-      alert('Error uploading image file');
-    } finally {
-      setUploading(false);
-      // Reset input value so same file can be re-uploaded if needed
-      e.target.value = '';
     }
-  };
-
-  const isEditorEmpty = !value || value.trim() === '' || value === '<p><br></p>' || value === '<br>';
+  }, [value, loading]);
 
   return (
-    <div className="border-2 border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm focus-within:border-[#ec2c6c] transition-all">
-      {/* Formatting Toolbar */}
-      <div className="bg-gray-100/90 border-b border-gray-200 p-2 flex flex-wrap items-center justify-between gap-1.5 select-none">
-        <div className="flex flex-wrap items-center gap-1">
-          {/* Formatting Buttons */}
-          <button
-            type="button"
-            onClick={() => execCommand('bold')}
-            className="p-2 hover:bg-white rounded-lg text-gray-800 hover:text-[#ec2c6c] transition-colors border border-transparent hover:border-gray-200 shadow-2xs"
-            title="Bold (Ctrl+B)"
-          >
-            <Bold className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => execCommand('italic')}
-            className="p-2 hover:bg-white rounded-lg text-gray-800 hover:text-[#ec2c6c] transition-colors border border-transparent hover:border-gray-200 shadow-2xs"
-            title="Italic (Ctrl+I)"
-          >
-            <Italic className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => execCommand('underline')}
-            className="p-2 hover:bg-white rounded-lg text-gray-800 hover:text-[#ec2c6c] transition-colors border border-transparent hover:border-gray-200 shadow-2xs"
-            title="Underline (Ctrl+U)"
-          >
-            <Underline className="w-4 h-4" />
-          </button>
-
-          <div className="h-5 w-px bg-gray-300 mx-1" />
-
-          <button
-            type="button"
-            onClick={() => execCommand('formatBlock', '<h2>')}
-            className="p-2 hover:bg-white rounded-lg text-gray-800 hover:text-[#ec2c6c] transition-colors font-bold text-xs border border-transparent hover:border-gray-200 shadow-2xs"
-            title="Heading 2"
-          >
-            <Heading2 className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => execCommand('formatBlock', '<h3>')}
-            className="p-2 hover:bg-white rounded-lg text-gray-800 hover:text-[#ec2c6c] transition-colors font-bold text-xs border border-transparent hover:border-gray-200 shadow-2xs"
-            title="Heading 3"
-          >
-            <Heading3 className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => execCommand('formatBlock', '<p>')}
-            className="px-2.5 py-1.5 hover:bg-white rounded-lg text-gray-800 hover:text-[#ec2c6c] transition-colors font-bold text-xs border border-transparent hover:border-gray-200 shadow-2xs"
-            title="Normal Paragraph"
-          >
-            P
-          </button>
-
-          <div className="h-5 w-px bg-gray-300 mx-1" />
-
-          <button
-            type="button"
-            onClick={() => execCommand('insertUnorderedList')}
-            className="p-2 hover:bg-white rounded-lg text-gray-800 hover:text-[#ec2c6c] transition-colors border border-transparent hover:border-gray-200 shadow-2xs"
-            title="Bullet List"
-          >
-            <List className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => execCommand('insertOrderedList')}
-            className="p-2 hover:bg-white rounded-lg text-gray-800 hover:text-[#ec2c6c] transition-colors border border-transparent hover:border-gray-200 shadow-2xs"
-            title="Numbered List"
-          >
-            <ListOrdered className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => execCommand('formatBlock', 'blockquote')}
-            className="p-2 hover:bg-white rounded-lg text-gray-800 hover:text-[#ec2c6c] transition-colors border border-transparent hover:border-gray-200 shadow-2xs"
-            title="Quote Block"
-          >
-            <Quote className="w-4 h-4" />
-          </button>
-
-          <div className="h-5 w-px bg-gray-300 mx-1" />
-
-          <button
-            type="button"
-            onClick={handleAddLink}
-            className="p-2 hover:bg-white rounded-lg text-gray-800 hover:text-[#ec2c6c] transition-colors border border-transparent hover:border-gray-200 shadow-2xs"
-            title="Insert Web Link"
-          >
-            <LinkIcon className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleAddImage}
-            className="p-2 hover:bg-white rounded-lg text-gray-800 hover:text-[#ec2c6c] transition-colors border border-transparent hover:border-gray-200 shadow-2xs"
-            title="Insert Image via URL"
-          >
-            <ImageIcon className="w-4 h-4" />
-          </button>
-
-          <label
-            className="p-2 hover:bg-white rounded-lg text-gray-800 hover:text-[#ec2c6c] cursor-pointer transition-colors border border-transparent hover:border-gray-200 shadow-2xs flex items-center space-x-1"
-            title="Upload Image File directly into Article Body"
-          >
-            {uploading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-[#ec2c6c]" />
-            ) : (
-              <Upload className="w-4 h-4 text-[#ec2c6c]" />
-            )}
-            <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
-          </label>
-
-          <button
-            type="button"
-            onClick={() => execCommand('removeFormat')}
-            className="p-2 hover:bg-white rounded-lg text-gray-800 hover:text-red-600 transition-colors border border-transparent hover:border-gray-200 shadow-2xs"
-            title="Clear Formatting"
-          >
-            <RemoveFormatting className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Mode Switcher Toggle */}
-        <button
-          type="button"
-          onClick={() => setIsCodeView(!isCodeView)}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-            isCodeView
-              ? 'bg-[#101828] text-white shadow-xs'
-              : 'bg-white text-gray-800 hover:bg-gray-200 border border-gray-200'
-          }`}
+    <div className="relative rounded-2xl overflow-hidden bg-white shadow-xs border border-gray-200 focus-within:border-[#fd1d74] transition-all">
+      {loading && (
+        <div
+          style={{ minHeight }}
+          className="flex items-center justify-center bg-gray-50 text-gray-500 text-xs font-semibold space-x-2"
         >
-          {isCodeView ? (
-            <>
-              <Eye className="w-3.5 h-3.5 text-[#ec2c6c]" />
-              <span>Visual Editor</span>
-            </>
-          ) : (
-            <>
-              <Code className="w-3.5 h-3.5 text-[#ec2c6c]" />
-              <span>HTML Source Code</span>
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* Editor Body Area */}
-      {isCodeView ? (
-        <textarea
-          rows={16}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="<h2>Heading</h2><p>Write HTML content here...</p>"
-          className="w-full p-4 font-mono text-xs text-emerald-400 bg-gray-950 focus:outline-none leading-relaxed"
-        />
-      ) : (
-        <div className="relative min-h-[300px] bg-white text-gray-900">
-          {isEditorEmpty && (
-            <div className="absolute top-5 left-5 pointer-events-none text-gray-400 text-sm font-medium">
-              {placeholder}
-            </div>
-          )}
-
-          <div
-            ref={editorRef}
-            contentEditable
-            onInput={updateContent}
-            onBlur={updateContent}
-            className="p-5 min-h-[300px] max-h-[550px] overflow-y-auto focus:outline-none text-gray-900 bg-white text-sm leading-relaxed font-normal
-              [&_h2]:text-2xl [&_h2]:font-extrabold [&_h2]:text-[#101828] [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:border-b [&_h2]:border-pink-100 [&_h2]:pb-1
-              [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-[#ec2c6c] [&_h3]:mt-4 [&_h3]:mb-2
-              [&_p]:mb-3 [&_p]:text-gray-800 [&_p]:leading-relaxed
-              [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-3 [&_ul]:space-y-1
-              [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-3 [&_ol]:space-y-1
-              [&_blockquote]:border-l-4 [&_blockquote]:border-[#ec2c6c] [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:my-4 [&_blockquote]:italic [&_blockquote]:bg-pink-50/70 [&_blockquote]:rounded-r-xl [&_blockquote]:text-gray-900
-              [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-xl [&_img]:my-4 [&_img]:shadow-md [&_img]:border [&_img]:border-gray-200 [&_img]:block"
-          />
+          <Loader2 className="w-4 h-4 animate-spin text-[#b02151]" />
+          <span>Loading CKEditor...</span>
         </div>
       )}
+
+      <div className={loading ? 'hidden' : 'block'}>
+        <div ref={containerRef} />
+      </div>
+
+      <style jsx global>{`
+        .ck-editor__editable_inline {
+          min-height: ${minHeight}px !important;
+          max-height: 500px !important;
+          padding: 1rem 1.25rem !important;
+          font-size: 0.875rem !important;
+          line-height: 1.625 !important;
+          color: #111827 !important;
+        }
+        .ck-toolbar {
+          border-top: none !important;
+          border-left: none !important;
+          border-right: none !important;
+          border-bottom: 1px solid #e5e7eb !important;
+          background: #f9fafb !important;
+          padding: 0.375rem 0.5rem !important;
+          border-top-left-radius: 1rem !important;
+          border-top-right-radius: 1rem !important;
+        }
+        .ck.ck-editor__main > .ck-editor__editable {
+          border: none !important;
+          box-shadow: none !important;
+        }
+        .ck.ck-editor__editable:not(.ck-editor__nested-editable).ck-focused {
+          outline: none !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+        .ck.ck-button:hover {
+          background: #fce7f3 !important;
+          color: #b02151 !important;
+        }
+        .ck.ck-button.ck-on {
+          background: #fbcfe8 !important;
+          color: #9d174d !important;
+        }
+      `}</style>
     </div>
   );
 }

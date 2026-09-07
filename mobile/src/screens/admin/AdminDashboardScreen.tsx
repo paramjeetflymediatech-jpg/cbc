@@ -222,6 +222,17 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
             <Text style={styles.navTitle}>Specialties</Text>
             <Text style={styles.navSub}>Departments & tiers</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.navTile}
+            onPress={() => navigation.navigate('AdminPackages')}
+          >
+            <View style={[styles.navIconBox, { backgroundColor: '#FEF3C7' }]}>
+              <Text style={styles.navIcon}>⚡</Text>
+            </View>
+            <Text style={styles.navTitle}>Lead Packages</Text>
+            <Text style={styles.navSub}>Pricing & credit grants</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Recent Enquiries Stream */}

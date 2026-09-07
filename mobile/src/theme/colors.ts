@@ -20,8 +20,8 @@ export const colors = {
   
   // Typography
   textPrimary: '#0F172A',
-  textSecondary: '#475569',
-  textMuted: '#94A3B8',
+  textSecondary: '#334155', // Rich readable slate
+  textMuted: '#64748B', // Darkened from #94A3B8 for crisp contrast
   textWhite: '#FFFFFF',
   
   // Status & Feedback
