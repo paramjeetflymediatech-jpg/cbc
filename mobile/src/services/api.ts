@@ -17,8 +17,8 @@ const DEV_API_URL = Platform.select({
 });
 
 // Use local dev server by default, or change to production when deploying
-export const API_BASE_URL = DEV_API_URL || `http://${LOCAL_IP}:3000/api`;
-// export const API_BASE_URL = 'https://clinicbychoice.com/api';
+// export const API_BASE_URL = DEV_API_URL || `http://${LOCAL_IP}:3000/api`;
+export const API_BASE_URL = 'https://clinicbychoice.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
