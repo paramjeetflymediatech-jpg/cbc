@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
-import { Hospital, User, HospitalService, Lead, LeadTransaction, Notification } from '@/models';
+import { Hospital, User, HospitalService, Lead, LeadTransaction, Notification, Payment, HospitalPackage } from '@/models';
 import { cleanupOldImages } from '@/lib/fileCleanup';
 import { ensureLocationMasterExists, isIndiaLocation } from '@/lib/locationMaster';
 
@@ -177,12 +177,22 @@ export async function DELETE(
       return NextResponse.json({ error: 'Hospital not found' }, { status: 404 });
     }
 
-    // Cascade purge associated records
-    await User.destroy({ where: { hospitalId } });
-    await HospitalService.destroy({ where: { hospitalId } });
-    await Lead.destroy({ where: { hospitalId } });
-    await LeadTransaction.destroy({ where: { hospitalId } });
+    // Cascade purge hospital-specific records in foreign key dependency order
     await Notification.destroy({ where: { recipientType: 'HOSPITAL', recipientId: hospitalId } });
+    await LeadTransaction.destroy({ where: { hospitalId } });
+
+    // Preserve all patient enquiries / user leads by unlinking hospitalId rather than destroying them
+    await Lead.update(
+      { hospitalId: null, status: 'UNASSIGNED' },
+      { where: { hospitalId } }
+    );
+
+    await HospitalService.destroy({ where: { hospitalId } });
+    await HospitalPackage.destroy({ where: { hospitalId } });
+    await Payment.destroy({ where: { hospitalId } });
+
+    // Unlink users associated with this hospital instead of deleting their accounts
+    await User.update({ hospitalId: null }, { where: { hospitalId } });
 
     // Clean up local photo files
     await cleanupOldImages(hospital.logo, null);
@@ -193,7 +203,7 @@ export async function DELETE(
     await hospital.destroy();
 
     return NextResponse.json({
-      message: `Hospital "${hospital.name}" and all associated leads and user accounts have been permanently deleted.`,
+      message: `Hospital "${hospital.name}" has been deleted. Associated user accounts and patient enquiries have been safely preserved and unlinked.`,
     });
   } catch (error) {
     console.error('Delete hospital error:', error);

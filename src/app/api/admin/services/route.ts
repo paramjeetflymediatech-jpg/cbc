@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
-import { Service } from '@/models';
+import { Service, HospitalService, ServiceLocation, Lead } from '@/models';
 import { cleanupOldImages } from '@/lib/fileCleanup';
 import { Op } from 'sequelize';
 
@@ -177,6 +177,17 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Service not found' }, { status: 404 });
     }
 
+    // Check if there are patient leads associated with this service
+    const leadCount = await Lead.count({ where: { serviceId: id } });
+    if (leadCount > 0) {
+      // Deactivate service so historical patient leads are preserved
+      await service.update({ status: 'INACTIVE' });
+      return NextResponse.json({
+        message: `Service "${service.name}" is linked to existing patient leads. It has been marked INACTIVE instead of deleting.`,
+        deactivated: true,
+      });
+    }
+
     if (service.image) {
       await cleanupOldImages(service.image, null);
     }
@@ -186,6 +197,10 @@ export async function DELETE(req: Request) {
 
     // Set parentId = null for subservices referencing this service
     await Service.update({ parentId: null }, { where: { parentId: id } });
+
+    // Clean up hospital service mapping and service locations
+    await HospitalService.destroy({ where: { serviceId: id } });
+    await ServiceLocation.destroy({ where: { serviceId: id } });
 
     await service.destroy();
 

@@ -15,7 +15,7 @@ export interface LeadAttributes {
   email: string;
   city: string;
   serviceId: number;
-  hospitalId: number;
+  hospitalId?: number | null;
   message?: string | null;
   preferredContactTime?: string | null;
   status: 'NEW' | 'CONTACTED' | 'IN_PROGRESS' | 'CONVERTED' | 'LOST' | 'CANCELLED' | 'UNASSIGNED' | 'EXPIRED';
@@ -25,7 +25,7 @@ export interface LeadAttributes {
   updatedAt?: Date;
 }
 
-export type LeadCreationAttributes = Optional<LeadAttributes, 'id' | 'status' | 'notes' | 'userId'>;
+export type LeadCreationAttributes = Optional<LeadAttributes, 'id' | 'status' | 'notes' | 'userId' | 'hospitalId'>;
 
 export class Lead extends Model<LeadAttributes, LeadCreationAttributes> implements LeadAttributes {
   declare id: number;
@@ -35,7 +35,7 @@ export class Lead extends Model<LeadAttributes, LeadCreationAttributes> implemen
   declare email: string;
   declare city: string;
   declare serviceId: number;
-  declare hospitalId: number;
+  declare hospitalId: number | null;
   declare message: string | null;
   declare preferredContactTime: string | null;
   declare status: 'NEW' | 'CONTACTED' | 'IN_PROGRESS' | 'CONVERTED' | 'LOST' | 'CANCELLED' | 'UNASSIGNED' | 'EXPIRED';
@@ -83,7 +83,7 @@ Lead.init(
     },
     hospitalId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     message: {
       type: DataTypes.TEXT,

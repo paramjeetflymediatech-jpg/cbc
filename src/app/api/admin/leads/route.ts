@@ -77,6 +77,7 @@ export async function DELETE(req: Request) {
     } else {
       const lead = await Lead.findByPk(id);
       if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+      await LeadTransaction.update({ leadId: null }, { where: { leadId: id } });
       await lead.destroy();
       return NextResponse.json({ message: 'Lead deleted successfully' });
     }

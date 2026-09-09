@@ -210,13 +210,25 @@ export async function DELETE(req: Request) {
     const numId = Number(id);
 
     if (entityType === 'STATE') {
+      const districts = await District.findAll({ where: { stateId: numId }, attributes: ['id'] });
+      const districtIds = districts.map((d) => d.id);
+
+      // Cascade delete cities and districts of this state
+      if (districtIds.length > 0) {
+        await City.destroy({ where: { [Op.or]: [{ stateId: numId }, { districtId: { [Op.in]: districtIds } }] } });
+      } else {
+        await City.destroy({ where: { stateId: numId } });
+      }
+      await District.destroy({ where: { stateId: numId } });
       await State.destroy({ where: { id: numId } });
-      return NextResponse.json({ message: 'State deleted successfully' });
+      return NextResponse.json({ message: 'State and its associated districts and cities deleted successfully' });
     }
 
     if (entityType === 'DISTRICT') {
+      // Cascade delete cities of this district
+      await City.destroy({ where: { districtId: numId } });
       await District.destroy({ where: { id: numId } });
-      return NextResponse.json({ message: 'District deleted successfully' });
+      return NextResponse.json({ message: 'District and its associated cities deleted successfully' });
     }
 
     if (entityType === 'CITY') {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
-import { Lead, Hospital, Service, User } from '@/models';
+import { Lead, Hospital, Service, User, LeadTransaction } from '@/models';
 
 export async function GET(
   req: Request,
@@ -168,6 +168,9 @@ export async function DELETE(
     if (!lead) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
+
+    // Unlink transaction history so financial lead ledger remains valid
+    await LeadTransaction.update({ leadId: null }, { where: { leadId } });
 
     await lead.destroy();
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { getAuthUser, hashPassword } from '@/lib/auth';
-import { User, Hospital, Lead } from '@/models';
+import { User, Hospital, Lead, Notification } from '@/models';
 import { Op } from 'sequelize';
 
 export async function GET(req: Request) {
@@ -259,6 +259,12 @@ export async function DELETE(req: Request) {
     if (targetUser.role === 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Super Admin accounts cannot be deleted.' }, { status: 403 });
     }
+
+    // Preserve leads submitted by this user by unlinking userId
+    await Lead.update({ userId: null }, { where: { userId: targetUser.id } });
+
+    // Clean up user notifications
+    await Notification.destroy({ where: { recipientType: 'USER', recipientId: targetUser.id } });
 
     await targetUser.destroy();
 
