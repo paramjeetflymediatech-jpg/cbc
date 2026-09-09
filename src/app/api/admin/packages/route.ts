@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
-import { LeadPackage } from '@/models';
+import { LeadPackage, Payment, HospitalPackage } from '@/models';
 
 export async function GET() {
   try {
@@ -106,10 +106,25 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Package not found' }, { status: 404 });
     }
 
+    // Check if package is referenced in payment or hospital package records
+    const [paymentCount, subscriptionCount] = await Promise.all([
+      Payment.count({ where: { packageId: id } }),
+      HospitalPackage.count({ where: { packageId: id } }),
+    ]);
+
+    if (paymentCount > 0 || subscriptionCount > 0) {
+      // Soft-deactivate to maintain financial and audit records
+      await pkg.update({ status: 'INACTIVE' });
+      return NextResponse.json({
+        message: `Package "${pkg.name}" is linked to existing transactions/subscriptions. It has been marked INACTIVE instead of deleting.`,
+        deactivated: true,
+      });
+    }
+
     await pkg.destroy();
-    return NextResponse.json({ message: 'Package deleted successfully' });
+    return NextResponse.json({ message: `Package "${pkg.name}" deleted successfully.` });
   } catch (error) {
     console.error('Admin DELETE package error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Server error deleting package' }, { status: 500 });
   }
 }

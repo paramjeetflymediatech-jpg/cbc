@@ -127,13 +127,14 @@ export default function AdminPackagesPage() {
         method: 'DELETE',
       });
 
+      const data = await res.json();
+
       if (res.ok) {
-        setMessage(`Package "${deletingPkg.name}" deleted successfully.`);
+        setMessage(data.message || `Package "${deletingPkg.name}" processed successfully.`);
         setDeletingPkg(null);
         if (editingId === deletingPkg.id) resetForm();
         fetchPackages();
       } else {
-        const data = await res.json();
         setErrorMessage(data.error || 'Failed to delete package.');
       }
     } catch {
