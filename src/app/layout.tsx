@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://clinicbychoice.com'),
   title: "Clinic By Choice - Premier Healthcare & Medical Tourism Platform in India",
   description: "Find top accredited hospitals, clinics, and verified medical specialists across India. Compare packages, book consultations, and access premium medical care.",
   icons: {

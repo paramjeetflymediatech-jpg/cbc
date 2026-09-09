@@ -1,12 +1,16 @@
-const PHONEPE_CLIENT_ID = process.env.PHONEPE_CLIENT_ID || 'M22DED07QHZJP_2606151144';
-const PHONEPE_CLIENT_SECRET = process.env.PHONEPE_CLIENT_SECRET || 'NmNmZTE5YTgtN2E4Mi00ZjA1LThmOTAtOTE2N2U2NDg3NGUy';
+const PHONEPE_CLIENT_ID = process.env.PHONEPE_CLIENT_ID || '';
+const PHONEPE_CLIENT_SECRET = process.env.PHONEPE_CLIENT_SECRET || '';
 const PHONEPE_CLIENT_VERSION = process.env.PHONEPE_CLIENT_VERSION || '1';
-const PHONEPE_ENV = process.env.PHONEPE_ENV || 'PRODUCTION';
+const PHONEPE_ENV = (process.env.PHONEPE_ENV || 'PRODUCTION').toUpperCase();
 
-const BASE_URL =
-  PHONEPE_ENV === 'PRODUCTION'
-    ? 'https://api.phonepe.com/apis/pg' // V2 Production Endpoint
-    : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
+const IS_PROD = PHONEPE_ENV === 'PRODUCTION';
+const OAUTH_URL = IS_PROD
+  ? 'https://api.phonepe.com/apis/identity-manager/v1/oauth/token'
+  : 'https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token';
+
+const CHECKOUT_BASE_URL = IS_PROD
+  ? 'https://api.phonepe.com/apis/pg'
+  : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
 
 export interface InitiatePaymentParams {
   merchantTransactionId: string;
@@ -33,7 +37,7 @@ export async function getOAuthToken(): Promise<string | null> {
   params.append('grant_type', 'client_credentials');
 
   try {
-    const response = await fetch(`${BASE_URL}/v1/oauth/token`, {
+    const response = await fetch(OAUTH_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -89,7 +93,7 @@ export async function initiatePhonePePayment(
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/checkout/v2/pay`, {
+    const response = await fetch(`${CHECKOUT_BASE_URL}/checkout/v2/pay`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -131,7 +135,7 @@ export async function verifyPhonePeStatus(merchantOrderId: string) {
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/checkout/v2/order/${merchantOrderId}/status`, {
+    const response = await fetch(`${CHECKOUT_BASE_URL}/checkout/v2/order/${merchantOrderId}/status`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
