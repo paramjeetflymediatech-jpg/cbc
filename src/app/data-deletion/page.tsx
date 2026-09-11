@@ -2,15 +2,15 @@ import React from 'react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
-import { 
-  Trash2, 
-  ShieldAlert, 
-  CheckCircle2, 
-  Mail, 
-  Phone, 
-  Clock, 
-  Smartphone, 
-  FileText, 
+import {
+  Trash2,
+  ShieldAlert,
+  CheckCircle2,
+  Mail,
+  Phone,
+  Clock,
+  Smartphone,
+  FileText,
   ChevronRight,
   Info
 } from 'lucide-react';
@@ -66,7 +66,7 @@ export default async function DataDeletionPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 flex-1 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          
+
           {/* Left Column: Form & Methods */}
           <div className="lg:col-span-7 space-y-8">
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/80 shadow-sm space-y-6">
@@ -162,11 +162,11 @@ export default async function DataDeletionPage() {
                 You can also email our Data Protection Team directly from your registered email:
               </p>
               <a
-                href="mailto:privacy@clinicbychoice.com?subject=Data%20Deletion%20Request"
+                href="mailto:info@clinicbychoice.com?subject=Data%20Deletion%20Request"
                 className="inline-flex items-center space-x-2 text-xs font-bold text-[#ec2c6c] hover:underline"
               >
                 <Mail className="w-3.5 h-3.5" />
-                <span>privacy@clinicbychoice.com</span>
+                <span>info@clinicbychoice.com</span>
               </a>
             </div>
           </div>

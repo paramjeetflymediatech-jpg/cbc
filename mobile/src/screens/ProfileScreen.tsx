@@ -64,7 +64,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         } else {
           showAlert({
             title: 'Deletion Failed',
-            message: res.message || 'Unable to delete account. Please try again or contact privacy@clinicbychoice.com.',
+            message: res.message || 'Unable to delete account. Please try again or contact info@clinicbychoice.com.',
             type: 'error',
           });
         }
@@ -165,22 +165,22 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         },
         ...(isAuthenticated
           ? [
-              {
-                icon: '🗑️',
-                label: 'Delete Account & Data',
-                onPress: handleDeleteAccount,
-                isDestructive: true,
-              },
-            ]
+            {
+              icon: '🗑️',
+              label: 'Delete Account & Data',
+              onPress: handleDeleteAccount,
+              isDestructive: true,
+            },
+          ]
           : [
-              {
-                icon: '🗑️',
-                label: 'Request Data Deletion',
-                onPress: () => {
-                  Linking.openURL('https://clinicbychoice.com/data-deletion').catch(() => {});
-                },
+            {
+              icon: '🗑️',
+              label: 'Request Data Deletion',
+              onPress: () => {
+                Linking.openURL('https://clinicbychoice.com/data-deletion').catch(() => { });
               },
-            ]),
+            },
+          ]),
       ],
     },
   ];

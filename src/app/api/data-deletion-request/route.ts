@@ -70,7 +70,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Data deletion request error:', error);
     return NextResponse.json(
-      { error: 'Server error processing your data deletion request. Please contact privacy@clinicbychoice.com directly.' },
+      { error: 'Server error processing your data deletion request. Please contact info@clinicbychoice.com directly.' },
       { status: 500 }
     );
   }

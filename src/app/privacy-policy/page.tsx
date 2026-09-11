@@ -153,11 +153,11 @@ export default async function PrivacyPolicyPage() {
                 Have questions regarding your personal information, or wish to submit a data erasure request?
               </p>
               <a
-                href="mailto:privacy@clinicbychoice.com"
+                href="mailto:info@clinicbychoice.com"
                 className="inline-flex items-center space-x-2 text-xs font-bold text-[#ec2c6c] hover:underline"
               >
                 <Mail className="w-3.5 h-3.5" />
-                <span>privacy@clinicbychoice.com</span>
+                <span>info@clinicbychoice.com</span>
               </a>
             </div>
           </aside>
@@ -347,7 +347,7 @@ export default async function PrivacyPolicyPage() {
                     </div>
                     <h4 className="font-extrabold text-gray-900 text-sm">Option A: Direct Email Request</h4>
                     <p className="text-xs text-gray-600 leading-relaxed">
-                      Send an email to <a href="mailto:privacy@clinicbychoice.com" className="text-[#ec2c6c] font-bold hover:underline">privacy@clinicbychoice.com</a> or <a href="mailto:info@clinicbychoice.com" className="text-[#ec2c6c] font-bold hover:underline">info@clinicbychoice.com</a> with the subject line <strong>&quot;Data Deletion Request&quot;</strong> and your registered phone number or email.
+                      Send an email to <a href="mailto:info@clinicbychoice.com" className="text-[#ec2c6c] font-bold hover:underline">info@clinicbychoice.com</a> or <a href="mailto:info@clinicbychoice.com" className="text-[#ec2c6c] font-bold hover:underline">info@clinicbychoice.com</a> with the subject line <strong>&quot;Data Deletion Request&quot;</strong> and your registered phone number or email.
                     </p>
                   </div>
 
@@ -465,7 +465,7 @@ export default async function PrivacyPolicyPage() {
                     <Mail className="w-4 h-4 text-[#ec2c6c] mt-0.5 flex-shrink-0" />
                     <div>
                       <span className="font-bold block text-gray-900">Privacy & Deletion Email:</span>
-                      <a href="mailto:privacy@clinicbychoice.com" className="text-[#ec2c6c] hover:underline">privacy@clinicbychoice.com</a>
+                      <a href="mailto:info@clinicbychoice.com" className="text-[#ec2c6c] hover:underline">info@clinicbychoice.com</a>
                     </div>
                   </div>
 

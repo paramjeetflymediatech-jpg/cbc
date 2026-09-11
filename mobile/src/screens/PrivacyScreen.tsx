@@ -83,11 +83,11 @@ export const PrivacyScreen: React.FC<PrivacyScreenProps> = ({ navigation }) => {
             In compliance with Google Play Store Developer Policies, you have the right to request full deletion of your account and associated personal and medical data at any time.
           </Text>
           <Text style={styles.bodyText}>
-            To request permanent data erasure, please email <Text style={styles.highlightText}>privacy@clinicbychoice.com</Text> with the subject &quot;Data Deletion Request&quot; or tap below to submit an online deletion request.
+            To request permanent data erasure, please email <Text style={styles.highlightText}>info@clinicbychoice.com</Text> with the subject &quot;Data Deletion Request&quot; or tap below to submit an online deletion request.
           </Text>
           <TouchableOpacity
             style={[styles.webPolicyBtn, { marginTop: 8, marginBottom: 0 }]}
-            onPress={() => Linking.openURL('https://clinicbychoice.com/data-deletion').catch(() => {})}
+            onPress={() => Linking.openURL('https://clinicbychoice.com/data-deletion').catch(() => { })}
             activeOpacity={0.85}
           >
             <Text style={styles.webPolicyBtnText}>🗑️ Open Data Deletion Request Page</Text>
@@ -99,7 +99,7 @@ export const PrivacyScreen: React.FC<PrivacyScreenProps> = ({ navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>5. Contact Us</Text>
           <Text style={styles.bodyText}>
-            If you have questions about this policy or wish to contact our Data Grievance Officer, please contact us at <Text style={styles.highlightText}>privacy@clinicbychoice.com</Text> or <Text style={styles.highlightText}>info@clinicbychoice.com</Text>.
+            If you have questions about this policy or wish to contact our Data Grievance Officer, please contact us at <Text style={styles.highlightText}>info@clinicbychoice.com</Text> or <Text style={styles.highlightText}>info@clinicbychoice.com</Text>.
           </Text>
         </View>
       </ScrollView>
