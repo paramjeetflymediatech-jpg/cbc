@@ -532,5 +532,48 @@ export async function seedDatabase() {
     }
   }
 
-  console.log('Database seeding complete with Union Super Speciality Hospital, Blog Posts & Testimonials!');
+  // Seed / Sync 3 Lead Packages
+  const defaultLeadPackages = [
+    {
+      id: 1,
+      name: 'Starter Clinic Pack',
+      leadCount: 10,
+      price: 3000,
+      currency: 'INR',
+      validityDays: 30,
+      description: '<p>Ideal for individual specialists and private clinics to connect with verified patient enquiries.</p><ul><li>10 Verified Patient Enquiries</li><li>Direct Patient Mobile & Email Access</li><li>Instant Email Lead Alerts</li><li>Standard Hospital CRM Dashboard</li><li>48-Hour Held Lead Protection</li></ul>',
+      status: 'ACTIVE' as const,
+    },
+    {
+      id: 2,
+      name: 'Growth Care Pack',
+      leadCount: 30,
+      price: 8000,
+      currency: 'INR',
+      validityDays: 60,
+      description: '<p>Our most popular package designed to scale daily OPD footfall and boost procedure bookings.</p><ul><li>30 Verified Patient Enquiries</li><li>Direct Patient Mobile, WhatsApp & Email</li><li>Real-Time Instant Email & Dashboard Alerts</li><li>Full CRM Dashboard with Lead Notes</li><li>48-Hour Held Lead Protection</li><li>Verified Hospital Profile Badge</li><li>Priority WhatsApp & Phone Support</li></ul>',
+      status: 'ACTIVE' as const,
+    },
+    {
+      id: 3,
+      name: 'Super Specialty Pro',
+      leadCount: 50,
+      price: 13000,
+      currency: 'INR',
+      validityDays: 90,
+      description: '<p>Designed for multi-specialty hospitals and tertiary care facilities with high patient enquiry volume.</p><ul><li>50 Verified Patient Enquiries</li><li>Highest Priority Direct Lead Delivery</li><li>Real-Time Email & CRM Push Notifications</li><li>Comprehensive Multi-User Hospital CRM</li><li>Enhanced 72-Hour Held Lead Protection</li><li>Featured Placement on City & Service Pages</li><li>Dedicated Account Manager</li></ul>',
+      status: 'ACTIVE' as const,
+    },
+  ];
+
+  for (const pkg of defaultLeadPackages) {
+    const existing = await LeadPackage.findByPk(pkg.id);
+    if (existing) {
+      await existing.update(pkg);
+    } else {
+      await LeadPackage.create(pkg);
+    }
+  }
+
+  console.log('Database seeding complete with Union Super Speciality Hospital, Blog Posts, Testimonials & 3 Lead Packages!');
 }

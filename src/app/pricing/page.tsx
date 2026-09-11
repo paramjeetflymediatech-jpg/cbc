@@ -11,7 +11,6 @@ import {
   ShieldCheck,
   TrendingUp,
   Users,
-  Clock,
   PhoneCall,
   ArrowRight,
   HelpCircle,
@@ -50,16 +49,16 @@ const defaultPackagesData: LeadPackageItem[] = [
   {
     id: 1,
     name: 'Starter Clinic Pack',
-    leadCount: 25,
-    price: 4999,
-    originalPrice: 6999,
+    leadCount: 10,
+    price: 3000,
+    originalPrice: 4500,
     currency: 'INR',
     validityDays: 30,
     tag: 'Entry Level',
     targetAudience: 'Single Clinics & Individual Specialists',
     description: 'Get started with verified digital patient enquiries in your local area with zero monthly commitments.',
     features: [
-      '25 Verified Patient Enquiries',
+      '10 Verified Patient Enquiries',
       'Direct Patient Mobile & Email Access',
       'Instant Email Lead Alerts',
       'Standard Hospital CRM Dashboard',
@@ -70,9 +69,9 @@ const defaultPackagesData: LeadPackageItem[] = [
   {
     id: 2,
     name: 'Growth Care Pack',
-    leadCount: 50,
-    price: 8999,
-    originalPrice: 12999,
+    leadCount: 30,
+    price: 8000,
+    originalPrice: 12000,
     currency: 'INR',
     validityDays: 60,
     popular: true,
@@ -80,7 +79,7 @@ const defaultPackagesData: LeadPackageItem[] = [
     targetAudience: 'Established Specialty Centers & Day-care Clinics',
     description: 'Our most popular package designed to scale daily OPD footfall and boost surgical procedure bookings.',
     features: [
-      '50 Verified Patient Enquiries',
+      '30 Verified Patient Enquiries',
       'Direct Patient Mobile, WhatsApp & Email',
       'Real-Time Instant Email & Dashboard Alerts',
       'Full CRM Dashboard with Lead Status Notes',
@@ -93,16 +92,16 @@ const defaultPackagesData: LeadPackageItem[] = [
   {
     id: 3,
     name: 'Super Specialty Pro',
-    leadCount: 100,
-    price: 15999,
-    originalPrice: 24999,
+    leadCount: 50,
+    price: 13000,
+    originalPrice: 19500,
     currency: 'INR',
     validityDays: 90,
-    tag: 'High Value',
-    targetAudience: 'Multi-Specialty & Tertiary Care Hospitals',
+    tag: 'Best Value',
+    targetAudience: 'Multi-Specialty Hospitals & Surgical Centers',
     description: 'Accelerate high-ticket elective surgeries, inpatient admissions, and tertiary care medical consultations.',
     features: [
-      '100 Verified Patient Enquiries',
+      '50 Verified Patient Enquiries',
       'Highest Priority Direct Lead Delivery',
       'Real-Time Email, SMS & CRM Push Notifications',
       'Comprehensive Multi-User Hospital CRM',
@@ -112,39 +111,16 @@ const defaultPackagesData: LeadPackageItem[] = [
       'Dedicated Account Coordination Manager',
     ],
   },
-  {
-    id: 4,
-    name: 'Enterprise Healthcare Max',
-    leadCount: 250,
-    price: 34999,
-    originalPrice: 54999,
-    currency: 'INR',
-    validityDays: 180,
-    tag: 'Maximum Volume',
-    targetAudience: 'Hospital Networks, Multi-Branch Chains & Corporates',
-    description: 'Ultimate patient volume and brand exposure with guaranteed lowest cost-per-lead and VIP onboarding.',
-    features: [
-      '250 Verified Patient Enquiries',
-      'VIP Real-Time Patient Routing Engine',
-      'Multi-Location & Multi-Branch Lead Routing',
-      'Custom CRM Webhook & Lead Export Options',
-      'Featured Super-Partner Badge & Top Banner Ads',
-      'Custom Marketing Campaign Co-Promotion',
-      'Quarterly Performance & Conversion Reviews',
-      '24/7 Dedicated Senior Account Director',
-    ],
-  },
 ];
 
 const comparisonMatrix = [
-  { feature: 'Patient Lead Credits', starter: '25 Leads', growth: '50 Leads', pro: '100 Leads', enterprise: '250 Leads' },
-  { feature: 'Cost per Verified Lead', starter: '₹200 / lead', growth: '₹180 / lead', pro: '₹160 / lead', enterprise: '₹140 / lead' },
-  { feature: 'Package Validity', starter: '30 Days', growth: '60 Days', pro: '90 Days', enterprise: '180 Days' },
-  { feature: 'Contact Info Access', starter: 'Phone & Email', growth: 'Phone, WhatsApp & Email', growthHighlighted: true, pro: 'Full Details + Callback Preference', enterprise: 'Full Details + Multi-branch Routing' },
-  { feature: 'Held Lead Grace Period', starter: '48 Hours', growth: '48 Hours', pro: '72 Hours', enterprise: 'Unlimited Grace Hold' },
-  { feature: 'Profile Listing Badge', starter: 'Standard Listing', growth: 'Verified Hospital Badge', pro: 'Featured Top Placement', enterprise: 'VIP Super-Partner Badge' },
-  { feature: 'Doctor & Department Profiles', starter: 'Up to 3 Doctors', growth: 'Up to 10 Doctors', pro: 'Unlimited Doctors', enterprise: 'Unlimited Multi-Location' },
-  { feature: 'Support Level', starter: 'Email Support', growth: 'Priority Phone & WhatsApp', pro: 'Dedicated Account Manager', enterprise: '24/7 Executive Concierge' },
+  { feature: 'Patient Lead Credits', starter: '10 Leads', growth: '30 Leads', pro: '50 Leads' },
+  { feature: 'Cost per Verified Lead', starter: '₹300 / lead', growth: '₹267 / lead', pro: '₹260 / lead' },
+  { feature: 'Contact Info Access', starter: 'Phone & Email', growth: 'Phone, WhatsApp & Email', growthHighlighted: true, pro: 'Full Details + Priority Callback' },
+  { feature: 'Held Lead Grace Period', starter: '48 Hours', growth: '48 Hours', pro: '72 Hours' },
+  { feature: 'Profile Listing Badge', starter: 'Standard Listing', growth: 'Verified Hospital Badge', pro: 'Featured Top Placement' },
+  { feature: 'Doctor & Department Profiles', starter: 'Up to 3 Doctors', growth: 'Up to 10 Doctors', pro: 'Unlimited Doctors' },
+  { feature: 'Support Level', starter: 'Email Support', growth: 'Priority Phone & WhatsApp', pro: 'Dedicated Account Manager' },
 ];
 
 const faqs = [
@@ -203,7 +179,7 @@ function extractFeatures(input?: string | null, fallbackFeatures: string[] = [])
 
 export default function PricingPage() {
   const [packages, setPackages] = useState<LeadPackageItem[]>(defaultPackagesData);
-  const [calcLeads, setCalcLeads] = useState<number>(50);
+  const [calcLeads, setCalcLeads] = useState<number>(30);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
@@ -303,7 +279,7 @@ export default function PricingPage() {
 
       {/* Main Pricing Cards Grid Section */}
       <section className="relative -mt-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-20 pb-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
           {packages.map((pkg, idx) => {
             const isPopular = pkg.popular || idx === 1;
             const pricePerLead = Math.round(Number(pkg.price) / Number(pkg.leadCount));
@@ -364,9 +340,8 @@ export default function PricingPage() {
                       <span className="font-extrabold text-[#ff4d8d]">
                         ₹{pricePerLead} / lead
                       </span>
-                      <span className="text-slate-400 font-medium flex items-center space-x-1">
-                        <Clock className="w-3 h-3 text-slate-400" />
-                        <span>{pkg.validityDays ? `${pkg.validityDays} Days` : 'Lifetime'}</span>
+                      <span className="text-slate-400 font-medium">
+                        Instant Delivery
                       </span>
                     </div>
                   </div>
@@ -440,17 +415,16 @@ export default function PricingPage() {
           </div>
 
           {/* Responsive Comparison Table */}
-          <div className="overflow-x-auto rounded-3xl border border-slate-800 bg-[#141926] shadow-2xl">
+          <div className="overflow-x-auto rounded-3xl border border-slate-800 bg-[#141926] shadow-2xl max-w-5xl mx-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-800 bg-slate-900/60 text-xs uppercase tracking-wider">
-                  <th className="p-5 font-black text-slate-300 w-1/4">Key Features</th>
-                  <th className="p-5 font-black text-slate-300">Starter (25)</th>
+                  <th className="p-5 font-black text-slate-300 w-1/3">Key Features</th>
+                  <th className="p-5 font-black text-slate-300">Starter (10)</th>
                   <th className="p-5 font-black text-[#ff4d8d] bg-pink-500/5 border-x border-pink-500/20">
-                    Growth (50) ★
+                    Growth (30) ★
                   </th>
-                  <th className="p-5 font-black text-slate-300">Pro (100)</th>
-                  <th className="p-5 font-black text-slate-300">Enterprise (250)</th>
+                  <th className="p-5 font-black text-slate-300">Pro (50)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/80 text-xs sm:text-sm text-slate-300">
@@ -464,7 +438,6 @@ export default function PricingPage() {
                       {row.growth}
                     </td>
                     <td className="p-5 text-slate-300">{row.pro}</td>
-                    <td className="p-5 text-slate-300">{row.enterprise}</td>
                   </tr>
                 ))}
               </tbody>
@@ -500,18 +473,18 @@ export default function PricingPage() {
                 </div>
                 <input
                   type="range"
-                  min="25"
-                  max="500"
-                  step="25"
+                  min="10"
+                  max="100"
+                  step="10"
                   value={calcLeads}
                   onChange={(e) => setCalcLeads(Number(e.target.value))}
                   className="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#fd1d74]"
                 />
                 <div className="flex justify-between text-[11px] text-slate-400 font-medium">
-                  <span>25 Leads</span>
-                  <span>100 Leads</span>
-                  <span>250 Leads</span>
-                  <span>500+ Leads</span>
+                  <span>10 Leads</span>
+                  <span>30 Leads</span>
+                  <span>50 Leads</span>
+                  <span>100+ Leads</span>
                 </div>
               </div>
             </div>
