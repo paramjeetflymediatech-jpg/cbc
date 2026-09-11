@@ -35,7 +35,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ navigation }) => {
           <Text style={styles.brandTitle}>Clinic By Choice</Text>
           <Text style={styles.tagline}>Premium Healthcare Discovery Platform</Text>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>Version 1.0.0 (Stable)</Text>
+            <Text style={styles.badgeText}>Version 1.0.4 (Stable)</Text>
           </View>
         </View>
 

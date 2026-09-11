@@ -260,9 +260,7 @@ export const HospitalPackageDetailScreen: React.FC<any> = ({ route, navigation }
                 <Text style={styles.popularBadgeText}>⚡ VERIFIED PATIENT LEADS</Text>
               </View>
               <View style={styles.tierPill}>
-                <Text style={styles.tierPillText}>
-                  {pkg.validityDays ? `${pkg.validityDays} Days Validity` : 'Unlimited Validity'}
-                </Text>
+                <Text style={styles.tierPillText}>Instant Activation</Text>
               </View>
             </View>
 
@@ -287,10 +285,8 @@ export const HospitalPackageDetailScreen: React.FC<any> = ({ route, navigation }
               </View>
               <View style={styles.metricDivider} />
               <View style={styles.metricCol}>
-                <Text style={styles.metricVal}>
-                  {pkg.validityDays ? `${pkg.validityDays}d` : '∞'}
-                </Text>
-                <Text style={styles.metricLbl}>Expiry Duration</Text>
+                <Text style={styles.metricVal}>Instant</Text>
+                <Text style={styles.metricLbl}>Lead Delivery</Text>
               </View>
               <View style={styles.metricDivider} />
               <View style={styles.metricCol}>

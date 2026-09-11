@@ -36,7 +36,11 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We use your location to find the nearest hospitals, clinics, and doctors.</string>
+	<string>Clinic By Choice uses your location to discover nearby accredited hospitals, clinics, and specialist doctors in your city.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Clinic By Choice uses your location to discover nearby accredited hospitals, clinics, and specialist doctors in your city.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Clinic By Choice uses your location to discover nearby accredited hospitals, clinics, and specialist doctors in your city.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Clinic By Choice needs access to your camera to take profile photos and scan medical documents.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

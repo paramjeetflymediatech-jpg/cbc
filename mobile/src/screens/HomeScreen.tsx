@@ -329,13 +329,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <Text style={styles.getListedDesc}>
               List your hospital or clinic on Clinic By Choice and connect with thousands of patients.
             </Text>
-            <TouchableOpacity
-              style={styles.getListedBtn}
-              onPress={() => navigation.navigate('GetListed')}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.getListedBtnText}>List Your Hospital →</Text>
-            </TouchableOpacity>
+            <View style={styles.getListedButtonsRow}>
+              <TouchableOpacity
+                style={styles.getListedBtn}
+                onPress={() => navigation.navigate('GetListed')}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.getListedBtnText}>List Your Hospital →</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.pricingBtn}
+                onPress={() => navigation.navigate('Pricing')}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.pricingBtnText}>⚡ View Pricing</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -628,15 +638,31 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: 16,
   },
+  getListedButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
   getListedBtn: {
     backgroundColor: colors.primary,
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     borderRadius: 12,
-    alignSelf: 'flex-start',
   },
   getListedBtnText: {
     color: colors.textWhite,
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  pricingBtn: {
+    backgroundColor: '#0F172A',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  pricingBtnText: {
+    color: '#FF4D8D',
     fontWeight: '800',
     fontSize: 13,
   },

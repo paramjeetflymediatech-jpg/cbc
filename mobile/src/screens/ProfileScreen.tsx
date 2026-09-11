@@ -141,6 +141,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     {
       title: 'Providers & Partners',
       items: [
+        { icon: '⚡', label: 'Lead Packages & Pricing', onPress: () => navigation.navigate('Pricing') },
         { icon: '🏥', label: 'List Your Hospital', onPress: () => navigation.navigate('GetListed') },
       ],
     },

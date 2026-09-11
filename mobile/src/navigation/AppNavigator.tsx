@@ -27,6 +27,7 @@ import { SearchScreen } from '../screens/SearchScreen';
 import { PrivacyScreen } from '../screens/PrivacyScreen';
 import { HelpScreen } from '../screens/HelpScreen';
 import { AboutScreen } from '../screens/AboutScreen';
+import { PricingScreen } from '../screens/PricingScreen';
 import { EditProfileScreen } from '../screens/EditProfileScreen';
 
 // Hospital Admin Screens
@@ -194,6 +195,7 @@ export function AppNavigator() {
           <Stack.Screen name="Privacy" component={PrivacyScreen} />
           <Stack.Screen name="Help" component={HelpScreen} />
           <Stack.Screen name="About" component={AboutScreen} />
+          <Stack.Screen name="Pricing" component={PricingScreen} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} />
 
           {/* Hospital Management Screens */}
