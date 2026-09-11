@@ -85,7 +85,7 @@ export default function ContactUsClient() {
         setSubmitted(true);
         try {
           localStorage.removeItem('cbc_pending_enquiry');
-        } catch {}
+        } catch { }
       }
     } catch {
       setErrorMessage('Network error while sending message. Please try again.');
@@ -105,7 +105,7 @@ export default function ContactUsClient() {
     setSubmitted(false);
     try {
       localStorage.removeItem('cbc_pending_enquiry');
-    } catch {}
+    } catch { }
   };
 
   return (
@@ -140,7 +140,7 @@ export default function ContactUsClient() {
                 </div>
                 <div>
                   <h4 className="font-bold text-gray-900 text-base">Headquarters</h4>
-                  <p className="text-sm text-gray-600">Clinic By Choice Network, Mumbai, Maharashtra, India</p>
+                  <p className="text-sm text-gray-600">Clinic By Choice Network, Plot no 20 Vishal Nagar Ext, Ludhiana Punjab</p>
                 </div>
               </div>
 
@@ -151,7 +151,6 @@ export default function ContactUsClient() {
                 <div>
                   <h4 className="font-bold text-gray-900 text-base">Email Queries</h4>
                   <p className="text-sm text-gray-600">info@clinicbychoice.com</p>
-                  <p className="text-sm text-gray-600 mt-1">anujguptaflymedia@gmail.com</p>
                 </div>
               </div>
             </div>

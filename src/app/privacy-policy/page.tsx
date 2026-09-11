@@ -2,19 +2,19 @@ import React from 'react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
-import { 
-  ShieldCheck, 
-  Lock, 
-  Eye, 
-  Trash2, 
-  FileText, 
-  Server, 
-  Mail, 
-  UserCheck, 
-  AlertCircle, 
-  CheckCircle2, 
-  Phone, 
-  MapPin, 
+import {
+  ShieldCheck,
+  Lock,
+  Eye,
+  Trash2,
+  FileText,
+  Server,
+  Mail,
+  UserCheck,
+  AlertCircle,
+  CheckCircle2,
+  Phone,
+  MapPin,
   ChevronRight,
   ExternalLink
 } from 'lucide-react';
@@ -56,7 +56,7 @@ export default async function PrivacyPolicyPage() {
       {/* Hero Banner */}
       <section className="relative bg-[#101828] text-white py-16 sm:py-20 overflow-hidden border-b border-gray-800">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ec2c6c_1px,transparent_1px)] [background-size:20px_20px]" />
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Breadcrumb */}
           <nav className="flex items-center space-x-2 text-xs sm:text-sm text-gray-400 mb-6">
@@ -316,7 +316,7 @@ export default async function PrivacyPolicyPage() {
                 <span className="w-8 h-8 rounded-full bg-[#ec2c6c] text-white font-bold text-sm flex items-center justify-center">6</span>
                 <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900">Data Retention & Account Deletion Policy</h2>
               </div>
-              
+
               <div className="bg-pink-50/60 p-4 rounded-xl border border-pink-200/60 text-xs sm:text-sm text-gray-800 leading-relaxed">
                 <p className="font-semibold text-gray-900 mb-1">
                   Google Play Store & DPDPA Compliance Disclosure:
@@ -459,7 +459,7 @@ export default async function PrivacyPolicyPage() {
                 <div className="font-extrabold text-gray-900 text-base sm:text-lg">
                   Clinic By Choice Data Protection &amp; Grievance Office
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm text-gray-700">
                   <div className="flex items-start space-x-3">
                     <Mail className="w-4 h-4 text-[#ec2c6c] mt-0.5 flex-shrink-0" />
@@ -481,7 +481,7 @@ export default async function PrivacyPolicyPage() {
                     <MapPin className="w-4 h-4 text-[#ec2c6c] mt-0.5 flex-shrink-0" />
                     <div>
                       <span className="font-bold block text-gray-900">Location:</span>
-                      <span>Clinic By Choice Network, Mumbai, Maharashtra, India</span>
+                      <span>Clinic By Choice Network, Plot no 20 Vishal Nagar Ext, Ludhiana Punjab</span>
                     </div>
                   </div>
 
