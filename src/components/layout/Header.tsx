@@ -158,6 +158,15 @@ export default function Header() {
             </div>
 
             <Link
+              href="/pricing"
+              className={`text-white text-sm font-semibold transition-colors py-2 border-b-2 ${
+                pathname === '/pricing' ? 'border-white' : 'border-transparent hover:border-white/70'
+              }`}
+            >
+              Pricing
+            </Link>
+
+            <Link
               href="/contact-us"
               className={`text-white text-sm font-semibold transition-colors py-2 border-b-2 ${
                 pathname === '/contact-us' ? 'border-white' : 'border-transparent hover:border-white/70'
@@ -296,6 +305,14 @@ export default function Header() {
               </div>
             )}
           </div>
+
+          <Link
+            href="/pricing"
+            className="block py-2 font-bold text-gray-900 hover:text-[#fd1d74]"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Pricing
+          </Link>
 
           <Link
             href="/contact-us"

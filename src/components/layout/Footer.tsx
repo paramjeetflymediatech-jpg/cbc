@@ -135,6 +135,18 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/pricing" className="hover:text-[#F04B8B] flex items-center group">
+                  <span className="text-[#F04B8B] font-black mr-2 text-sm group-hover:translate-x-1 transition-transform">»</span>
+                  <span>Pricing &amp; Packages</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/get-listed" className="hover:text-[#F04B8B] flex items-center group">
+                  <span className="text-[#F04B8B] font-black mr-2 text-sm group-hover:translate-x-1 transition-transform">»</span>
+                  <span>Get Listed (Hospitals)</span>
+                </Link>
+              </li>
+              <li>
                 <Link href="/contact-us" className="hover:text-[#F04B8B] flex items-center group">
                   <span className="text-[#F04B8B] font-black mr-2 text-sm group-hover:translate-x-1 transition-transform">»</span>
                   <span>Book Appointment</span>

@@ -53,7 +53,7 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
     { name: 'Doctor Section', href: '/hospital/doctors', icon: UserCheck },
     { name: 'Offered Services', href: '/hospital/services', icon: Stethoscope },
     { name: 'Patient Leads', href: '/hospital/leads', icon: Users },
-    { name: 'Lead Packages', href: '/hospital/packages', icon: ShoppingBag },
+    { name: 'Packages', href: '/hospital/packages', icon: ShoppingBag },
     { name: 'Payment Receipts', href: '/hospital/payments', icon: CreditCard },
   ];
 

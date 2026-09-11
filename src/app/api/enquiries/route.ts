@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB, sequelize } from '@/lib/db';
 import { Hospital, Lead, LeadTransaction, Notification, Service, User } from '@/models';
-import { sendEnquiryEmail, sendPatientCredentialsEmail, sendUserEnquiryConfirmationEmail } from '@/lib/mailer';
+import { sendEnquiryEmail, sendLowLeadBalanceEmail, sendPatientCredentialsEmail, sendUserEnquiryConfirmationEmail } from '@/lib/mailer';
 import { verifyToken, signToken, hashPassword } from '@/lib/auth';
 import { Op } from 'sequelize';
 import crypto from 'crypto';
@@ -176,6 +176,27 @@ export async function POST(req: Request) {
             hospitalName: targetHospital.name,
             hospitalEmail: targetHospital.email,
           }).catch((err) => console.error('[MAILER] Async service enquiry email failed:', err));
+
+          // If hospital lead balance is low (<= 5) or exhausted (0), notify both hospital and super admin to repurchase
+          if (balanceAfter <= 5) {
+            sendLowLeadBalanceEmail({
+              hospitalName: targetHospital.name,
+              hospitalEmail: targetHospital.email,
+              leadsRemaining: balanceAfter,
+              hospitalPhone: targetHospital.phone,
+            }).catch((err) => console.error('[MAILER] Async low lead balance email failed:', err));
+
+            Notification.create({
+              recipientType: 'HOSPITAL',
+              recipientId: Number(hospitalId),
+              title: balanceAfter === 0 ? 'Lead Balance Exhausted (0 Leads Left)' : `Low Lead Balance Warning (${balanceAfter} Left)`,
+              message: balanceAfter === 0
+                ? 'Your lead balance has reached 0. Purchase a new lead package to avoid upcoming patient enquiries being locked.'
+                : `Your lead balance is running low (${balanceAfter} remaining). Please repurchase a package to ensure uninterrupted access.`,
+              type: balanceAfter === 0 ? 'PACKAGE_EXHAUSTED' : 'LOW_BALANCE',
+              isRead: false,
+            }).catch((nErr) => console.error('[NOTIFICATION] Low balance notification error:', nErr));
+          }
         } catch (txErr) {
           await transaction.rollback();
           console.error('Transaction rollback during enquiry lead deduction:', txErr);

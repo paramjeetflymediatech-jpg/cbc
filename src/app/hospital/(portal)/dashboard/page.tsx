@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, AlertTriangle, ArrowRight, CheckCircle2, Phone, Clock, PlusCircle } from 'lucide-react';
+import { Users, AlertTriangle, ArrowRight, CheckCircle2, Phone, Clock, PlusCircle, ShoppingBag } from 'lucide-react';
 
 export default function HospitalDashboardPage() {
   const [hospital, setHospital] = useState<any>(null);
@@ -51,8 +51,8 @@ export default function HospitalDashboardPage() {
           href="/hospital/packages"
           className="cbc-btn-primary text-sm shadow-lg flex items-center space-x-2 whitespace-nowrap"
         >
-          <PlusCircle className="w-4 h-4" />
-          <span>Buy Lead Package</span>
+          <ShoppingBag className="w-4 h-4" />
+          <span>Packages</span>
         </Link>
       </div>
 

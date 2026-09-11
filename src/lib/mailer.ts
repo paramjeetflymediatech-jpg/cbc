@@ -613,4 +613,123 @@ export async function sendUserEnquiryConfirmationEmail({
   });
 }
 
+/**
+ * Send Low Lead Balance Alert Email to Hospital and Super Admin
+ */
+export async function sendLowLeadBalanceEmail({
+  hospitalName,
+  hospitalEmail,
+  leadsRemaining,
+  hospitalPhone,
+}: {
+  hospitalName: string;
+  hospitalEmail: string;
+  leadsRemaining: number;
+  hospitalPhone?: string;
+}) {
+  const adminRecipients = parseRecipients(
+    process.env.SUPER_ADMIN_EMAIL || process.env.ADMIN_EMAIL || SMTP_USER || 'info@clinicbychoice.com'
+  );
+  const hospitalRecipients = hospitalEmail ? parseRecipients(hospitalEmail) : [];
+  const allRecipients = Array.from(new Set([...adminRecipients, ...hospitalRecipients]));
+  const logoUrl = getLogoUrl();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://clinicbychoice.com';
+  const packageUrl = `${appUrl}/hospital/packages`;
+
+  const isExhausted = leadsRemaining <= 0;
+  const badgeTitle = isExhausted ? 'Lead Package Exhausted' : 'Low Lead Balance Alert';
+  const badgeColor = isExhausted ? '#dc2626' : '#d97706';
+  const statusText = isExhausted
+    ? '0 Leads (Balance Exhausted)'
+    : `${leadsRemaining} Leads Remaining`;
+
+  const subject = isExhausted
+    ? `🚨 Action Required: Lead Balance Exhausted (0 Leads Left) - ${hospitalName}`
+    : `⚠️ Low Lead Balance Alert (${leadsRemaining} Leads Remaining) - ${hospitalName}`;
+
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+      
+      <!-- Header with Black Logo Badge -->
+      <div style="background: linear-gradient(90deg, rgb(180 58 173) 0%, rgb(253 29 116) 50%, rgb(252 69 214) 100%); padding: 28px 24px; text-align: center;">
+        <div style="background-color: rgba(255, 255, 255, 0.98); padding: 10px 22px; border-radius: 14px; display: inline-block; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <img src="${logoUrl}" alt="Clinic By Choice Logo" style="max-height: 48px; width: auto; display: block; margin: 0 auto;" />
+        </div>
+        <h2 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">${badgeTitle}</h2>
+      </div>
+
+      <!-- Main Content -->
+      <div style="padding: 28px 24px; background-color: #ffffff;">
+        <p style="font-size: 15px; color: #374151; margin-top: 0; line-height: 1.6;">
+          Dear <strong>${hospitalName}</strong> Team,
+        </p>
+        <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+          ${
+            isExhausted
+              ? `Your hospital lead credit balance has reached <strong>0</strong> on <strong>Clinic By Choice</strong>. Any new patient consultation requests will be held in locked mode and will expire within 48 hours unless a lead package is active.`
+              : `Your hospital lead credit balance is running low on <strong>Clinic By Choice</strong>. To prevent upcoming patient enquiries from being locked or missed, please repurchase a lead package.`
+          }
+        </p>
+
+        <!-- Balance Status Box -->
+        <div style="margin: 24px 0; padding: 20px; background-color: ${isExhausted ? '#fef2f2' : '#fffbeb'}; border: 1px solid ${isExhausted ? '#fecaca' : '#fde68a'}; border-radius: 12px;">
+          <h4 style="margin: 0 0 12px 0; color: ${badgeColor}; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800;">
+            Account Balance Summary
+          </h4>
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
+              <td style="padding: 8px 0; font-weight: 700; color: #6b7280; width: 150px;">Hospital:</td>
+              <td style="padding: 8px 0; color: #111827; font-weight: 800;">${hospitalName}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
+              <td style="padding: 8px 0; font-weight: 700; color: #6b7280;">Leads Remaining:</td>
+              <td style="padding: 8px 0; color: ${badgeColor}; font-weight: 900; font-size: 16px;">${statusText}</td>
+            </tr>
+            ${hospitalPhone ? `
+            <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
+              <td style="padding: 8px 0; font-weight: 700; color: #6b7280;">Registered Phone:</td>
+              <td style="padding: 8px 0; color: #111827;">${hospitalPhone}</td>
+            </tr>` : ''}
+            <tr>
+              <td style="padding: 8px 0; font-weight: 700; color: #6b7280; vertical-align: top;">Status:</td>
+              <td style="padding: 8px 0; color: #374151; font-size: 13px; line-height: 1.5;">
+                ${
+                  isExhausted
+                    ? 'Patient contact numbers and emails are currently locked. Repurchase a package to unlock patient contacts immediately.'
+                    : 'Leads are low. Repurchase now to ensure seamless, uninterrupted patient enquiries.'
+                }
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Action Button -->
+        <div style="text-align: center; margin: 32px 0 24px 0;">
+          <a href="${packageUrl}" style="display: inline-block; background: linear-gradient(90deg, #fd1d74 0%, #b02151 100%); color: #ffffff; text-decoration: none; padding: 14px 36px; border-radius: 9999px; font-weight: 800; font-size: 14px; box-shadow: 0 4px 14px rgba(253, 29, 116, 0.35); text-transform: uppercase; letter-spacing: 0.5px;">
+            Repurchase Lead Package Now
+          </a>
+        </div>
+
+        <!-- Helpful Support Note -->
+        <div style="margin-top: 24px; padding: 16px; background-color: #f9fafb; border-left: 4px solid #fd1d74; border-radius: 8px;">
+          <p style="margin: 0; font-size: 13px; color: #374151; line-height: 1.5;">
+            <strong>Need assistance with package selection or custom volumes?</strong> Contact our healthcare onboarding desk at <a href="mailto:info@clinicbychoice.com" style="color: #fd1d74; font-weight: 700; text-decoration: none;">info@clinicbychoice.com</a>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Footer Bar -->
+      <div style="background-color: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af;">
+        Copyright © 2026 Clinic By Choice. All rights reserved.
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    bcc: allRecipients,
+    subject,
+    html,
+  });
+}
+
 

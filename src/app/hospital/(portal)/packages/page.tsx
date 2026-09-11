@@ -203,23 +203,6 @@ export default function HospitalPackagesPage() {
                   />
                 )}
               </div>
-
-              <div className="pt-4 border-t border-gray-100">
-                <button
-                  onClick={() => handleBuyPackage(pkg.id)}
-                  disabled={isPurchasing}
-                  className="cbc-btn-primary w-full text-sm py-3 flex items-center justify-center space-x-2 shadow-lg"
-                >
-                  {isPurchasing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Connecting PhonePe...</span>
-                    </>
-                  ) : (
-                    <span>Buy Now with PhonePe</span>
-                  )}
-                </button>
-              </div>
             </div>
           );
         })}

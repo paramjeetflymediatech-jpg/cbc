@@ -129,7 +129,7 @@ export default function HospitalLeadsPage() {
             className="bg-[#b02151] hover:bg-[#921941] text-white text-xs font-extrabold px-4 py-2.5 rounded-xl uppercase tracking-wider shadow-md transition-all flex items-center space-x-1.5"
           >
             <ShoppingBag className="w-4 h-4" />
-            <span>Buy Lead Package</span>
+            <span>Packages</span>
           </Link>
         </div>
       </div>

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
-import { Lead, Hospital, LeadTransaction } from '@/models';
+import { Lead, Hospital, LeadTransaction, Notification } from '@/models';
+import { sendLowLeadBalanceEmail } from '@/lib/mailer';
 import { sequelize } from '@/lib/db';
 
 export async function POST(req: Request) {
@@ -86,6 +87,27 @@ export async function POST(req: Request) {
       );
 
       await transaction.commit();
+
+      // If hospital lead balance is low (<= 5) or exhausted (0), notify both hospital and super admin to repurchase
+      if (balanceAfter <= 5) {
+        sendLowLeadBalanceEmail({
+          hospitalName: hospital.name,
+          hospitalEmail: hospital.email,
+          leadsRemaining: balanceAfter,
+          hospitalPhone: hospital.phone,
+        }).catch((err) => console.error('[MAILER] Async low lead balance email failed on unlock:', err));
+
+        Notification.create({
+          recipientType: 'HOSPITAL',
+          recipientId: Number(hospital.id),
+          title: balanceAfter === 0 ? 'Lead Balance Exhausted (0 Leads Left)' : `Low Lead Balance Warning (${balanceAfter} Left)`,
+          message: balanceAfter === 0
+            ? 'Your lead balance has reached 0 after unlocking this lead. Please repurchase a package to unlock more patient enquiries.'
+            : `Your lead balance is running low (${balanceAfter} remaining). Please repurchase a package soon to maintain uninterrupted lead access.`,
+          type: balanceAfter === 0 ? 'PACKAGE_EXHAUSTED' : 'LOW_BALANCE',
+          isRead: false,
+        }).catch((nErr) => console.error('[NOTIFICATION] Low balance notification error:', nErr));
+      }
 
       return NextResponse.json({
         message: 'Lead unlocked successfully! 1 lead deducted.',
