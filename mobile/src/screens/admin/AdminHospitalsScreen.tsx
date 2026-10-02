@@ -981,11 +981,7 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
                             <Text style={styles.verifiedBadgeText}>✓ Verified</Text>
                           </View>
                         )}
-                        {h.isNabhAccredited && (
-                          <View style={styles.nabhBadge}>
-                            <Text style={styles.nabhBadgeText}>🏅 NABH</Text>
-                          </View>
-                        )}
+
                       </View>
                       <Text style={styles.hospLocation}>
                         📍 {h.address ? `${h.address}, ` : ''}{h.city}{h.state ? `, ${h.state}` : ''}
@@ -1201,18 +1197,7 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
                 />
               </View>
 
-              <View style={[styles.toggleRow, { borderTopWidth: 1, borderColor: colors.borderLight, paddingTop: 12, marginTop: 12 }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.toggleTitle}>NABH Accredited</Text>
-                  <Text style={styles.toggleSubtitle}>Highlight official healthcare accreditation</Text>
-                </View>
-                <Switch
-                  value={editIsNabhAccredited}
-                  onValueChange={setEditIsNabhAccredited}
-                  trackColor={{ false: '#E2E8F0', true: colors.primaryLight }}
-                  thumbColor={editIsNabhAccredited ? colors.primary : '#94A3B8'}
-                />
-              </View>
+
             </View>
 
             {/* Name */}

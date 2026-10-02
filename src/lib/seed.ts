@@ -158,7 +158,7 @@ export async function seedDatabase() {
       city: 'Chandigarh',
       state: 'Punjab',
       country: 'India',
-      description: 'Max Super Speciality Hospital is a 200+ bedded NABH & JCI accredited tertiary hospital equipped with modern operation theatres, 24x7 emergency response, and top super-specialists.',
+      description: 'Max Super Speciality Hospital is a 200+ bedded tertiary hospital equipped with modern operation theatres, 24x7 emergency response, and top super-specialists.',
       logo: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&auto=format&fit=crop&q=80',
       coverImage: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&auto=format&fit=crop&q=80',
       rating: 4.9,
@@ -266,7 +266,7 @@ export async function seedDatabase() {
       city: 'Amritsar',
       state: 'Punjab',
       country: 'India',
-      description: 'NABH accredited multispeciality hospital serving Amritsar & Majha region with dedicated cardiac catheterization and joint replacement units.',
+      description: 'Premier multispeciality hospital serving Amritsar & Majha region with dedicated cardiac catheterization and joint replacement units.',
       logo: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&auto=format&fit=crop&q=80',
       coverImage: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&auto=format&fit=crop&q=80',
       rating: 4.8,
@@ -305,7 +305,7 @@ export async function seedDatabase() {
         totalLeadsPurchased: 50,
         totalLeadsUsed: 0,
         doctors: seedDoctorsList,
-        facilities: ['24/7 Trauma ICU', 'NABH Accredited', 'In-house Pharmacy', 'Modular Surgical Suite'],
+        facilities: ['24/7 Trauma ICU', 'Advanced Diagnostics', 'In-house Pharmacy', 'Modular Surgical Suite'],
       });
     }
   }

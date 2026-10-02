@@ -123,7 +123,7 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
               activeOpacity={0.8}
             >
               <Text style={styles.checkboxIcon}>{verifiedOnly ? '☑️' : '⏹️'}</Text>
-              <Text style={styles.checkboxLabel}>Show Verified Hospitals Only (NABH / Accredited)</Text>
+              <Text style={styles.checkboxLabel}>Show Verified Hospitals Only (Accredited)</Text>
             </TouchableOpacity>
           </ScrollView>
 

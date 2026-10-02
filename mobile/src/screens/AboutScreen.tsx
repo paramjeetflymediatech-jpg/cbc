@@ -63,7 +63,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ navigation }) => {
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>🤝 Official Healthcare Partner</Text>
           <Text style={styles.infoBody}>
-            Clinic By Choice coordinates directly with major medical organizations and JCI/NABH certified hospital groups to provide official diagnostic diagnostic advice and free consultation support.
+            Clinic By Choice coordinates directly with major medical organizations and certified healthcare hospital groups to provide official diagnostic advice and free consultation support.
           </Text>
         </View>
 

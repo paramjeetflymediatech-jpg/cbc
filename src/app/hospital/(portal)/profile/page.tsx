@@ -556,18 +556,7 @@ export default function HospitalProfilePage() {
                 />
               </div>
 
-              <div className="flex items-center space-x-2 sm:pt-6">
-                <input
-                  type="checkbox"
-                  id="isNabhAccredited"
-                  checked={isNabhAccredited}
-                  onChange={(e) => setIsNabhAccredited(e.target.checked)}
-                  className="w-4 h-4 text-[#b02151] rounded focus:ring-0 cursor-pointer"
-                />
-                <label htmlFor="isNabhAccredited" className="text-xs font-bold text-gray-800 cursor-pointer select-none">
-                  NABH Accredited Badge
-                </label>
-              </div>
+
 
               <div className="flex items-center space-x-2 sm:pt-6">
                 <input

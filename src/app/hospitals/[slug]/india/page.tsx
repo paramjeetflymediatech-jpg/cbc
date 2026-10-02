@@ -262,46 +262,46 @@ export default async function ServiceHospitalsIndiaPage({ params, searchParams }
       <Header />
 
       {/* Header Banner */}
-      <div className="bg-[#101828] text-white py-12">
+      <div className="bg-white text-black py-12 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
           {/* Breadcrumb if parent service exists */}
           {parentService && (
-            <nav className="flex items-center space-x-2 text-xs font-semibold text-pink-300">
-              <Link href="/service" className="hover:underline">
+            <nav className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-gray-500">
+              <Link href="/service" className="hover:text-[#fd1d74] hover:underline">
                 Services
               </Link>
-              <ChevronRight className="w-3.5 h-3.5" />
-              <Link href={`/hospitals/${parentService.slug}/india`} className="hover:underline">
+              <ChevronRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+              <Link href={`/hospitals/${parentService.slug}/india`} className="hover:text-[#fd1d74] hover:underline">
                 {parentService.name}
               </Link>
-              <ChevronRight className="w-3.5 h-3.5" />
-              <span className="text-white">{service.name}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+              <span className="text-black font-bold">{service.name}</span>
             </nav>
           )}
 
           <div className="flex items-center space-x-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#ec2c6c] bg-pink-500/10 px-3 py-1 rounded-full border border-pink-500/20">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#9d174d] bg-pink-50 px-3 py-1 rounded-full border border-pink-200">
               {service.category || 'Specialty Care'}
             </span>
             {parentService && (
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-300 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
                 Sub-Service
               </span>
             )}
           </div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-black leading-tight tracking-tight">
             {service.name} Hospitals in India
           </h1>
-          <p className="text-gray-300 text-sm sm:text-base max-w-3xl leading-relaxed font-medium">
+          <p className="text-gray-600 text-sm sm:text-base max-w-3xl leading-relaxed font-medium">
             {service.shortDescription ||
               `Find top accredited hospitals in India offering specialized ${service.name} care. Compare facilities and book appointments.`}
           </p>
 
           {/* Sub-Services Pills section if main service has sub-services */}
           {subServices.length > 0 && (
-            <div className="pt-2 border-t border-gray-800 space-y-2">
-              <div className="flex items-center space-x-2 text-xs font-bold uppercase text-pink-400 tracking-wider">
+            <div className="pt-2 border-t border-gray-100 space-y-2">
+              <div className="flex items-center space-x-2 text-xs font-bold uppercase text-[#9d174d] tracking-wider">
                 <Layers className="w-3.5 h-3.5" />
                 <span>Specialized Sub-Services ({subServices.length}):</span>
               </div>
@@ -311,10 +311,10 @@ export default async function ServiceHospitalsIndiaPage({ params, searchParams }
                   <Link
                     key={sub.id}
                     href={`/hospitals/${sub.slug}/india`}
-                    className="inline-flex items-center space-x-1.5 bg-white/10 hover:bg-[#fd1d74] text-white text-xs font-bold px-3 py-1.5 rounded-full border border-white/15 transition-all hover:scale-105"
+                    className="inline-flex items-center space-x-1.5 bg-gray-50 hover:bg-[#be185d] text-gray-800 hover:text-white text-xs font-bold px-3 py-1.5 rounded-full border border-gray-200 transition-all hover:scale-105"
                   >
                     <span>{sub.name}</span>
-                    <ChevronRight className="w-3 h-3 text-pink-300" />
+                    <ChevronRight className="w-3 h-3 text-[#9d174d]" />
                   </Link>
                 ))}
               </div>
@@ -343,9 +343,9 @@ export default async function ServiceHospitalsIndiaPage({ params, searchParams }
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* LEFT COLUMN: Hospitals List, Description & FAQs (8 Columns) */}
           <div className="lg:col-span-8 space-y-8">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
               <div>
-                <h2 className="text-xl font-black text-gray-900">
+                <h2 className="text-lg sm:text-xl font-black text-gray-900">
                   Showing {hospitals.length} Verified Hospital(s) offering {service.name}
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
@@ -355,7 +355,7 @@ export default async function ServiceHospitalsIndiaPage({ params, searchParams }
               {(state || city || search) && (
                 <a
                   href={`/hospitals/${service.slug}/india`}
-                  className="text-xs font-bold text-[#ec2c6c] hover:underline"
+                  className="text-xs font-bold text-[#be185d] hover:underline self-start sm:self-auto"
                 >
                   Clear Filters
                 </a>
@@ -483,7 +483,7 @@ export default async function ServiceHospitalsIndiaPage({ params, searchParams }
               <div className="space-y-2 pt-1 border-t border-gray-800 text-xs text-gray-300">
                 <div className="flex items-center space-x-2">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                  <span>Verified NABH/JCI Accredited Centers</span>
+                  <span>Verified Accredited Partner Centers</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />

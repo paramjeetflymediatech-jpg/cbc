@@ -1778,17 +1778,9 @@ export default function AdminHospitalsPage() {
                   5. Quality Accreditation & Google Ratings
                 </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
-                  <label className="flex items-center space-x-2 p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={editIsNabhAccredited}
-                      onChange={(e) => setEditIsNabhAccredited(e.target.checked)}
-                      className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                    />
-                    <span className="text-xs font-bold text-gray-800">NABH Accredited</span>
-                  </label>
 
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
                   <label className="flex items-center space-x-2 p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer">
                     <input
                       type="checkbox"

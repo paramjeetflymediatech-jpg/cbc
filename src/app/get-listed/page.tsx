@@ -320,7 +320,7 @@ export default function GetListedPage() {
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-6 pt-3 text-xs sm:text-sm font-bold text-white/90">
-            <span className="flex items-center"><ShieldCheck className="w-5 h-5 text-yellow-300 mr-1.5" /> NABH Verified Marketplace</span>
+            <span className="flex items-center"><ShieldCheck className="w-5 h-5 text-yellow-300 mr-1.5" /> Verified Healthcare Marketplace</span>
             <span className="flex items-center"><Globe className="w-5 h-5 text-yellow-300 mr-1.5" /> Global Medical Tourism Reach</span>
             <span className="flex items-center"><Award className="w-5 h-5 text-yellow-300 mr-1.5" /> Dedicated Hospital Dashboard</span>
           </div>
@@ -625,7 +625,7 @@ export default function GetListedPage() {
                       required
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Describe your hospital facilities, accreditation (NABH/JCI), number of ICU beds, and medical team experience..."
+                      placeholder="Describe your hospital facilities, accreditations, number of ICU beds, and medical team experience..."
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-[#fd1d74] focus:bg-white transition-colors resize-none"
                     />
                   </div>

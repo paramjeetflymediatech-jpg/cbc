@@ -589,11 +589,7 @@ export default function AdminUserDetailPage() {
                               <span>{hospital.rating}</span>
                             </span>
                           )}
-                          {hospital?.isNabhAccredited && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">
-                              NABH
-                            </span>
-                          )}
+
                         </div>
                         {hospital?.city && (
                           <p className="text-xs text-slate-500 font-medium flex items-center">

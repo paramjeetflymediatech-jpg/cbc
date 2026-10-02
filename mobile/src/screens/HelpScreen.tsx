@@ -21,7 +21,7 @@ export const HelpScreen: React.FC<HelpScreenProps> = ({ navigation }) => {
     },
     {
       q: 'Are the listed medical providers verified?',
-      a: 'Absolutely. We only list accredited healthcare centers (such as NABH and JCI certified clinics and hospitals) with verified medical professionals.',
+      a: 'Absolutely. We only list accredited healthcare centers with verified medical professionals.',
     },
     {
       q: 'How can I change my preferred city location?',

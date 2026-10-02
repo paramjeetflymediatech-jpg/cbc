@@ -37,14 +37,15 @@
 }
 
 .cbc-card:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: 0px 15px 5px 5px rgba(0, 0, 0, 0.12);
+  transform: translateY(-20px);
 }
 
 .cbc-btn-primary {
-  background-color: #ec2c6c;
+  background-color: #be185d;
   color: #ffffff;
   border-radius: 9999px;
-  font-weight: 500;
+  font-weight: 600;
   padding: 0.625rem 1.5rem;
   transition: background-color 0.2s ease;
   display: inline-flex;
@@ -53,7 +54,7 @@
 }
 
 .cbc-btn-primary:hover {
-  background-color: #d41f5a;
+  background-color: #9d174d;
 }
 
 .cbc-btn-dark {

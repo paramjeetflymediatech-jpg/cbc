@@ -64,7 +64,7 @@ export async function GET() {
   // Header & Title
   lines.push('# Clinic By Choice');
   lines.push('');
-  lines.push('> Clinic By Choice (CBC) is India\'s premier healthcare platform and medical tourism network connecting patients with accredited hospitals, NABH/JCI multi-specialty clinics, and surgical specialists across India for high-quality treatments, second opinions, and affordable surgeries.');
+  lines.push('> Clinic By Choice (CBC) is India\'s premier healthcare platform and medical tourism network connecting patients with accredited hospitals, multi-specialty clinics, and surgical specialists across India for high-quality treatments, second opinions, and affordable surgeries.');
   lines.push('');
 
   // Key Capabilities
@@ -103,7 +103,7 @@ export async function GET() {
       lines.push(`- [${h.name}](${baseUrl}/hospital/${h.slug})${location ? ` (${location})` : ''}`);
     });
   } else {
-    lines.push(`- [Fortis Healthcare](${baseUrl}/hospitals/india): JCI & NABH accredited multi-super-specialty hospital network across India.`);
+    lines.push(`- [Fortis Healthcare](${baseUrl}/hospitals/india): Multi-super-specialty hospital network across India.`);
     lines.push(`- [Max Healthcare](${baseUrl}/hospitals/india): Leading quaternary care centers in Delhi NCR, Mumbai, and North India.`);
     lines.push(`- [Apollo Hospitals](${baseUrl}/hospitals/india): Asia's largest integrated healthcare network.`);
     lines.push(`- [Medanta - The Medicity](${baseUrl}/hospitals/india): World-class multi-super-specialty institute in Gurugram, India.`);

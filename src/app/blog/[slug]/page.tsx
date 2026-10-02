@@ -269,7 +269,7 @@ export default async function BlogDetailPage({ params }: PageProps) {
                 <div className="space-y-1">
                   <h4 className="text-lg font-extrabold text-gray-900">Consult with Top Medical Specialists</h4>
                   <p className="text-xs text-gray-500 font-medium">
-                    Get expert guidance and treatment estimates from verified NABH-accredited hospitals.
+                    Get expert guidance and treatment estimates from verified partner hospitals.
                   </p>
                 </div>
               </div>

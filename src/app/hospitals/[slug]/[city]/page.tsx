@@ -363,40 +363,40 @@ export default async function CityServiceDetailPage({ params, searchParams }: Pa
       <Header />
 
       {/* Header Banner */}
-      <div className="bg-[#101828] text-white py-12">
+      <div className="bg-white text-gray-900 py-12 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
           {/* Breadcrumbs */}
-          <nav className="flex items-center flex-wrap gap-2 text-xs font-semibold text-pink-300">
-            <Link href="/" className="hover:underline">
+          <nav className="flex items-center flex-wrap gap-1.5 text-xs font-semibold text-gray-500">
+            <Link href="/" className="hover:text-[#be185d] hover:underline">
               Home
             </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
-            <Link href="/service" className="hover:underline">
+            <ChevronRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <Link href="/service" className="hover:text-[#be185d] hover:underline">
               Services
             </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
-            <Link href={`/hospitals/${service.slug}/india`} className="hover:underline">
+            <ChevronRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <Link href={`/hospitals/${service.slug}/india`} className="hover:text-[#be185d] hover:underline">
               {service.name} in India
             </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
-            <span className="text-white font-bold">{cityName}</span>
+            <ChevronRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <span className="text-black font-bold">{cityName}</span>
           </nav>
 
           <div className="flex items-center space-x-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#ec2c6c] bg-pink-500/10 px-3 py-1 rounded-full border border-pink-500/20">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#9d174d] bg-pink-50 px-3 py-1 rounded-full border border-pink-200">
               {service.category || 'Specialty Care'}
             </span>
-            <span className="inline-flex items-center space-x-1 text-xs font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-              <MapPin className="w-3 h-3" />
+            <span className="inline-flex items-center space-x-1 text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+              <MapPin className="w-3 h-3 text-emerald-600" />
               <span>{cityName}</span>
             </span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-black leading-tight tracking-tight">
             {serviceLocation?.serviceTitle || `${service.name} in ${cityName}`}
           </h1>
 
-          <p className="text-gray-300 text-sm sm:text-base max-w-3xl leading-relaxed font-medium">
+          <p className="text-gray-600 text-sm sm:text-base max-w-3xl leading-relaxed font-medium">
             {serviceLocation?.shortDescription ||
               `Find top accredited hospitals, specialized clinics, and experienced doctors for ${service.name} in ${cityName}. Compare facilities and book appointments.`}
           </p>

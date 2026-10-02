@@ -183,9 +183,9 @@ export default function FilterBar({
     <form
       ref={formRef}
       onSubmit={handleSubmit}
-      className={`bg-white p-3 rounded-2xl shadow-2xl grid grid-cols-1 sm:grid-cols-2 ${
+      className={`bg-white p-3.5 rounded-2xl border border-gray-200/90 shadow-lg shadow-slate-200/60 grid grid-cols-1 sm:grid-cols-2 ${
         showSpecialtySelect ? 'lg:grid-cols-6' : 'lg:grid-cols-5'
-      } gap-3 text-gray-900 pt-2`}
+      } gap-3 text-gray-900`}
     >
       {/* Search Input */}
       <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl">

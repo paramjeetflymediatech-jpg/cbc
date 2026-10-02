@@ -58,11 +58,7 @@ export default function HospitalCard({ hospital, defaultServiceId }: HospitalCar
                 <Star className="w-3 h-3 fill-current mr-1 text-[#ec2c6c]" />
                 {(hospital as any).googleRating || hospital.rating || 4.8} Verified
               </span>
-              {Boolean((hospital as any).isNabhAccredited) && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-white">
-                  NABH Accredited
-                </span>
-              )}
+
               {Boolean((hospital as any).isVerifiedPartner) && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                   <ShieldCheck className="w-3 h-3 mr-1 text-emerald-600" />
@@ -133,7 +129,7 @@ export default function HospitalCard({ hospital, defaultServiceId }: HospitalCar
               className={`px-6 py-2.5 rounded-full text-xs font-bold text-center transition-all flex items-center justify-center space-x-1.5 ${
                 isExhausted
                   ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-[#ec2c6c] hover:bg-[#d41f5a] text-white shadow-md hover:shadow-lg'
+                  : 'bg-[#be185d] hover:bg-[#9d174d] text-white shadow-md hover:shadow-lg'
               }`}
             >
               <PhoneCall className="w-3.5 h-3.5" />

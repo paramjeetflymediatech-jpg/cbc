@@ -87,7 +87,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onPress, vari
               <Text style={styles.infoCountText}>
                 {treatments.length > 0 ? `${treatments.length} Procedures` : 'Expert Care'}
               </Text>
-              <Text style={styles.infoSubText}>NABH Partner Hospitals</Text>
+              <Text style={styles.infoSubText}>Partner Hospitals</Text>
             </View>
 
             <TouchableOpacity style={styles.actionBtn} onPress={onPress} activeOpacity={0.8}>

@@ -154,9 +154,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <Text style={styles.heroHighlight}>Your Choice.</Text>
           </Text>
 
-          <Text style={styles.heroSubtitle}>
-            Discover trusted NABH accredited hospitals and specialists in one unified platform.
-          </Text>
+          
 
           <View style={styles.heroButtonRow}>
             <TouchableOpacity

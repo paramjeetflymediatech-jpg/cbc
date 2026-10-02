@@ -189,8 +189,7 @@ export default async function HomePage() {
             </form>
 
             <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-sm font-bold text-gray-100 drop-shadow-md">
-              <span className="flex items-center"><ShieldCheck className="w-5 h-5 text-[#fd1d74] mr-1.5" /> NABH Accredited Hospitals</span>
-              <span className="flex items-center"><Award className="w-5 h-5 text-[#fd1d74] mr-1.5" /> Direct Consultation Choice</span>
+               <span className="flex items-center"><Award className="w-5 h-5 text-[#fd1d74] mr-1.5" /> Direct Consultation Choice</span>
             </div>
           </div>
         </div>

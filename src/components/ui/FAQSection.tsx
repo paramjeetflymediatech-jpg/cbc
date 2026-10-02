@@ -62,7 +62,7 @@ const faqs: FAQItem[] = [
   {
     question: 'How can you simplify my search for the best orthopaedic hospital in India for knee pain?',
     answer:
-      'Clinic By Choice lists top-tier NABH-accredited orthopedic hospitals specializing in joint replacement, arthroscopy, and robotic surgery, helping you compare facilities, doctors, and treatment packages effortlessly.',
+      'Clinic By Choice lists top-tier accredited orthopedic hospitals specializing in joint replacement, arthroscopy, and robotic surgery, helping you compare facilities, doctors, and treatment packages effortlessly.',
   },
   {
     question: 'How can I engage with the best skin doctor in India?',

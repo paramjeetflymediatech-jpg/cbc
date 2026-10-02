@@ -174,9 +174,9 @@ export const mockHospitals: Hospital[] = [
     isVerified: true,
     image: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&auto=format&fit=crop&q=80',
     specialties: ['Orthopaedics', 'Cardiology', 'Oncology', 'Neurology', 'IVF'],
-    description: 'Max Super Speciality Hospital is a 200+ bedded NABH & JCI accredited tertiary hospital equipped with modern operation theatres, 24x7 emergency response, and top super-specialists.',
-    facilities: ['24/7 Emergency & Trauma', 'Advanced ICU & CCU', 'NABH & JCI Accredited', 'Robotic Surgery Suite', 'In-house Diagnostic Labs', 'International Patient Helpdesk'],
-    accreditations: ['NABH Accredited', 'NABL Lab', 'JCI Certified'],
+    description: 'Max Super Speciality Hospital is a 200+ bedded tertiary hospital equipped with modern operation theatres, 24x7 emergency response, and top super-specialists.',
+    facilities: ['24/7 Emergency & Trauma', 'Advanced ICU & CCU', 'Robotic Surgery Suite', 'In-house Diagnostic Labs', 'International Patient Helpdesk'],
+    accreditations: ['NABL Lab', 'JCI Certified'],
     experienceYears: 18,
     doctors: [mockDoctors[1], mockDoctors[3]],
     treatments: [
@@ -202,7 +202,7 @@ export const mockHospitals: Hospital[] = [
     specialties: ['IVF & Fertility', 'Gynecology', 'General Surgery', 'Neonatology'],
     description: 'Leading center of excellence for reproductive medicine, high-risk maternity care, and advanced fertility solutions with over 15,000 successful deliveries.',
     facilities: ['State of the Art IVF Lab', 'Advanced Embryology Suite', '24/7 Pharmacy', 'Dedicated Maternity Suites', 'High Risk Pregnancy Unit'],
-    accreditations: ['NABH Accredited', 'ISAR Certified'],
+    accreditations: ['ISAR Certified', 'ISO Certified'],
     experienceYears: 22,
     doctors: [mockDoctors[2]],
     treatments: [
@@ -227,7 +227,7 @@ export const mockHospitals: Hospital[] = [
     specialties: ['Orthopaedics', 'Neurology', 'Physiotherapy', 'Sports Medicine'],
     description: 'Specialized healthcare facility focused on minimally invasive joint repairs, spine surgery, stroke neuro-rehabilitation, and sports injury recovery.',
     facilities: ['Hydrotherapy Unit', 'Digital X-Ray & MRI', 'Modular OT with HEPA Filters', 'Dedicated Rehab Gymnasium'],
-    accreditations: ['NABH Accredited'],
+    accreditations: ['ISO Certified'],
     experienceYears: 16,
     doctors: [mockDoctors[1]],
     treatments: [
@@ -253,7 +253,7 @@ export const mockHospitals: Hospital[] = [
     specialties: ['Dental Surgery', 'Dermatology', 'Maxillofacial Surgery'],
     description: 'Super-specialty dental clinic offering painless laser dentistry, digital 3D CBCT scans, full mouth dental implants, and cosmetic smile designs.',
     facilities: ['Digital 3D CBCT Scan', 'Painless Laser Dentistry', 'Sterilization Autoclave Class B', 'Modular Dental Chairs'],
-    accreditations: ['IDA Approved', 'NABH Quality Certified'],
+    accreditations: ['IDA Approved', 'Quality Certified'],
     experienceYears: 14,
     doctors: [mockDoctors[0]],
     treatments: [
@@ -277,8 +277,8 @@ export const mockHospitals: Hospital[] = [
     image: 'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=800&auto=format&fit=crop&q=80',
     specialties: ['Cardiology', 'Orthopaedics', 'Oncology', 'Gastroenterology'],
     description: 'Fortis Hospital Ludhiana is a premier 260-bed super speciality hospital equipped with advanced Cath labs, linear accelerator cancer care, and joint replacement suites.',
-    facilities: ['24x7 Cath Lab & Trauma Center', 'PET-CT Scan & Oncology Wing', 'NABH Accredited', 'Dedicated Heart Care Center'],
-    accreditations: ['NABH Accredited', 'NABL Certified'],
+    facilities: ['24x7 Cath Lab & Trauma Center', 'PET-CT Scan & Oncology Wing', 'Advanced Diagnostics', 'Dedicated Heart Care Center'],
+    accreditations: ['Quality Accredited', 'NABL Certified'],
     experienceYears: 12,
     doctors: [mockDoctors[3]],
     treatments: [
@@ -303,7 +303,7 @@ export const mockHospitals: Hospital[] = [
     specialties: ['Neurology', 'Oncology', 'Cardiology', 'General Surgery', 'Pediatrics'],
     description: 'A 1325-bed tertiary care teaching hospital offering comprehensive clinical specialities, advanced stroke units, and trauma emergency.',
     facilities: ['Level 1 Trauma Center', 'Organ Transplant Facility', 'Advanced ICU Network', 'Round-the-clock Diagnostics'],
-    accreditations: ['NABH Accredited', 'NABL Accredited'],
+    accreditations: ['Quality Accredited', 'NABL Accredited'],
     experienceYears: 40,
     doctors: [mockDoctors[1]],
     treatments: [
@@ -327,9 +327,9 @@ export const mockHospitals: Hospital[] = [
     isVerified: true,
     image: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&auto=format&fit=crop&q=80',
     specialties: ['Cardiology', 'Orthopaedics', 'Urology', 'Nephrology'],
-    description: 'NABH accredited multispeciality hospital serving Amritsar & Majha region with dedicated cardiac catheterization and joint replacement units.',
-    facilities: ['24x7 Emergency Services', 'NABH Accredited', 'Dialysis Center', 'Modular Surgical Suites'],
-    accreditations: ['NABH Accredited'],
+    description: 'Premier multispeciality hospital serving Amritsar & Majha region with dedicated cardiac catheterization and joint replacement units.',
+    facilities: ['24x7 Emergency Services', 'Advanced ICU', 'Dialysis Center', 'Modular Surgical Suites'],
+    accreditations: ['Quality Accredited'],
     experienceYears: 15,
     doctors: [mockDoctors[3]],
     treatments: [
@@ -355,7 +355,7 @@ export const mockHospitals: Hospital[] = [
     specialties: ['Gastroenterology', 'Cardiology', 'Orthopaedics', 'Neurology'],
     description: 'Modern tertiary care hospital with advanced GI endoscopy, interventional cardiology, and joint care services in Doaba region.',
     facilities: ['Advanced GI Endoscopy Suite', '24/7 Emergency & ICU', 'Digital Radiology'],
-    accreditations: ['NABH Quality Certified'],
+    accreditations: ['Quality Certified'],
     experienceYears: 10,
     doctors: [mockDoctors[2]],
     treatments: [
@@ -380,8 +380,8 @@ export const mockHospitals: Hospital[] = [
     image: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80',
     specialties: ['Cardiology', 'Oncology', 'Neurosciences', 'Liver Transplant', 'Orthopaedics'],
     description: '1250-bed multi-super speciality institute founded by Dr. Naresh Trehan, featuring world-class robotic surgeries, organ transplants, and cancer care.',
-    facilities: ['JCI & NABH Accredited', 'Da Vinci Robotic System', 'Hybrid Cardiac OT', 'International Air Ambulance'],
-    accreditations: ['JCI Certified', 'NABH Accredited', 'NABL Accredited'],
+    facilities: ['JCI Accredited', 'Da Vinci Robotic System', 'Hybrid Cardiac OT', 'International Air Ambulance'],
+    accreditations: ['JCI Certified', 'Quality Accredited', 'NABL Accredited'],
     experienceYears: 15,
     doctors: [mockDoctors[3]],
     treatments: [
@@ -439,7 +439,7 @@ export const whyChooseCBCData = [
   {
     icon: '🛡️',
     title: 'Trusted Providers',
-    description: 'Only NABH & NABL accredited healthcare institutions listed.',
+    description: 'Only verified and accredited healthcare institutions listed.',
   },
   {
     icon: '🔍',

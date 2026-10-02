@@ -274,61 +274,62 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
     }
   };
 
+  const fiveStarReviews = (googleReviews || [])
+    .filter((r: any) => Number(r.rating) === 5)
+    .sort((a: any, b: any) => (b.time || 0) - (a.time || 0))
+    .slice(0, 5);
+
   return (
     <main className="flex-1 bg-slate-50 pb-20">
       {/* Top Breadcrumb Header */}
-      <div className="bg-[#101828] text-white pt-6 pb-12 border-b border-gray-800">
+      <div className="bg-white text-gray-900 pt-6 pb-12 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-          <nav className="text-xs text-gray-400 font-medium flex items-center space-x-2">
-            <a href="/" className="hover:text-white transition-colors">Home</a>
-            <span>/</span>
-            <span className="text-gray-300">{hospital.city || 'City'}</span>
-            <span>/</span>
-            <span className="text-pink-400 font-bold">{hospital.name}</span>
+          <nav className="text-xs text-gray-500 font-medium flex flex-wrap items-center gap-1.5">
+            <a href="/" className="hover:text-[#be185d] transition-colors">Home</a>
+            <span className="text-gray-400">/</span>
+            <span className="text-gray-600">{hospital.city || 'City'}</span>
+            <span className="text-gray-400">/</span>
+            <span className="text-[#be185d] font-bold">{hospital.name}</span>
           </nav>
 
           {/* Main Hospital Hero Card */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-6">
               {/* Logo Box */}
-              <div className="relative w-28 h-28 bg-white rounded-3xl p-3 flex-shrink-0 flex items-center justify-center overflow-hidden shadow-2xl border-2 border-white/20">
+              <div className="relative w-28 h-28 bg-white rounded-3xl p-3 flex-shrink-0 flex items-center justify-center overflow-hidden shadow-lg border border-gray-200">
                 {hospital.logo ? (
                   <Image src={hospital.logo} alt={hospital.name} fill unoptimized className="object-contain p-2" />
                 ) : (
-                  <Building2 className="w-14 h-14 text-[#b02151]" />
+                  <Building2 className="w-14 h-14 text-[#be185d]" />
                 )}
               </div>
 
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="bg-[#fd1d74] text-white text-xs font-extrabold px-3.5 py-1 rounded-full flex items-center shadow-xs">
+                  <span className="bg-[#be185d] text-white text-xs font-extrabold px-3.5 py-1 rounded-full flex items-center shadow-xs">
                     <Star className="w-3.5 h-3.5 fill-current mr-1 text-yellow-300" />
                     {(hospital as any).googleRating || hospital.rating || 4.8} Verified Hospital
                   </span>
-                  {Boolean((hospital as any).isNabhAccredited) && (
-                    <span className="bg-slate-800/90 text-white text-xs font-bold px-3.5 py-1 rounded-full border border-slate-700 shadow-xs">
-                      NABH Accredited
-                    </span>
-                  )}
+
                   {Boolean((hospital as any).isVerifiedPartner) && (
-                    <span className="bg-[#045c43]/60 text-emerald-300 border border-emerald-600/50 text-xs font-extrabold px-3.5 py-1 rounded-full flex items-center shadow-xs">
-                      <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+                    <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-extrabold px-3.5 py-1 rounded-full flex items-center shadow-xs">
+                      <ShieldCheck className="w-3.5 h-3.5 mr-1 text-emerald-600" />
                       Verified Partner
                     </span>
                   )}
                 </div>
 
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">{hospital.name}</h1>
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">{hospital.name}</h1>
 
-                <p className="text-xs sm:text-sm text-gray-300 flex items-center font-medium">
-                  <MapPin className="w-4 h-4 text-[#fd1d74] mr-1.5 flex-shrink-0" />
+                <p className="text-xs sm:text-sm text-gray-600 flex items-center font-medium">
+                  <MapPin className="w-4 h-4 text-[#be185d] mr-1.5 flex-shrink-0" />
                   {hospital.address}, {hospital.city}, {hospital.state || 'Punjab'}
                 </p>
 
-                <div className="flex flex-wrap items-center gap-4 text-xs text-gray-300 pt-1 font-medium">
-                  <span className="flex items-center"><Phone className="w-3.5 h-3.5 text-[#fd1d74] mr-1" /> {hospital.phone}</span>
+                <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600 pt-1 font-medium">
+                  <span className="flex items-center"><Phone className="w-3.5 h-3.5 text-[#be185d] mr-1" /> {hospital.phone}</span>
                   {/* {hospital.website && (
-                    <a href={hospital.website} target="_blank" rel="noreferrer" className="text-pink-300 hover:underline flex items-center">
+                    <a href={hospital.website} target="_blank" rel="noreferrer" className="text-pink-600 hover:underline flex items-center">
                       <Globe className="w-3.5 h-3.5 mr-1" /> Official Website
                     </a>
                   )} */}
@@ -341,16 +342,16 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
               <button
                 onClick={() => handleContactClick()}
                 disabled={isExhausted}
-                className={`w-full md:w-auto px-8 py-4 rounded-2xl text-sm font-extrabold uppercase tracking-wider transition-all shadow-2xl flex items-center justify-center space-x-2.5 cursor-pointer ${isExhausted
-                    ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
-                    : 'bg-[#b02151] hover:bg-[#921941] text-white shadow-pink-900/40'
+                className={`w-full md:w-auto px-8 py-4 rounded-2xl text-sm font-extrabold uppercase tracking-wider transition-all shadow-lg flex items-center justify-center space-x-2.5 cursor-pointer ${isExhausted
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed border border-gray-300'
+                    : 'bg-[#be185d] hover:bg-[#9d174d] text-white shadow-pink-200/50'
                   }`}
               >
                 <PhoneCall className="w-5 h-5" />
                 <span>{isExhausted ? 'Enquiries Paused' : 'Book Direct Consultation'}</span>
               </button>
 
-              <div className="text-xs text-pink-200 font-bold">
+              <div className="text-xs text-[#be185d] font-bold">
                 ⚡ Priority Response • Direct Patient Coordinator Desk
               </div>
             </div>
@@ -426,7 +427,7 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
                 }`}
             >
               <Star className="w-3.5 h-3.5 text-[#b02151] mr-1" />
-              <span>Reviews ({googleReviews.length || syncedReviewsCount || 0})</span>
+              <span>Reviews ({fiveStarReviews.length || syncedReviewsCount || 0})</span>
             </button>
           </div>
         </div>
@@ -446,9 +447,7 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
                     <ShieldCheck className="w-6 h-6 text-[#b02151] mr-2" />
                     About {hospital.name}
                   </h2>
-                  <span className="text-xs font-bold text-[#b02151] bg-pink-50 px-3 py-1 rounded-full border border-pink-100">
-                    NABH Accredited
-                  </span>
+
                 </div>
                 <div
                   className="prose max-w-none text-gray-700 text-sm leading-relaxed font-medium space-y-3
@@ -832,73 +831,51 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
 
                   {/* Reviews List */}
                   <div className="md:col-span-2 space-y-4 max-h-[500px] overflow-y-auto pr-2 no-scrollbar">
-                    {googleReviews && googleReviews.length > 0 ? (
-                      <>
-                        <div className="space-y-4">
-                          {googleReviews.slice(0, visibleReviewsCount).map((rev: any, idx: number) => (
-                            <div key={idx} className="p-4 bg-slate-50 border border-gray-100 rounded-2xl space-y-2">
-                              <div className="flex items-center justify-between flex-wrap gap-2">
-                                <div className="flex items-center space-x-2">
-                                  {rev.profile_photo_url ? (
-                                    <img
-                                      src={rev.profile_photo_url}
-                                      alt={rev.author_name}
-                                      width={28}
-                                      height={28}
-                                      className="rounded-full w-7 h-7 object-cover"
-                                    />
-                                  ) : (
-                                    <div className="w-7 h-7 bg-pink-100 text-pink-600 rounded-full flex items-center justify-center font-bold text-xs">
-                                      {rev.author_name ? rev.author_name[0] : 'P'}
-                                    </div>
-                                  )}
-                                  <span className="text-xs font-bold text-gray-900">{rev.author_name}</span>
-                                </div>
-                                <span className="text-[10px] text-gray-500 font-bold">
-                                  {rev.relative_time_description || 'Recently'}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center space-x-0.5 text-amber-400">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
-                                    key={star}
-                                    className={`w-3.5 h-3.5 fill-current ${
-                                      star <= (rev.rating || 5) ? 'text-amber-400' : 'text-gray-300'
-                                    }`}
+                    {fiveStarReviews && fiveStarReviews.length > 0 ? (
+                      <div className="space-y-4">
+                        {fiveStarReviews.map((rev: any, idx: number) => (
+                          <div key={idx} className="p-4 bg-slate-50 border border-gray-100 rounded-2xl space-y-2">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <div className="flex items-center space-x-2">
+                                {rev.profile_photo_url ? (
+                                  <img
+                                    src={rev.profile_photo_url}
+                                    alt={rev.author_name}
+                                    width={28}
+                                    height={28}
+                                    className="rounded-full w-7 h-7 object-cover"
                                   />
-                                ))}
+                                ) : (
+                                  <div className="w-7 h-7 bg-pink-100 text-pink-600 rounded-full flex items-center justify-center font-bold text-xs">
+                                    {rev.author_name ? rev.author_name[0] : 'P'}
+                                  </div>
+                                )}
+                                <span className="text-xs font-bold text-gray-900">{rev.author_name}</span>
                               </div>
-
-                              <p className="text-xs text-gray-700 leading-relaxed font-medium">
-                                "{rev.text}"
-                              </p>
+                              <span className="text-[10px] text-gray-500 font-bold">
+                                {rev.relative_time_description || 'Recently'}
+                              </span>
                             </div>
-                          ))}
-                        </div>
 
-                        {googleReviews.length > visibleReviewsCount ? (
-                          <button
-                            onClick={() => setVisibleReviewsCount((prev) => prev + 5)}
-                            className="w-full text-center py-2.5 bg-slate-100 hover:bg-slate-200 text-gray-700 text-xs font-bold rounded-xl transition-all cursor-pointer block border border-gray-200"
-                          >
-                            Show More Reviews (+{googleReviews.length - visibleReviewsCount} remaining)
-                          </button>
-                        ) : (
-                          visibleReviewsCount > 3 && (
-                            <button
-                              onClick={() => setVisibleReviewsCount(3)}
-                              className="w-full text-center py-2.5 bg-slate-100 hover:bg-slate-200 text-gray-700 text-xs font-bold rounded-xl transition-all cursor-pointer block border border-gray-200"
-                            >
-                              Show Less
-                            </button>
-                          )
-                        )}
-                      </>
+                            <div className="flex items-center space-x-0.5 text-amber-400">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className="w-3.5 h-3.5 fill-current text-amber-400"
+                                />
+                              ))}
+                            </div>
+
+                            <p className="text-xs text-gray-700 leading-relaxed font-medium">
+                              "{rev.text}"
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     ) : (
                       <div className="p-8 text-center bg-slate-50 border border-dashed border-gray-200 rounded-2xl">
                         <Star className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                        <p className="text-xs text-gray-500 font-bold">No Google reviews loaded yet.</p>
+                        <p className="text-xs text-gray-500 font-bold">No 5-star Google reviews loaded yet.</p>
                         <p className="text-[10px] text-gray-400 mt-1">
                           Click the "Sync Google Reviews" button above to fetch live ratings.
                         </p>
