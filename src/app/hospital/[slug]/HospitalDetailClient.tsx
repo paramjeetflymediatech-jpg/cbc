@@ -417,13 +417,13 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
               Facilities
             </button>
 
-            <button
+            {/* <button
               onClick={() => setActiveTab('faqs')}
               className={`px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'faqs' ? 'bg-pink-50 text-[#b02151] shadow-xs border border-pink-100' : 'hover:text-gray-900'
                 }`}
             >
               Patient FAQs
-            </button>
+            </button> */}
 
             <button
               onClick={() => setActiveTab('map')}
