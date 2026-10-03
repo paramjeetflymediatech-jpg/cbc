@@ -13,13 +13,16 @@ export async function POST(req: Request) {
     }
 
     const formData = await req.formData();
-    const file = formData.get('file') as File | null;
-    const category = (formData.get('category') as string) || 'gallery';
-    const customHospitalName = formData.get('hospitalName') as string | null;
+    const files = formData.getAll('files') as File[];
+    const singleFiles = formData.getAll('file') as File[];
+    const combinedFiles = files.length > 0 ? files : singleFiles;
 
-    if (!file) {
+    if (!combinedFiles || combinedFiles.length === 0 || !combinedFiles[0]) {
       return NextResponse.json({ error: 'No image file provided' }, { status: 400 });
     }
+
+    const category = (formData.get('category') as string) || 'gallery';
+    const customHospitalName = formData.get('hospitalName') as string | null;
 
     // Determine target folder name and path
     let folderPath = 'hospitals/general-hospitals';
@@ -43,32 +46,47 @@ export async function POST(req: Request) {
     // Target upload directory: public/uploads/[folderPath]
     const targetDir = path.join(process.cwd(), 'public', 'uploads', folderPath);
     await mkdir(targetDir, { recursive: true });
+    const standaloneTargetDir = path.join(process.cwd(), '.next', 'standalone', 'public', 'uploads', folderPath);
 
-    // Sanitize filename & create unique timestamped name
-    const originalExt = path.extname(file.name) || '.jpg';
-    const cleanExt = originalExt.toLowerCase();
-    const uniqueFileName = `${Date.now()}-${category}${cleanExt}`;
-    const filePath = path.join(targetDir, uniqueFileName);
+    const uploadedItems: { url: string; alt: string; fileName: string }[] = [];
 
-    // Buffer and write file to local public folder
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
+    for (let i = 0; i < combinedFiles.length; i++) {
+      const file = combinedFiles[i];
+      if (!file || typeof file.arrayBuffer !== 'function') continue;
 
-    // Also sync to standalone public directory if running in Next standalone mode
-    try {
-      const standaloneTargetDir = path.join(process.cwd(), '.next', 'standalone', 'public', 'uploads', folderPath);
-      await mkdir(standaloneTargetDir, { recursive: true });
-      await writeFile(path.join(standaloneTargetDir, uniqueFileName), buffer);
-    } catch {}
+      const originalName = file.name || `image-${i + 1}`;
+      const originalExt = path.extname(originalName) || '.jpg';
+      const cleanExt = originalExt.toLowerCase();
+      const baseNameWithoutExt = path.basename(originalName, originalExt).replace(/[-_]+/g, ' ').trim();
+      const uniqueFileName = `${Date.now()}-${i}-${category}${cleanExt}`;
+      const filePath = path.join(targetDir, uniqueFileName);
 
-    // Generate public relative URL
-    const publicUrl = `/uploads/${folderPath}/${uniqueFileName}`;
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      await writeFile(filePath, buffer);
+
+      try {
+        await mkdir(standaloneTargetDir, { recursive: true });
+        await writeFile(path.join(standaloneTargetDir, uniqueFileName), buffer);
+      } catch {}
+
+      const publicUrl = `/uploads/${folderPath}/${uniqueFileName}`;
+      uploadedItems.push({
+        url: publicUrl,
+        alt: baseNameWithoutExt || 'Hospital Facility Photo',
+        fileName: uniqueFileName,
+      });
+    }
+
+    if (uploadedItems.length === 0) {
+      return NextResponse.json({ error: 'Failed to process image files' }, { status: 400 });
+    }
 
     return NextResponse.json({
-      message: 'File uploaded successfully',
-      url: publicUrl,
-      fileName: uniqueFileName,
+      message: `${uploadedItems.length} file(s) uploaded successfully`,
+      url: uploadedItems[0].url,
+      urls: uploadedItems.map((item) => item.url),
+      items: uploadedItems,
       folderPath,
     });
   } catch (error) {

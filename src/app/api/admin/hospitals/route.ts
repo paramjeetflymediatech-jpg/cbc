@@ -77,6 +77,7 @@ export async function POST(req: Request) {
       description,
       leadsRemaining,
       status,
+      facilities,
     } = body;
 
     if (!name || !email || !phone || !password || !city || !address) {
@@ -123,7 +124,7 @@ export async function POST(req: Request) {
       totalLeadsPurchased: initialLeads,
       totalLeadsUsed: 0,
       doctors: [],
-      facilities: [],
+      facilities: Array.isArray(facilities) ? facilities : [],
       faqs: [],
       rating: 4.9,
       isFeatured: true,

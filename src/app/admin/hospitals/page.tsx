@@ -10,6 +10,9 @@ import {
   XCircle,
   AlertCircle,
   Eye,
+  EyeOff,
+  Lock,
+  Key,
   Phone,
   Mail,
   MapPin,
@@ -35,6 +38,21 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from 'lucide-react';
+
+const POPULAR_FACILITY_SUGGESTIONS = [
+  '24/7 Trauma ICU & Emergency',
+  'Modular OTs & Cath Lab',
+  'In-house Pharmacy',
+  '1.5T MRI & 128-Slice CT Scan',
+  'Laser Urology Suite',
+  'Advanced Dialysis Unit',
+  'Dedicated Patient Coordinator Desk',
+  'Cashless TPA Insurance Desk',
+  'Ambulance Services',
+  'Digital X-Ray & Ultrasound',
+  'In-house Pathology & Blood Storage',
+  'Post-Op Recovery Rooms',
+];
 
 interface IDoctorReview {
   id?: string;
@@ -86,6 +104,11 @@ interface StateItem {
   cities?: { id?: number; name: string }[];
 }
 
+export interface IGalleryItem {
+  url: string;
+  alt?: string;
+}
+
 interface HospitalData {
   id: number;
   name: string;
@@ -100,7 +123,8 @@ interface HospitalData {
   description?: string | null;
   logo?: string | null;
   coverImage?: string | null;
-  gallery?: string[];
+  gallery?: (string | IGalleryItem)[] | null;
+  facilities?: string[] | null;
   contactPersonName?: string | null;
   contactPersonPhone?: string | null;
   contactPersonEmail?: string | null;
@@ -156,13 +180,30 @@ export default function AdminHospitalsPage() {
   const [addDescription, setAddDescription] = useState('');
   const [addLeads, setAddLeads] = useState('50');
   const [addStatus, setAddStatus] = useState('APPROVED');
+  const [addFacilities, setAddFacilities] = useState<string[]>([]);
+  const [newAddFacility, setNewAddFacility] = useState('');
   const [formError, setFormError] = useState('');
+
+  const handleAddAddFacility = (facilityName?: string) => {
+    const val = (facilityName || newAddFacility).trim();
+    if (!val) return;
+    if (!addFacilities.includes(val)) {
+      setAddFacilities([...addFacilities, val]);
+    }
+    if (!facilityName) setNewAddFacility('');
+  };
+
+  const handleRemoveAddFacility = (index: number) => {
+    setAddFacilities(addFacilities.filter((_, idx) => idx !== index));
+  };
 
   // Super Admin Edit Hospital Profile state
   const [editHospital, setEditHospital] = useState<HospitalData | null>(null);
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const [editWebsite, setEditWebsite] = useState('');
   const [editAddress, setEditAddress] = useState('');
   const [editCity, setEditCity] = useState('');
@@ -171,7 +212,35 @@ export default function AdminHospitalsPage() {
   const [editDescription, setEditDescription] = useState('');
   const [editLogo, setEditLogo] = useState('');
   const [editCoverImage, setEditCoverImage] = useState('');
-  const [editGallery, setEditGallery] = useState<string[]>([]);
+  const [editGallery, setEditGallery] = useState<IGalleryItem[]>([]);
+  const [newEditGalleryUrl, setNewEditGalleryUrl] = useState('');
+  const [newEditGalleryAlt, setNewEditGalleryAlt] = useState('');
+  const [uploadingTarget, setUploadingTarget] = useState<string | null>(null);
+
+  const handleAddManualEditGalleryPhoto = () => {
+    if (!newEditGalleryUrl.trim()) return;
+    setEditGallery([
+      ...editGallery,
+      {
+        url: newEditGalleryUrl.trim(),
+        alt: newEditGalleryAlt.trim() || `${editName || 'Hospital'} Photo ${editGallery.length + 1}`,
+      },
+    ]);
+    setNewEditGalleryUrl('');
+    setNewEditGalleryAlt('');
+  };
+
+  const handleUpdateEditGalleryAlt = (index: number, alt: string) => {
+    const updated = [...editGallery];
+    updated[index] = { ...updated[index], alt };
+    setEditGallery(updated);
+  };
+
+  const handleRemoveEditGalleryPhoto = (index: number) => {
+    setEditGallery(editGallery.filter((_, idx) => idx !== index));
+  };
+  const [editFacilities, setEditFacilities] = useState<string[]>([]);
+  const [newEditFacility, setNewEditFacility] = useState('');
   const [editContactPersonName, setEditContactPersonName] = useState('');
   const [editContactPersonPhone, setEditContactPersonPhone] = useState('');
   const [editContactPersonEmail, setEditContactPersonEmail] = useState('');
@@ -186,6 +255,19 @@ export default function AdminHospitalsPage() {
   const [editAccountStatus, setEditAccountStatus] = useState('ACTIVE');
   const [editFormError, setEditFormError] = useState('');
   const [editSuccessMessage, setEditSuccessMessage] = useState('');
+
+  const handleAddEditFacility = (facilityName?: string) => {
+    const val = (facilityName || newEditFacility).trim();
+    if (!val) return;
+    if (!editFacilities.includes(val)) {
+      setEditFacilities([...editFacilities, val]);
+    }
+    if (!facilityName) setNewEditFacility('');
+  };
+
+  const handleRemoveEditFacility = (index: number) => {
+    setEditFacilities(editFacilities.filter((_, idx) => idx !== index));
+  };
 
   // Super Admin Hospital FAQs state
   const [editFaqs, setEditFaqs] = useState<{ question: string; answer: string }[]>([]);
@@ -533,7 +615,6 @@ export default function AdminHospitalsPage() {
       setSvcSaving(false);
     }
   };
-  const [uploadingTarget, setUploadingTarget] = useState<string | null>(null);
 
   const fetchHospitals = () => {
     const url = statusFilter ? `/api/admin/hospitals?status=${statusFilter}` : '/api/admin/hospitals';
@@ -698,6 +779,8 @@ export default function AdminHospitalsPage() {
     setEditName(h.name || '');
     setEditEmail(h.email || '');
     setEditPhone(h.phone || '');
+    setEditPassword('');
+    setShowEditPassword(false);
     setEditWebsite(h.website || '');
     setEditAddress(h.address || '');
     setEditCity(h.city || '');
@@ -706,7 +789,23 @@ export default function AdminHospitalsPage() {
     setEditDescription(h.description || '');
     setEditLogo(h.logo || '');
     setEditCoverImage(h.coverImage || '');
-    setEditGallery(h.gallery || []);
+    const parsedGallery: IGalleryItem[] = (h.gallery || []).map((item: any, idx: number) => {
+      if (typeof item === 'object' && item !== null) {
+        return {
+          url: item.url,
+          alt: item.alt || '',
+        };
+      }
+      return {
+        url: String(item),
+        alt: '',
+      };
+    });
+    setEditGallery(parsedGallery);
+    setNewEditGalleryUrl('');
+    setNewEditGalleryAlt('');
+    setEditFacilities(h.facilities || []);
+    setNewEditFacility('');
     setEditFaqs(h.faqs || []);
     setEditContactPersonName(h.contactPersonName || '');
     setEditContactPersonPhone(h.contactPersonPhone || '');
@@ -762,6 +861,11 @@ export default function AdminHospitalsPage() {
     e.preventDefault();
     if (!editHospital) return;
 
+    if (editPassword && editPassword.trim().length > 0 && editPassword.trim().length < 6) {
+      setEditFormError('New password must be at least 6 characters long.');
+      return;
+    }
+
     setEditFormError('');
     setEditSuccessMessage('');
     setActionLoading(true);
@@ -774,6 +878,7 @@ export default function AdminHospitalsPage() {
           name: editName,
           email: editEmail,
           phone: editPhone,
+          password: editPassword.trim() ? editPassword.trim() : undefined,
           website: editWebsite,
           address: editAddress,
           city: editCity,
@@ -783,6 +888,7 @@ export default function AdminHospitalsPage() {
           logo: editLogo,
           coverImage: editCoverImage,
           gallery: editGallery,
+          facilities: editFacilities,
           faqs: editFaqs,
           contactPersonName: editContactPersonName,
           contactPersonPhone: editContactPersonPhone,
@@ -803,7 +909,8 @@ export default function AdminHospitalsPage() {
       if (!res.ok) {
         setEditFormError(data.error || 'Failed to update hospital profile.');
       } else {
-        setEditSuccessMessage('Hospital profile updated successfully!');
+        setEditSuccessMessage('Hospital profile and account credentials updated successfully!');
+        setEditPassword('');
         fetchHospitals();
         setTimeout(() => {
           setEditHospital(null);
@@ -820,14 +927,17 @@ export default function AdminHospitalsPage() {
     e: React.ChangeEvent<HTMLInputElement>,
     target: 'logo' | 'cover' | 'gallery'
   ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setUploadingTarget(target);
     const formData = new FormData();
-    formData.append('file', file);
+    for (let i = 0; i < files.length; i++) {
+      formData.append('files', files[i]);
+    }
+    formData.append('file', files[0]);
     formData.append('category', 'hospitals');
-    if (editName) formData.append('hospitalFolder', editName.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+    if (editName) formData.append('hospitalName', editName);
 
     try {
       const res = await fetch('/api/upload', {
@@ -836,15 +946,23 @@ export default function AdminHospitalsPage() {
       });
 
       const data = await res.json();
-      if (res.ok && data.url) {
-        if (target === 'logo') setEditLogo(data.url);
-        if (target === 'cover') setEditCoverImage(data.url);
-        if (target === 'gallery') setEditGallery((prev) => [...prev, data.url]);
+      if (res.ok) {
+        if (target === 'logo' && data.url) setEditLogo(data.url);
+        if (target === 'cover' && data.url) setEditCoverImage(data.url);
+        if (target === 'gallery') {
+          const newItems: IGalleryItem[] = (
+            data.items ||
+            (data.urls
+              ? data.urls.map((u: string) => ({ url: u, alt: `${editName || 'Hospital'} Facility Photo` }))
+              : [{ url: data.url, alt: `${editName || 'Hospital'} Facility Photo` }])
+          );
+          setEditGallery((prev) => [...prev, ...newItems]);
+        }
       } else {
-        alert(data.error || 'Failed to upload image file.');
+        alert(data.error || 'Failed to upload image file(s).');
       }
     } catch {
-      alert('Error uploading image file.');
+      alert('Error uploading image file(s).');
     } finally {
       setUploadingTarget(null);
       e.target.value = '';
@@ -934,6 +1052,7 @@ export default function AdminHospitalsPage() {
           description: addDescription,
           leadsRemaining: Number(addLeads),
           status: addStatus,
+          facilities: addFacilities,
         }),
       });
 
@@ -953,6 +1072,8 @@ export default function AdminHospitalsPage() {
         setAddAddress('');
         setAddWebsite('');
         setAddDescription('');
+        setAddFacilities([]);
+        setNewAddFacility('');
         fetchHospitals();
       }
     } catch {
@@ -1435,6 +1556,92 @@ export default function AdminHospitalsPage() {
                 />
               </div>
 
+              {/* Hospital Facilities & Amenities */}
+              <div className="space-y-3 p-4 bg-gray-50 border border-gray-200 rounded-2xl">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-700 uppercase flex items-center space-x-1.5">
+                    <Sparkles className="w-4 h-4 text-[#b02151]" />
+                    <span>Hospital Facilities & Amenities</span>
+                  </label>
+                  <span className="text-[11px] font-bold text-gray-500 bg-white px-2.5 py-0.5 rounded-full border border-gray-200">
+                    {addFacilities.length} Added
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newAddFacility}
+                    onChange={(e) => setNewAddFacility(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddAddFacility();
+                      }
+                    }}
+                    placeholder="Type facility (e.g. 24/7 ICU, Modular OT, MRI Scan) and press Add..."
+                    className="flex-1 px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#fd1d74]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddAddFacility()}
+                    className="px-4 py-2 bg-[#b02151] hover:bg-[#921941] text-white text-xs font-extrabold rounded-xl uppercase tracking-wider cursor-pointer"
+                  >
+                    + Add
+                  </button>
+                </div>
+
+                {/* Popular Facility Suggestions */}
+                <div className="space-y-1.5 pt-1">
+                  <p className="text-[11px] font-bold text-gray-500">Quick Suggestions (Click to Add):</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {POPULAR_FACILITY_SUGGESTIONS.map((suggestion, idx) => {
+                      const isSelected = addFacilities.includes(suggestion);
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          disabled={isSelected}
+                          onClick={() => handleAddAddFacility(suggestion)}
+                          className={`text-[11px] font-medium px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                              : 'bg-white text-gray-700 border-gray-200 hover:border-[#fd1d74] hover:text-[#b02151]'
+                          }`}
+                        >
+                          {isSelected ? '✓ ' : '+ '}{suggestion}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Active Facilities Badges */}
+                {addFacilities.length > 0 && (
+                  <div className="pt-2 border-t border-gray-200">
+                    <p className="text-[11px] font-bold text-gray-600 mb-1.5">Active Facilities:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {addFacilities.map((fac, idx) => (
+                        <span
+                          key={idx}
+                          className="bg-white text-gray-800 text-xs font-bold px-3 py-1 rounded-full border border-pink-200 flex items-center shadow-2xs"
+                        >
+                          {fac}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAddFacility(idx)}
+                            className="ml-2 text-red-500 hover:text-red-700 font-extrabold cursor-pointer"
+                            title="Remove facility"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="pt-4 border-t border-gray-100 flex items-center justify-end space-x-3">
                 <button
                   type="button"
@@ -1582,6 +1789,34 @@ export default function AdminHospitalsPage() {
                       <option value="ACTIVE">ACTIVE</option>
                       <option value="SUSPENDED">SUSPENDED</option>
                     </select>
+                  </div>
+                </div>
+
+                {/* Reset Hospital Portal Password */}
+                <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <label className="text-xs font-extrabold text-amber-900 uppercase flex items-center space-x-1.5">
+                      <Key className="w-4 h-4 text-amber-700" />
+                      <span>Reset Hospital Portal Password</span>
+                    </label>
+                    <span className="text-[11px] text-amber-800 font-medium">Leave blank to keep existing password</span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showEditPassword ? 'text' : 'password'}
+                      value={editPassword}
+                      onChange={(e) => setEditPassword(e.target.value)}
+                      placeholder="Enter new password (min. 6 characters) to reset portal login..."
+                      className="w-full pl-3.5 pr-10 py-2.5 bg-white border border-amber-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEditPassword(!showEditPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800 p-1 cursor-pointer"
+                      title={showEditPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1733,30 +1968,111 @@ export default function AdminHospitalsPage() {
                 </div>
 
                 {/* Gallery Photos */}
-                <div className="p-4 border border-gray-200 rounded-2xl space-y-3 bg-gray-50/50">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-bold text-gray-700 uppercase">Hospital Photo Gallery ({editGallery.length})</label>
-                    <label className="inline-flex items-center space-x-1 px-3 py-1 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 cursor-pointer shadow-xs">
-                      {uploadingTarget === 'gallery' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                      <span>Add Photo</span>
-                      <input type="file" accept="image/*" onChange={(e) => handleImageFileUpload(e, 'gallery')} className="hidden" />
+                <div className="p-5 border border-gray-200 rounded-2xl space-y-4 bg-gray-50/70">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-200/80 pb-3">
+                    <div>
+                      <label className="block text-xs font-extrabold text-gray-900 uppercase tracking-wider">
+                        Hospital Photo Gallery ({editGallery.length})
+                      </label>
+                      <p className="text-[11px] text-gray-500 mt-0.5">
+                        Upload photos in bulk. Set image Alt text to optimize for Google SEO and patient accessibility.
+                      </p>
+                    </div>
+
+                    <label className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-extrabold hover:bg-indigo-700 cursor-pointer shadow-md transition-all">
+                      {uploadingTarget === 'gallery' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Uploading Photos...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          <span>Bulk Upload Photos</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={(e) => handleImageFileUpload(e, 'gallery')}
+                        className="hidden"
+                      />
                     </label>
                   </div>
 
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 pt-1">
-                    {editGallery.map((imgUrl, idx) => (
-                      <div key={idx} className="relative group h-20 rounded-xl overflow-hidden border border-gray-200 bg-white">
-                        <img src={imgUrl} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => setEditGallery(editGallery.filter((_, i) => i !== idx))}
-                          className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full text-xs opacity-90 hover:opacity-100"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
+                  {/* Add Photo via URL */}
+                  <div className="flex flex-col sm:flex-row gap-2 bg-white p-3 rounded-xl border border-gray-200">
+                    <input
+                      type="url"
+                      value={newEditGalleryUrl}
+                      onChange={(e) => setNewEditGalleryUrl(e.target.value)}
+                      placeholder="Or paste image URL (https://...)..."
+                      className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium focus:outline-none focus:border-indigo-600"
+                    />
+                    <input
+                      type="text"
+                      value={newEditGalleryAlt}
+                      onChange={(e) => setNewEditGalleryAlt(e.target.value)}
+                      placeholder="Alt text / Description (SEO)"
+                      className="sm:w-1/3 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium focus:outline-none focus:border-indigo-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddManualEditGalleryPhoto}
+                      className="px-4 py-1.5 bg-gray-900 hover:bg-black text-white rounded-lg text-xs font-extrabold uppercase tracking-wider cursor-pointer"
+                    >
+                      + Add URL
+                    </button>
                   </div>
+
+                  {/* Photo Cards Grid with Alt Tags */}
+                  {editGallery.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pt-1">
+                      {editGallery.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-white rounded-2xl p-3 border border-gray-200 shadow-2xs space-y-2 flex flex-col justify-between group hover:border-indigo-300 transition-colors"
+                        >
+                          <div className="relative h-28 rounded-xl overflow-hidden bg-gray-100 border border-gray-100">
+                            <img
+                              src={item.url}
+                              alt={item.alt || `Gallery Photo ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveEditGalleryPhoto(idx)}
+                              className="absolute top-1.5 right-1.5 p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full text-xs shadow-md transition-colors cursor-pointer"
+                              title="Delete Photo"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="absolute bottom-1.5 left-1.5 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
+                              #{idx + 1}
+                            </span>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-extrabold uppercase text-gray-500 mb-1">
+                              Alt Key / Image SEO Tag
+                            </label>
+                            <input
+                              type="text"
+                              value={item.alt || ''}
+                              onChange={(e) => handleUpdateEditGalleryAlt(idx, e.target.value)}
+                              placeholder={`e.g. ${editName || 'Hospital'} OTs & Facility`}
+                              className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-800 focus:outline-none focus:border-indigo-600 focus:bg-white"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl bg-white text-gray-400 text-xs">
+                      No gallery photos added yet. Click &quot;Bulk Upload Photos&quot; above to select and upload multiple images at once.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1946,6 +2262,99 @@ export default function AdminHospitalsPage() {
                 )}
               </div>
 
+              {/* Section 8: Hospital Facilities & Amenities */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 flex items-center space-x-1.5">
+                    <Sparkles className="w-4 h-4 text-indigo-600" />
+                    <span>8. Hospital Facilities & Infrastructure Amenities</span>
+                  </h4>
+                  <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                    {editFacilities.length} Facilities Added
+                  </span>
+                </div>
+
+                <div className="space-y-3 p-4 bg-gray-50/70 border border-gray-200 rounded-2xl">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newEditFacility}
+                      onChange={(e) => setNewEditFacility(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddEditFacility();
+                        }
+                      }}
+                      placeholder="Add facility (e.g. Modular OTs, Cath Lab, 24/7 ICU, Dialysis) and click Add..."
+                      className="flex-1 px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddEditFacility()}
+                      className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold rounded-xl uppercase tracking-wider cursor-pointer transition-colors"
+                    >
+                      + Add
+                    </button>
+                  </div>
+
+                  {/* Popular Facility Suggestions */}
+                  <div className="space-y-1.5 pt-1">
+                    <p className="text-[11px] font-bold text-gray-600">Quick 1-Click Suggestions:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {POPULAR_FACILITY_SUGGESTIONS.map((suggestion, idx) => {
+                        const isSelected = editFacilities.includes(suggestion);
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            disabled={isSelected}
+                            onClick={() => handleAddEditFacility(suggestion)}
+                            className={`text-[11px] font-medium px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                : 'bg-white text-gray-700 border-gray-200 hover:border-indigo-600 hover:text-indigo-700 hover:bg-indigo-50/50'
+                            }`}
+                          >
+                            {isSelected ? '✓ ' : '+ '}{suggestion}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Active Facility Badges */}
+                  {editFacilities.length > 0 ? (
+                    <div className="pt-2 border-t border-gray-200">
+                      <p className="text-[11px] font-bold text-gray-700 mb-1.5">Current Active Facilities:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {editFacilities.map((fac, idx) => (
+                          <span
+                            key={idx}
+                            className="bg-white text-gray-900 text-xs font-bold px-3.5 py-1.5 rounded-xl border border-indigo-200 flex items-center shadow-2xs group"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 mr-1.5 flex-shrink-0" />
+                            <span>{fac}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveEditFacility(idx)}
+                              className="ml-2 text-red-500 hover:text-red-700 font-extrabold p-0.5 rounded-full hover:bg-red-50 cursor-pointer transition-colors"
+                              title="Delete facility"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500 italic pt-1">
+                      No facilities added yet. Click any quick suggestion above or type custom facilities to highlight the hospital's clinical infrastructure.
+                    </p>
+                  )}
+                </div>
+              </div>
+
               {/* Form Action Buttons */}
               <div className="pt-4 border-t border-gray-100 flex items-center justify-end space-x-3">
                 <button
@@ -2031,6 +2440,33 @@ export default function AdminHospitalsPage() {
                 className="text-xs text-gray-700 leading-relaxed font-medium"
                 dangerouslySetInnerHTML={{ __html: viewHospital.description || 'No description provided.' }}
               />
+            </div>
+
+            {/* Facilities & Amenities */}
+            <div className="bg-gray-50 p-4 rounded-2xl space-y-2 border border-gray-100">
+              <div className="flex items-center justify-between">
+                <h4 className="font-extrabold text-xs uppercase text-[#b02151] tracking-wider flex items-center">
+                  <Sparkles className="w-4 h-4 mr-1.5" /> Facilities & Amenities
+                </h4>
+                <span className="text-[11px] font-bold text-gray-500 bg-white px-2.5 py-0.5 rounded-full border border-gray-200">
+                  {viewHospital.facilities?.length || 0} Facilities
+                </span>
+              </div>
+              {viewHospital.facilities && viewHospital.facilities.length > 0 ? (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {viewHospital.facilities.map((fac, idx) => (
+                    <span
+                      key={idx}
+                      className="bg-white text-gray-800 text-xs font-semibold px-3 py-1 rounded-xl border border-pink-200 flex items-center shadow-2xs"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#b02151] mr-1.5 flex-shrink-0" />
+                      {fac}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500 italic">No facilities added yet.</p>
+              )}
             </div>
 
             <div className="pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-4">

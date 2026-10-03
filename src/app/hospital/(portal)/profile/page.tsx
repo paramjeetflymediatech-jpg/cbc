@@ -10,6 +10,11 @@ interface IFAQ {
   answer: string;
 }
 
+export interface IGalleryItem {
+  url: string;
+  alt?: string;
+}
+
 interface HospitalProfileData {
   id: number;
   slug: string;
@@ -31,7 +36,7 @@ interface HospitalProfileData {
   googleReviewsCount?: number | null;
   rating?: number;
   facilities?: string[];
-  gallery?: string[];
+  gallery?: (string | IGalleryItem)[];
   faqs?: IFAQ[];
 }
 
@@ -72,8 +77,9 @@ export default function HospitalProfilePage() {
   const [newFacility, setNewFacility] = useState('');
 
   // Gallery array
-  const [gallery, setGallery] = useState<string[]>([]);
+  const [gallery, setGallery] = useState<IGalleryItem[]>([]);
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
+  const [newGalleryAlt, setNewGalleryAlt] = useState('');
 
   // FAQs array
   const [faqs, setFaqs] = useState<IFAQ[]>([]);
@@ -116,7 +122,17 @@ export default function HospitalProfilePage() {
           setGoogleReviewsCount(h.googleReviewsCount || null);
           setGooglePlaceId(h.googlePlaceId || '');
           setFacilities(h.facilities || []);
-          setGallery(h.gallery || []);
+          if (h.gallery && Array.isArray(h.gallery)) {
+            setGallery(
+              h.gallery.map((g: string | IGalleryItem) =>
+                typeof g === 'object' && g !== null
+                  ? { url: g.url || '', alt: g.alt || `${h.name || 'Hospital'} Facility Photo` }
+                  : { url: String(g), alt: `${h.name || 'Hospital'} Facility Photo` }
+              )
+            );
+          } else {
+            setGallery([]);
+          }
           setFaqs(h.faqs || []);
         }
       })
@@ -154,19 +170,20 @@ export default function HospitalProfilePage() {
     }
   };
 
-
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetCategory: 'logo' | 'cover' | 'gallery') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setUploadingCategory(targetCategory);
     setErrorMessage('');
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('category', targetCategory);
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+      formData.append('file', files[0]);
+      formData.append('category', targetCategory === 'gallery' ? 'hospitals' : targetCategory);
       if (name) formData.append('hospitalName', name);
 
       const res = await fetch('/api/upload', {
@@ -185,6 +202,7 @@ export default function HospitalProfilePage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ logo: data.url }),
           });
+          setMessage(`Logo uploaded and updated successfully!`);
         } else if (targetCategory === 'cover') {
           setCoverImage(data.url);
           await fetch('/api/hospital/profile', {
@@ -192,17 +210,23 @@ export default function HospitalProfilePage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ coverImage: data.url }),
           });
+          setMessage(`Cover image uploaded and updated successfully!`);
         } else if (targetCategory === 'gallery') {
-          const updatedGallery = [...gallery, data.url];
+          const newItems: IGalleryItem[] = (
+            data.items ||
+            (data.urls
+              ? data.urls.map((u: string) => ({ url: u, alt: `${name || 'Hospital'} Facility Photo` }))
+              : [{ url: data.url, alt: `${name || 'Hospital'} Facility Photo` }])
+          );
+          const updatedGallery = [...gallery, ...newItems];
           setGallery(updatedGallery);
           await fetch('/api/hospital/profile', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ gallery: updatedGallery }),
           });
+          setMessage(`${newItems.length} gallery photo(s) uploaded and saved to profile successfully!`);
         }
-
-        setMessage(`Image uploaded and updated in profile successfully!`);
       }
     } catch {
       setErrorMessage('Network error uploading file.');
@@ -225,13 +249,29 @@ export default function HospitalProfilePage() {
 
   const handleAddGalleryPhoto = () => {
     if (newGalleryUrl.trim()) {
-      setGallery([...gallery, newGalleryUrl.trim()]);
+      const updated = [
+        ...gallery,
+        {
+          url: newGalleryUrl.trim(),
+          alt: newGalleryAlt.trim() || `${name || 'Hospital'} Facility Photo`,
+        },
+      ];
+      setGallery(updated);
       setNewGalleryUrl('');
+      setNewGalleryAlt('');
     }
   };
 
   const handleRemoveGalleryPhoto = (index: number) => {
     setGallery(gallery.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateGalleryAlt = (index: number, alt: string) => {
+    setGallery((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], alt };
+      return updated;
+    });
   };
 
   const handleGoogleAddressSelected = (data: {
@@ -353,10 +393,10 @@ export default function HospitalProfilePage() {
                 </div>
                 <div>
                   <h4 className="text-xs font-extrabold text-gray-900 uppercase tracking-wider">
-                    Upload Photo from Device
+                    Bulk Upload Photos from Device
                   </h4>
                   <p className="text-xs text-gray-500 font-medium">
-                    Choose an image file (.jpg, .png, .webp). Saved directly to hospital folder.
+                    Select one or multiple images (.jpg, .png, .webp). Saved directly to your hospital folder.
                   </p>
                 </div>
               </div>
@@ -365,17 +405,18 @@ export default function HospitalProfilePage() {
                 {uploadingCategory === 'gallery' ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Uploading...</span>
+                    <span>Uploading Photos...</span>
                   </>
                 ) : (
                   <>
                     <Upload className="w-4 h-4" />
-                    <span>Choose Photo File</span>
+                    <span>Bulk Upload Photos</span>
                   </>
                 )}
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={(e) => handleFileUpload(e, 'gallery')}
                   className="hidden"
                 />
@@ -383,54 +424,82 @@ export default function HospitalProfilePage() {
             </div>
 
             {/* Paste URL Option */}
-            <div className="pt-2 border-t border-gray-200/60 flex space-x-2">
+            <div className="pt-2 border-t border-gray-200/60 flex flex-col sm:flex-row gap-2">
               <input
                 type="url"
                 value={newGalleryUrl}
                 onChange={(e) => setNewGalleryUrl(e.target.value)}
                 placeholder="Or paste external image URL (https://...)..."
-                className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#fd1d74]"
+                className="flex-1 px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#fd1d74]"
+              />
+              <input
+                type="text"
+                value={newGalleryAlt}
+                onChange={(e) => setNewGalleryAlt(e.target.value)}
+                placeholder="Alt text / Description (SEO)"
+                className="sm:w-1/3 px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#fd1d74]"
               />
               <button
                 type="button"
                 onClick={handleAddGalleryPhoto}
-                className="bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex-shrink-0 cursor-pointer"
+                className="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex-shrink-0 cursor-pointer"
               >
-                Add URL
+                + Add URL
               </button>
             </div>
           </div>
 
           {/* Gallery Image Grid */}
           {gallery.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pt-2">
-              {gallery.map((imgUrl, index) => (
-                <div key={index} className="relative group h-36 bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 shadow-xs">
-                  <Image
-                    src={imgUrl}
-                    alt={`Hospital Gallery Photo ${index + 1}`}
-                    fill
-                    unoptimized
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2 p-2">
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveGalleryPhoto(index)}
-                      className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors shadow-lg cursor-pointer"
-                      title="Delete Photo"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    <a
-                      href={imgUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="p-2 bg-white/90 text-gray-900 rounded-full hover:bg-white transition-colors shadow-lg"
-                      title="View Full Image"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-2">
+              {gallery.map((item, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-2xl p-3 border border-gray-200 shadow-2xs space-y-2 flex flex-col justify-between group hover:border-pink-300 transition-colors"
+                >
+                  <div className="relative h-32 bg-gray-100 rounded-xl overflow-hidden border border-gray-100">
+                    <Image
+                      src={item.url}
+                      alt={item.alt || `Hospital Gallery Photo ${index + 1}`}
+                      fill
+                      unoptimized
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2 p-2">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveGalleryPhoto(index)}
+                        className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors shadow-lg cursor-pointer"
+                        title="Delete Photo"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-2 bg-white/90 text-gray-900 rounded-full hover:bg-white transition-colors shadow-lg"
+                        title="View Full Image"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                    <span className="absolute bottom-1.5 left-1.5 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
+                      #{index + 1}
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-gray-500 mb-1">
+                      Alt Key / Image SEO Tag
+                    </label>
+                    <input
+                      type="text"
+                      value={item.alt || ''}
+                      onChange={(e) => handleUpdateGalleryAlt(index, e.target.value)}
+                      placeholder={`e.g. ${name || 'Hospital'} Facility & OTs`}
+                      className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium focus:outline-none focus:border-[#fd1d74]"
+                    />
                   </div>
                 </div>
               ))}
@@ -438,7 +507,7 @@ export default function HospitalProfilePage() {
           ) : (
             <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-gray-200 text-gray-400 text-xs space-y-2">
               <ImageIcon className="w-8 h-8 mx-auto text-gray-300" />
-              <p className="font-medium">No gallery photos added yet. Upload files above to showcase your hospital facilities to patients!</p>
+              <p className="font-medium">No gallery photos added yet. Bulk upload files above to showcase your hospital facilities to patients!</p>
             </div>
           )}
         </div>

@@ -36,13 +36,19 @@ export async function deleteLocalFile(fileUrl?: string | null): Promise<void> {
  * and deletes any local old image files that are no longer used.
  */
 export async function cleanupOldImages(
-  oldUrls: string | string[] | null | undefined,
-  newUrls: string | string[] | null | undefined
+  oldUrls: any,
+  newUrls: any
 ): Promise<void> {
-  const toArray = (val: string | string[] | null | undefined): string[] => {
+  const toArray = (val: any): string[] => {
     if (!val) return [];
-    if (Array.isArray(val)) return val.filter(Boolean);
-    return [val];
+    if (Array.isArray(val)) {
+      return val
+        .map((item) => (typeof item === 'string' ? item : item?.url))
+        .filter((u): u is string => typeof u === 'string' && Boolean(u));
+    }
+    if (typeof val === 'object' && val?.url) return [val.url];
+    if (typeof val === 'string') return [val];
+    return [];
   };
 
   const oldList = toArray(oldUrls);

@@ -27,6 +27,11 @@ export interface IFAQ {
   answer: string;
 }
 
+export interface IGalleryItem {
+  url: string;
+  alt?: string;
+}
+
 export interface HospitalAttributes {
   id: number;
   name: string;
@@ -42,7 +47,7 @@ export interface HospitalAttributes {
   description: string;
   logo?: string | null;
   coverImage?: string | null;
-  gallery?: string[] | null;
+  gallery?: (string | IGalleryItem)[] | null;
   contactPersonName?: string | null;
   contactPersonEmail?: string | null;
   contactPersonPhone?: string | null;

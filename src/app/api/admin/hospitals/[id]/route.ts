@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
-import { getAuthUser } from '@/lib/auth';
+import { getAuthUser, hashPassword } from '@/lib/auth';
 import { Hospital, User, HospitalService, Lead, LeadTransaction, Notification, Payment, HospitalPackage } from '@/models';
 import { cleanupOldImages } from '@/lib/fileCleanup';
 import { ensureLocationMasterExists, isIndiaLocation } from '@/lib/locationMaster';
@@ -55,6 +55,7 @@ export async function PUT(
       name,
       email,
       phone,
+      password,
       website,
       address,
       city,
@@ -85,6 +86,13 @@ export async function PUT(
     if (country && !isIndiaLocation(country)) {
       return NextResponse.json(
         { error: 'Only locations within India are allowed.' },
+        { status: 400 }
+      );
+    }
+
+    if (password && typeof password === 'string' && password.trim().length > 0 && password.trim().length < 6) {
+      return NextResponse.json(
+        { error: 'Password must be at least 6 characters long.' },
         { status: 400 }
       );
     }
@@ -136,20 +144,33 @@ export async function PUT(
       accountStatus: accountStatus !== undefined ? accountStatus : hospital.accountStatus,
     });
 
-    // Also sync email/name in User table if email or name changed
-    if (email || name) {
-      await User.update(
-        {
-          ...(email ? { email: email.toLowerCase().trim() } : {}),
-          ...(name ? { name: name.trim() } : {}),
-          ...(phone ? { phone: phone.trim() } : {}),
-        },
-        { where: { hospitalId } }
-      );
+    // Handle Password Reset and user credential sync
+    const targetEmail = email ? email.toLowerCase().trim() : hospital.email;
+    const updateUserData: Record<string, any> = {
+      ...(email ? { email: targetEmail } : {}),
+      ...(name ? { name: name.trim() } : {}),
+      ...(phone ? { phone: phone.trim() } : {}),
+    };
+
+    if (password && typeof password === 'string' && password.trim().length >= 6) {
+      const newHash = await hashPassword(password.trim());
+      updateUserData.passwordHash = newHash;
+    }
+
+    if (Object.keys(updateUserData).length > 0) {
+      const [affectedCount] = await User.update(updateUserData, { where: { hospitalId } });
+      
+      // Fallback: If no user was directly matched with hospitalId, check by email
+      if (affectedCount === 0 && targetEmail) {
+        await User.update(
+          { ...updateUserData, hospitalId },
+          { where: { email: targetEmail } }
+        );
+      }
     }
 
     return NextResponse.json({
-      message: 'Hospital profile updated successfully by Super Admin.',
+      message: 'Hospital profile and account credentials updated successfully by Super Admin.',
       hospital,
     });
   } catch (error) {

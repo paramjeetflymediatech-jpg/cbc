@@ -157,12 +157,25 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
   const services = hospitalServicesList.map((hs: any) => hs.service).filter(Boolean);
   const facilities = hospital.facilities || [];
   const faqs = hospital.faqs || [];
-  const gallery = hospital.gallery || [
+  const rawGallery = hospital.gallery || [
     'https://spcdn.shortpixel.ai/spio/ret_img,q_cdnize,to_auto,s_webp:avif/clinicbychoice.com/wp-content/uploads/2025/02/2902-1024x683.jpg',
     'https://spcdn.shortpixel.ai/spio/ret_img,q_cdnize,to_auto,s_webp:avif/clinicbychoice.com/wp-content/uploads/2025/02/about-img-6.jpg',
     'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80',
     'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&auto=format&fit=crop&q=80',
   ];
+
+  const gallery: { url: string; alt: string }[] = rawGallery.map((item: any, index: number) => {
+    if (typeof item === 'object' && item !== null) {
+      return {
+        url: item.url,
+        alt: item.alt || `${hospital.name} Facility Photo ${index + 1}`,
+      };
+    }
+    return {
+      url: String(item),
+      alt: `${hospital.name} Facility Photo ${index + 1}`,
+    };
+  });
 
   const handleContactClick = (serviceId?: number) => {
     if (serviceId) setSelectedServiceId(serviceId);
@@ -471,29 +484,31 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
                     <ImageIcon className="w-6 h-6 text-[#b02151] mr-2" />
                     Hospital Photo Gallery ({gallery.length})
                   </h2>
-                  <span className="text-xs font-bold text-[#b02151] bg-pink-50 px-3 py-1 rounded-full border border-pink-100">
-                    Infrastructure & Facilities
-                  </span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {gallery.map((imgUrl: string, index: number) => (
+                  {gallery.map((item, index: number) => (
                     <div
                       key={index}
                       onClick={() => setActiveGalleryIndex(index)}
                       className="relative group h-36 bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 shadow-xs cursor-pointer"
                     >
                       <Image
-                        src={imgUrl}
-                        alt={`${hospital.name} Photo ${index + 1}`}
+                        src={item.url}
+                        alt={item.alt}
                         fill
                         unoptimized
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 text-center">
                         <span className="text-xs font-bold text-white bg-[#b02151] px-3 py-1 rounded-full shadow-lg">
                           View Photo
                         </span>
+                        {item.alt && (
+                          <span className="text-[10px] text-white/90 font-medium mt-1.5 line-clamp-1 px-1">
+                            {item.alt}
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1121,16 +1136,16 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
 
           <div className="relative max-w-4xl w-full h-[75vh] rounded-3xl overflow-hidden border border-white/20">
             <Image
-              src={gallery[activeGalleryIndex]}
-              alt={`${hospital.name} Gallery Photo`}
+              src={gallery[activeGalleryIndex].url}
+              alt={gallery[activeGalleryIndex].alt}
               fill
               unoptimized
               className="object-contain"
             />
           </div>
 
-          <div className="absolute bottom-6 text-center text-white text-xs font-extrabold bg-black/60 px-4 py-2 rounded-full border border-white/20">
-            Photo {activeGalleryIndex + 1} of {gallery.length} • {hospital.name}
+          <div className="absolute bottom-6 text-center text-white text-xs font-extrabold bg-black/60 px-4 py-2 rounded-full border border-white/20 max-w-md truncate">
+            Photo {activeGalleryIndex + 1} of {gallery.length} • {gallery[activeGalleryIndex].alt || hospital.name}
           </div>
         </div>
       )}
