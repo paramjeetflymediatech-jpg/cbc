@@ -12,6 +12,7 @@ interface AppHeaderProps {
   avatarRotate?: number;
   location?: string;
   unreadCount?: number;
+  showNotification?: boolean;
   onLocationPress?: () => void;
   onNotificationPress?: () => void;
   onProfilePress?: () => void;
@@ -26,6 +27,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   avatarRotate = 0,
   location = 'Chandigarh',
   unreadCount = 2,
+  showNotification = false,
   onLocationPress,
   onNotificationPress,
   onProfilePress,
@@ -68,14 +70,16 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </View>
       </View>
 
-      <TouchableOpacity style={styles.notificationButton} onPress={onNotificationPress} activeOpacity={0.8}>
-        <Text style={styles.bellIcon}>🔔</Text>
-        {unreadCount > 0 && (
-          <View style={styles.notificationBadge}>
-            <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
+      {showNotification && (
+        <TouchableOpacity style={styles.notificationButton} onPress={onNotificationPress} activeOpacity={0.8}>
+          <Text style={styles.bellIcon}>🔔</Text>
+          {unreadCount > 0 && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

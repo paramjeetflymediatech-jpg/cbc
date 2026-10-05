@@ -23,7 +23,6 @@ import { ServiceCard } from '../components/ServiceCard';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 
 import { useAuth } from '../context/AuthContext';
-import { useSweetAlert } from '../context/SweetAlertContext';
 import { LocationModal } from '../components/LocationModal';
 import { isHospitalInLocation } from '../utils/locationHelper';
 
@@ -33,7 +32,6 @@ interface HomeScreenProps {
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { user, location, isAuthenticated, savedHospitalIds, toggleSaveHospital } = useAuth();
-  const { showAlert } = useSweetAlert();
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -87,10 +85,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   const handleSearchSubmit = () => {
-    navigation.navigate('Main', {
-      screen: 'Hospitals',
-      params: { initialSearch: searchQuery.trim(), location },
-    });
+    navigation.navigate('Search', { initialQuery: searchQuery.trim(), location });
   };
 
   return (
@@ -106,22 +101,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         avatarTranslateY={user?.avatarTranslateY}
         avatarRotate={user?.avatarRotate}
         location={location}
-        unreadCount={2}
         onLocationPress={() => setLocationModalVisible(true)}
-        onNotificationPress={() => {
-          if (isAuthenticated) {
-            navigation.navigate('Notifications');
-          } else {
-            showAlert({
-              title: 'Login Required',
-              message: 'Please login first to view notifications.',
-              type: 'warning',
-              confirmText: 'Login',
-              cancelText: 'Cancel',
-              onConfirm: () => navigation.navigate('Auth'),
-            });
-          }
-        }}
         onProfilePress={() => navigation.navigate('Profile')}
       />
 
@@ -137,13 +117,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <SearchBar
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder={`Search doctors, hospitals in ${location || 'your city'}...`}
+            placeholder={`Search services & hospitals in ${location || 'your city'}...`}
             onSearchSubmit={handleSearchSubmit}
             onPressIn={() =>
-              navigation.navigate('Main', {
-                screen: 'Hospitals',
-                params: { initialSearch: searchQuery.trim(), location },
-              })
+              navigation.navigate('Search', { initialQuery: searchQuery.trim(), location })
             }
           />
         </View>
@@ -166,7 +143,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <View style={styles.heroButtonRow}>
             <TouchableOpacity
               style={styles.heroPrimaryBtn}
-              onPress={() => navigation.navigate('Main', { screen: 'Hospitals' })}
+              onPress={() => navigation.navigate('Main', { screen: 'Explore' })}
               activeOpacity={0.85}
             >
               <Text style={styles.heroPrimaryBtnText}>Explore Healthcare →</Text>
@@ -233,31 +210,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               </ScrollView>
             );
           })()}
-        </View>
-
-        {/* Popular Treatments Quick Pills */}
-        <View style={styles.sectionLight}>
-          <Text style={styles.sectionTitle}>Popular Treatments</Text>
-          <Text style={styles.sectionSubtitle}>Quickly find solutions for common health needs</Text>
-          
-          <View style={styles.treatmentPillContainer}>
-            {['Knee Replacement', 'IVF Cycle', 'Coronary Angioplasty', 'Laser Eye LASIK', 'Dental Implants', 'Hair Transplant'].map((t, idx) => (
-              <TouchableOpacity
-                key={idx}
-                style={styles.treatmentPill}
-                onPress={() =>
-                  navigation.navigate('Main', {
-                    screen: 'Hospitals',
-                    params: { initialSearch: t, location },
-                  })
-                }
-                activeOpacity={0.8}
-              >
-                <Text style={styles.treatmentPillIcon}>🩺</Text>
-                <Text style={styles.treatmentPillText}>{t}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
         </View>
 
         {/* Top Hospitals Section */}

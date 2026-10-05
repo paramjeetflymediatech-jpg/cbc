@@ -19,7 +19,7 @@ import { EmptyState } from '../components/EmptyState';
 
 import { useAuth } from '../context/AuthContext';
 import { LocationModal } from '../components/LocationModal';
-import { isHospitalInLocation } from '../utils/locationHelper';
+import { isHospitalInLocation, doesHospitalMatchKeyword } from '../utils/locationHelper';
 
 interface HospitalsScreenProps {
   navigation: any;
@@ -102,14 +102,7 @@ export const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ navigation, ro
 
     // Text search query
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (h) =>
-          (h.name && h.name.toLowerCase().includes(q)) ||
-          (h.location && h.location.toLowerCase().includes(q)) ||
-          (h.city && h.city.toLowerCase().includes(q)) ||
-          (Array.isArray(h.specialties) && h.specialties.some((s) => s.toLowerCase().includes(q)))
-      );
+      result = result.filter((h) => doesHospitalMatchKeyword(h, searchQuery));
     }
 
     // Horizontal Chip Filter

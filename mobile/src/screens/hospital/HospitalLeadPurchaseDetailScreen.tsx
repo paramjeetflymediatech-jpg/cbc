@@ -95,7 +95,7 @@ export const HospitalLeadPurchaseDetailScreen: React.FC<any> = ({ route, navigat
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Call Accounts Desk',
-          onPress: () => Linking.openURL('tel:+919876543210').catch(() => {}),
+          onPress: () => Linking.openURL('tel:+919888484310').catch(() => {}),
         },
         {
           text: 'Email Accounts',

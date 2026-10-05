@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,13 +8,14 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Service } from '../types';
+import { Hospital, Service } from '../types';
 import { colors } from '../theme/colors';
 import { SearchBar } from '../components/SearchBar';
 import { ServiceCard } from '../components/ServiceCard';
 import { EmptyState } from '../components/EmptyState';
-
-import { useEffect } from 'react';
+import { LocationModal } from '../components/LocationModal';
+import { useAuth } from '../context/AuthContext';
+import { isHospitalInLocation, isServiceInLocation } from '../utils/locationHelper';
 import api from '../services/api';
 
 interface ServicesScreenProps {
@@ -23,14 +24,17 @@ interface ServicesScreenProps {
 }
 
 export const ServicesScreen: React.FC<ServicesScreenProps> = ({ navigation, route }) => {
+  const { location } = useAuth();
   const initialSearch = route?.params?.initialSearch || '';
   const [searchQuery, setSearchQuery] = useState<string>(initialSearch);
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('All');
   const [services, setServices] = useState<Service[]>([]);
+  const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [locationModalVisible, setLocationModalVisible] = useState<boolean>(false);
 
   useEffect(() => {
-    fetchServices();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -39,26 +43,55 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({ navigation, rout
     }
   }, [route?.params?.initialSearch]);
 
-  const fetchServices = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/services');
-      if (res.data && Array.isArray(res.data.services)) {
-        setServices(res.data.services);
-      } else if (Array.isArray(res.data)) {
-        setServices(res.data);
-      } else {
-        setServices([]);
+      const [servRes, hospRes] = await Promise.allSettled([
+        api.get('/services'),
+        api.get('/hospitals'),
+      ]);
+
+      if (servRes.status === 'fulfilled' && servRes.value?.data) {
+        const rawServ = servRes.value.data;
+        if (Array.isArray(rawServ.services)) {
+          setServices(rawServ.services);
+        } else if (Array.isArray(rawServ)) {
+          setServices(rawServ);
+        } else {
+          setServices([]);
+        }
+      }
+
+      if (hospRes.status === 'fulfilled' && hospRes.value?.data) {
+        const rawHosp = hospRes.value.data;
+        if (Array.isArray(rawHosp.hospitals)) {
+          setHospitals(rawHosp.hospitals);
+        } else if (Array.isArray(rawHosp)) {
+          setHospitals(rawHosp);
+        } else {
+          setHospitals([]);
+        }
       }
     } catch (e) {
-      console.log('Error fetching services:', e);
-      setServices([]);
+      console.log('Error fetching services & hospitals:', e);
     } finally {
       setLoading(false);
     }
   };
 
-  const listToFilter = services;
+  const isAllLocations =
+    !location ||
+    location.toLowerCase() === 'all' ||
+    location.toLowerCase() === 'all locations' ||
+    location.toLowerCase() === 'all india';
+
+  const hospitalsInLocation = isAllLocations
+    ? hospitals
+    : hospitals.filter((h) => isHospitalInLocation(h, location));
+
+  const listToFilter = isAllLocations
+    ? services
+    : services.filter((s) => isServiceInLocation(s, hospitalsInLocation, location));
 
   // Dynamically extract categories from loaded database services
   const dbCategories = Array.from(new Set(listToFilter.map((s) => s.category).filter((c): c is string => Boolean(c))));
@@ -87,9 +120,24 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({ navigation, rout
 
       {/* Screen Title Bar */}
       <View style={styles.header}>
-        <Text style={styles.title}>Explore Healthcare</Text>
-        <Text style={styles.subtitle}>Discover accredited medical specialties, procedures & providers</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Explore Healthcare</Text>
+          <TouchableOpacity
+            style={styles.locationPill}
+            onPress={() => setLocationModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.locationPillText}>📍 {location} ▾</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.subtitle}>Discover accredited medical specialties & procedures in {location}</Text>
       </View>
+
+      {/* Location Modal */}
+      <LocationModal
+        visible={locationModalVisible}
+        onClose={() => setLocationModalVisible(false)}
+      />
 
       {/* Search Input */}
       <View style={styles.searchPadding}>
@@ -171,10 +219,28 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     backgroundColor: colors.surface,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   title: {
     fontSize: 24,
     fontWeight: '900',
     color: colors.textPrimary,
+  },
+  locationPill: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(253, 29, 116, 0.2)',
+  },
+  locationPillText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.primary,
   },
   subtitle: {
     fontSize: 13,

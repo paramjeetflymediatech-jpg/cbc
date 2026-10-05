@@ -121,14 +121,14 @@ export const HospitalPackageDetailScreen: React.FC<any> = ({ route, navigation }
         {
           text: 'Call +91 98765 43210',
           onPress: () => {
-            Linking.openURL('tel:+919876543210').catch(() => {});
+            Linking.openURL('tel:+919888484310').catch(() => {});
           },
         },
         {
           text: 'WhatsApp Us',
           onPress: () => {
             Linking.openURL(
-              `https://wa.me/919876543210?text=Hello,%20we%20want%20to%20activate%20Lead%20Package:%20${encodeURIComponent(
+              `https://wa.me/919888484310?text=Hello,%20we%20want%20to%20activate%20Lead%20Package:%20${encodeURIComponent(
                 pkg?.name || 'Leads'
               )}%20for%20our%20hospital.`
             ).catch(() => {});

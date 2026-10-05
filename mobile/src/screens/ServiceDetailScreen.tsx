@@ -155,46 +155,6 @@ export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ naviga
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Description Box */}
-        <View style={styles.cardBox}>
-          <Text style={styles.sectionHeading}>About {service.name}</Text>
-          <Text style={styles.descriptionText}>
-            {stripHtml(service.description) ||
-              `Find leading hospital departments, expert surgeons, and comprehensive treatment options for ${service.name}.`}
-          </Text>
-        </View>
-
-        {/* Popular Treatments Section */}
-        {service.popularTreatments && service.popularTreatments.length > 0 && (
-          <View style={styles.cardBox}>
-            <Text style={styles.sectionHeading}>Popular Treatments & Procedures</Text>
-            <Text style={styles.subHeadingText}>Select a procedure to enquire or find hospitals</Text>
-
-            <View style={styles.treatmentList}>
-              {service.popularTreatments.map((treatment, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  style={styles.treatmentItem}
-                  onPress={() =>
-                    navigation.navigate('Enquiry', {
-                      serviceName: service.name,
-                      serviceId: service.id,
-                      treatmentName: treatment,
-                    })
-                  }
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.treatmentIconBox}>
-                    <Text style={styles.checkIcon}>✓</Text>
-                  </View>
-                  <Text style={styles.treatmentTitle}>{treatment}</Text>
-                  <Text style={styles.enquireArrow}>Enquire →</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        )}
-
         {/* Recommended Hospitals Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
@@ -211,18 +171,6 @@ export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ naviga
               >
                 <Text style={styles.locationPillBtnText}>📍 {location} ▾</Text>
               </TouchableOpacity>
-              {matchingServiceHospitals.length > 0 && (
-                <TouchableOpacity
-                  onPress={() =>
-                    navigation.navigate('Main', {
-                      screen: 'Hospitals',
-                      params: { initialSpecialty: service.name },
-                    })
-                  }
-                >
-               
-                </TouchableOpacity>
-              )}
             </View>
           </View>
 
@@ -263,10 +211,23 @@ export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ naviga
 
               {/* Other Cities Hospitals offering this service */}
               {otherServiceHospitals.length > 0 && (
-                <View style={{ marginTop: 14 }}>
-                  <Text style={[styles.subHeadingText, { marginBottom: 10, fontWeight: '800' }]}>
-                    Other {service.name} Centers in India ({otherServiceHospitals.length})
-                  </Text>
+                <View style={{ marginTop: 18 }}>
+                  <View style={styles.otherCentersBanner}>
+                    <View style={styles.otherCentersHeaderRow}>
+                      <Text style={styles.otherCentersIcon}>🌐</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.otherCentersTitle}>
+                          Other {service.name} Centers in India
+                        </Text>
+                        <Text style={styles.otherCentersSub}>
+                          Verified partner hospitals and specialized centers across India
+                        </Text>
+                      </View>
+                      <View style={styles.otherCentersCountBadge}>
+                        <Text style={styles.otherCentersCountText}>{otherServiceHospitals.length}</Text>
+                      </View>
+                    </View>
+                  </View>
                   {otherServiceHospitals.map((hosp) => {
                     const hId = String(hosp.id || (hosp as any)._id || (hosp as any).slug);
                     const isSaved =
@@ -300,13 +261,21 @@ export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ naviga
           {/* When no local hospitals, but other cities have matching hospitals */}
           {!hasLocal && otherServiceHospitals.length > 0 && (
             <View>
-              <View style={styles.serviceNoticeBox}>
-                <Text style={styles.serviceNoticeTitle}>
-                  📍 No {service.name} hospitals found directly in {location}
-                </Text>
-                <Text style={styles.serviceNoticeSub}>
-                  Showing {otherServiceHospitals.length} verified {service.name} provider(s) across India:
-                </Text>
+              <View style={styles.otherCentersBanner}>
+                <View style={styles.otherCentersHeaderRow}>
+                  <Text style={styles.otherCentersIcon}>📍</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.otherCentersTitle}>
+                      No {service.name} hospitals found directly in {location}
+                    </Text>
+                    <Text style={styles.otherCentersSub}>
+                      Showing {otherServiceHospitals.length} verified {service.name} provider(s) across India:
+                    </Text>
+                  </View>
+                  <View style={styles.otherCentersCountBadge}>
+                    <Text style={styles.otherCentersCountText}>{otherServiceHospitals.length}</Text>
+                  </View>
+                </View>
               </View>
 
               {otherServiceHospitals.map((hosp) => {
@@ -356,6 +325,114 @@ export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ naviga
                 activeOpacity={0.85}
               >
                 <Text style={styles.bookConsultBtnText}>Request {service.name} Consultation →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Popular Treatments Section */}
+        {service.popularTreatments && service.popularTreatments.length > 0 && (
+          <View style={styles.cardBox}>
+            <Text style={styles.sectionHeading}>Popular Treatments & Procedures</Text>
+            <Text style={styles.subHeadingText}>Select a procedure to enquire or find hospitals</Text>
+
+            <View style={styles.treatmentList}>
+              {service.popularTreatments.map((treatment, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={styles.treatmentItem}
+                  onPress={() =>
+                    navigation.navigate('Enquiry', {
+                      serviceName: service.name,
+                      serviceId: service.id,
+                      treatmentName: treatment,
+                    })
+                  }
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.treatmentIconBox}>
+                    <Text style={styles.checkIcon}>✓</Text>
+                  </View>
+                  <Text style={styles.treatmentTitle}>{treatment}</Text>
+                  <Text style={styles.enquireArrow}>Enquire →</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Description & Content Details Box (Below Recommended Hospitals) */}
+        <View style={styles.cardBox}>
+          <Text style={styles.sectionHeading}>About {service.name}</Text>
+          <Text style={styles.descriptionText}>
+            {stripHtml(service.description) ||
+              `Find leading hospital departments, expert surgeons, and comprehensive treatment options for ${service.name}.`}
+          </Text>
+
+          {service.subServices && service.subServices.length > 0 && (
+            <View style={{ marginTop: 14 }}>
+              <Text style={[styles.subHeadingText, { fontWeight: '700', marginBottom: 8, color: colors.textPrimary }]}>
+                Specialized Services & Coverage:
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {service.subServices.map((sub, idx) => (
+                  <View
+                    key={idx}
+                    style={{
+                      backgroundColor: '#F8FAFC',
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: colors.borderLight,
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '600' }}>
+                      • {sub}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {service.priceRange && (
+            <View
+              style={{
+                marginTop: 14,
+                padding: 12,
+                backgroundColor: '#F0FDF4',
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: '#BBF7D0',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <View>
+                <Text style={{ fontSize: 11, color: '#166534', fontWeight: '700', textTransform: 'uppercase' }}>
+                  Estimated Price Range
+                </Text>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: '#15803D', marginTop: 2 }}>
+                  {service.priceRange}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('Enquiry', {
+                    serviceName: service.name,
+                    serviceId: service.id,
+                  })
+                }
+                style={{
+                  backgroundColor: '#16A34A',
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>Get Exact Quote</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -614,5 +691,42 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     color: colors.primary,
+  },
+  otherCentersBanner: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
+  },
+  otherCentersHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  otherCentersIcon: {
+    fontSize: 22,
+  },
+  otherCentersTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E40AF',
+  },
+  otherCentersSub: {
+    fontSize: 11,
+    color: '#3B82F6',
+    marginTop: 2,
+  },
+  otherCentersCountBadge: {
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  otherCentersCountText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
   },
 });

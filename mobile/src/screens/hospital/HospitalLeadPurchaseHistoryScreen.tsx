@@ -70,7 +70,7 @@ export const HospitalLeadPurchaseHistoryScreen: React.FC<any> = ({ navigation })
         },
         {
           text: 'Call +91 98765 43210',
-          onPress: () => Linking.openURL('tel:+919876543210').catch(() => {}),
+          onPress: () => Linking.openURL('tel:+919888484310').catch(() => {}),
         },
       ]
     );

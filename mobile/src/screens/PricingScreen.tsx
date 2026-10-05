@@ -455,7 +455,7 @@ export const PricingScreen: React.FC<any> = ({ navigation }) => {
           </Text>
           <TouchableOpacity
             style={styles.supportBtn}
-            onPress={() => Linking.openURL('tel:+919876543210').catch(() => {})}
+            onPress={() => Linking.openURL('tel:+919888484310').catch(() => {})}
           >
             <Text style={styles.supportBtnText}>📞 Speak with Hospital Advisory</Text>
           </TouchableOpacity>
