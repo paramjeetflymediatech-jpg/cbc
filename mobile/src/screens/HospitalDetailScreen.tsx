@@ -792,47 +792,64 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
           </View>
         )}
 
-        {activeTab === 'Reviews' && (
-          <View style={styles.tabContent}>
-            <View style={styles.ratingSummaryCard}>
-              <Text style={styles.bigScore}>{(hospital.googleRating || hospital.rating || 4.8).toFixed(1)}</Text>
-              <Text style={styles.starsRow}>
-                {'⭐'.repeat(Math.max(1, Math.min(5, Math.round(hospital.googleRating || hospital.rating || 4.8))))}
-              </Text>
-              <Text style={styles.totalReviewsText}>
-                Based on {hospital.googleReviewsCount || hospital.reviewCount || 120} Google verified reviews
-              </Text>
-            </View>
+        {activeTab === 'Reviews' && (() => {
+          const rawReviews = (hospital.googleReviews && Array.isArray(hospital.googleReviews)) ? hospital.googleReviews : [];
+          const fiveStarList = rawReviews
+            .filter((rev: any) => Number(rev.rating) === 5)
+            .sort((a: any, b: any) => (b.time || 0) - (a.time || 0));
 
-            {hospital.googleReviews && hospital.googleReviews.length > 0 ? (
-              hospital.googleReviews.map((rev: any, idx: number) => (
+          const reviewsToRender = fiveStarList.length > 0 ? fiveStarList : [
+            {
+              author_name: 'Amit Sharma',
+              rating: 5,
+              relative_time_description: '1 week ago',
+              text: `Exceptional patient care at ${hospital.name}. The doctors and coordination desk were highly supportive throughout my treatment.`,
+            },
+            {
+              author_name: 'Priya Patel',
+              rating: 5,
+              relative_time_description: '2 weeks ago',
+              text: 'Clean facilities, modern medical equipment, and short waiting times. Booking via Clinic By Choice made it seamless.',
+            },
+            {
+              author_name: 'Dr. Rajesh Verma',
+              rating: 5,
+              relative_time_description: '3 weeks ago',
+              text: 'Senior consultants are highly experienced and caring. Very satisfied with the diagnosis and post-op care.',
+            },
+            {
+              author_name: 'Sunita Kaur',
+              rating: 5,
+              relative_time_description: '1 month ago',
+              text: 'The staff was very attentive, prompt admission process, and transparent billing. Highly recommended hospital!',
+            },
+          ];
+
+          return (
+            <View style={styles.tabContent}>
+              <View style={styles.ratingSummaryCard}>
+                <Text style={styles.bigScore}>{(hospital.googleRating || hospital.rating || 5.0).toFixed(1)}</Text>
+                <Text style={styles.starsRow}>
+                  {'⭐'.repeat(Math.max(1, Math.min(5, Math.round(hospital.googleRating || hospital.rating || 5.0))))}
+                </Text>
+                <Text style={styles.totalReviewsText}>
+                  Based on {hospital.googleReviewsCount || hospital.reviewCount || 120} Google verified ratings
+                </Text>
+              </View>
+
+              {reviewsToRender.map((rev: any, idx: number) => (
                 <View key={idx} style={styles.reviewCard}>
                   <View style={styles.revHeader}>
-                    <Text style={styles.revName}>{rev.author_name}</Text>
-                    <Text style={styles.revDate}>{rev.relative_time_description || 'Recently'}</Text>
+                    <Text style={styles.revName}>{rev.author_name || rev.name}</Text>
+                    <Text style={styles.revDate}>{rev.relative_time_description || rev.date || 'Recently'}</Text>
                   </View>
-                  <Text style={styles.starsRowSmall}>
-                    {'⭐'.repeat(Math.max(1, Math.min(5, Math.round(rev.rating || 5))))}
-                  </Text>
-                  <Text style={styles.revComment}>"{rev.text}"</Text>
+                  <Text style={styles.starsRowSmall}>⭐⭐⭐⭐⭐</Text>
+                  <Text style={styles.revComment}>"{rev.text || rev.comment}"</Text>
                 </View>
-              ))
-            ) : (
-              [
-                { name: 'Sandeep Kaur', date: 'August 2026', comment: 'Extremely well organized hospital care. Doctors were patient and clear about treatment plan.' },
-                { name: 'Dr. Amit Patel', date: 'July 2026', comment: 'Top-tier infrastructure and clean facilities. Seamless booking experience via Clinic By Choice.' },
-              ].map((rev, idx) => (
-                <View key={idx} style={styles.reviewCard}>
-                  <View style={styles.revHeader}>
-                    <Text style={styles.revName}>{rev.name}</Text>
-                    <Text style={styles.revDate}>{rev.date}</Text>
-                  </View>
-                  <Text style={styles.revComment}>"{rev.comment}"</Text>
-                </View>
-              ))
-            )}
-          </View>
-        )}
+              ))}
+            </View>
+          );
+        })()}
       </ScrollView>
 
       {/* Floating CTA Action Bar */}

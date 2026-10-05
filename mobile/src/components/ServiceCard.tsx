@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
 import { Service } from '../types';
 import { colors } from '../theme/colors';
+import { getServiceImageUrl } from '../utils/serviceImageHelper';
 
 /**
  * Converts HTML from the rich-text editor to clean plain text.
@@ -33,13 +34,13 @@ interface ServiceCardProps {
 export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onPress, variant = 'compact' }) => {
   if (variant === 'full') {
     const treatments = service.popularTreatments || [];
-    const imageUrl = service.image || 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=600&auto=format&fit=crop&q=80';
+    const imageUrl = getServiceImageUrl(service);
 
     return (
       <TouchableOpacity style={styles.fullCardContainer} onPress={onPress} activeOpacity={0.88}>
         {/* Top Image Banner with Category Badge */}
         <View style={styles.imageBannerWrapper}>
-          <Image source={{ uri: imageUrl }} style={styles.bannerImage} />
+          <Image source={{ uri: imageUrl }} style={styles.bannerImage} resizeMode="cover" />
           <View style={styles.imageOverlayGradient} />
           
           <View style={styles.topBadgeRow}>

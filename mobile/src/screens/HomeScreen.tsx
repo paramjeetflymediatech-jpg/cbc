@@ -25,6 +25,7 @@ import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { useAuth } from '../context/AuthContext';
 import { useSweetAlert } from '../context/SweetAlertContext';
 import { LocationModal } from '../components/LocationModal';
+import { isHospitalInLocation } from '../utils/locationHelper';
 
 interface HomeScreenProps {
   navigation: any;
@@ -41,7 +42,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   useEffect(() => {
     fetchFeaturedData();
-  }, []);
+  }, [location]);
 
   const fetchFeaturedData = async () => {
     try {
@@ -86,9 +87,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   const handleSearchSubmit = () => {
-    if (searchQuery.trim()) {
-      navigation.navigate('Search', { initialQuery: searchQuery.trim() });
-    }
+    navigation.navigate('Main', {
+      screen: 'Hospitals',
+      params: { initialSearch: searchQuery.trim(), location },
+    });
   };
 
   return (
@@ -135,9 +137,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <SearchBar
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search doctors, hospitals, treatments..."
+            placeholder={`Search doctors, hospitals in ${location || 'your city'}...`}
             onSearchSubmit={handleSearchSubmit}
-            onPressIn={() => navigation.navigate('Search')}
+            onPressIn={() =>
+              navigation.navigate('Main', {
+                screen: 'Hospitals',
+                params: { initialSearch: searchQuery.trim(), location },
+              })
+            }
           />
         </View>
 
@@ -180,22 +187,52 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <View style={styles.sectionHeaderRow}>
             <View>
               <Text style={styles.sectionTitle}>Explore Healthcare</Text>
-              <Text style={styles.sectionSubtitle}>Top medical specialties & procedures</Text>
+              <Text style={styles.sectionSubtitle}>
+                Top medical specialties & procedures {location ? `in ${location}` : ''}
+              </Text>
             </View>
             <TouchableOpacity onPress={() => navigation.navigate('Main', { screen: 'Explore' })}>
               <Text style={styles.seeAllText}>See All →</Text>
             </TouchableOpacity>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-            {services.map((service) => (
-              <ServiceCard
-                key={service.id}
-                service={service}
-                onPress={() => navigation.navigate('ServiceDetail', { service })}
-              />
-            ))}
-          </ScrollView>
+          {(() => {
+            const hospitalsInCity = hospitals.filter((h) => isHospitalInLocation(h, location));
+            const isAllLocations = !location || location.toLowerCase() === 'all' || location.toLowerCase() === 'all locations' || location.toLowerCase() === 'all india';
+            const citySpecialties = Array.from(
+              new Set(
+                hospitalsInCity.flatMap((h) => [
+                  ...(h.specialties || []),
+                  ...((h.hospitalServices || []).map((hs: any) => hs.service?.name).filter(Boolean)),
+                ]).map((s) => s.toLowerCase().trim())
+              )
+            );
+
+            const servicesToRender =
+              isAllLocations || citySpecialties.length === 0
+                ? services
+                : services.filter((s) =>
+                    citySpecialties.some(
+                      (spec) =>
+                        spec.includes(s.name.toLowerCase().trim()) ||
+                        s.name.toLowerCase().trim().includes(spec)
+                    )
+                  );
+
+            const finalServices = servicesToRender.length > 0 ? servicesToRender : services;
+
+            return (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                {finalServices.map((service) => (
+                  <ServiceCard
+                    key={service.id}
+                    service={service}
+                    onPress={() => navigation.navigate('ServiceDetail', { service, location })}
+                  />
+                ))}
+              </ScrollView>
+            );
+          })()}
         </View>
 
         {/* Popular Treatments Quick Pills */}
@@ -208,7 +245,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               <TouchableOpacity
                 key={idx}
                 style={styles.treatmentPill}
-                onPress={() => navigation.navigate('Search', { initialQuery: t })}
+                onPress={() =>
+                  navigation.navigate('Main', {
+                    screen: 'Hospitals',
+                    params: { initialSearch: t, location },
+                  })
+                }
                 activeOpacity={0.8}
               >
                 <Text style={styles.treatmentPillIcon}>🩺</Text>
@@ -234,34 +276,37 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <LoadingSkeleton type="card" />
           ) : (
             (() => {
-              const locClean = (location || '').toLowerCase().trim();
-              const filtered = hospitals.filter((h) => {
-                const city = (h.city || '').toLowerCase();
-                const area = (h.location || '').toLowerCase();
-                const address = (h.address || '').toLowerCase();
-                const state = (h.state || '').toLowerCase();
+              const hospitalsInLocation = hospitals.filter((h) => isHospitalInLocation(h, location));
 
-                if (locClean.includes('ludhiana')) {
-                  return city.includes('ludhiana') || area.includes('ludhiana') || address.includes('ludhiana');
-                }
-                if (locClean.includes('chandigarh') || locClean.includes('tricity')) {
-                  return city.includes('chandigarh') || area.includes('mohali') || area.includes('panchkula') || city.includes('mohali');
-                }
-                if (locClean.includes('amritsar')) {
-                  return city.includes('amritsar') || area.includes('amritsar');
-                }
-                if (locClean.includes('jalandhar')) {
-                  return city.includes('jalandhar') || area.includes('jalandhar');
-                }
-                if (locClean.includes('delhi') || locClean.includes('ncr') || locClean.includes('gurugram')) {
-                  return city.includes('delhi') || city.includes('ncr') || area.includes('gurugram') || area.includes('noida');
-                }
-                return city.includes(locClean) || area.includes(locClean) || address.includes(locClean) || state.includes(locClean);
-              });
+              if (hospitalsInLocation.length === 0) {
+                return (
+                  <View style={styles.emptyLocationBox}>
+                    <Text style={styles.emptyLocationIcon}>🏥</Text>
+                    <Text style={styles.emptyLocationTitle}>No hospitals found in {location}</Text>
+                    <Text style={styles.emptyLocationSub}>
+                      We haven't onboarded accredited hospitals in {location} yet. You can change your location to explore nearby cities or browse all hospitals.
+                    </Text>
+                    <View style={styles.emptyLocationBtnRow}>
+                      <TouchableOpacity
+                        style={styles.emptyChangeCityBtn}
+                        onPress={() => setLocationModalVisible(true)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.emptyChangeCityBtnText}>📍 Change City</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.emptyBrowseAllBtn}
+                        onPress={() => navigation.navigate('Main', { screen: 'Hospitals' })}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.emptyBrowseAllBtnText}>Explore All</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              }
 
-              const listToRender = filtered.length > 0 ? filtered : hospitals;
-
-              return listToRender.slice(0, 3).map((hosp) => {
+              return hospitalsInLocation.slice(0, 3).map((hosp) => {
                 const hId = String(hosp.id || (hosp as any)._id || (hosp as any).slug);
                 const isSaved =
                   savedHospitalIds.includes(hId) ||
@@ -663,5 +708,61 @@ const styles = StyleSheet.create({
     color: '#FF4D8D',
     fontWeight: '800',
     fontSize: 13,
+  },
+  emptyLocationBox: {
+    backgroundColor: colors.surface,
+    padding: 24,
+    borderRadius: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginTop: 8,
+  },
+  emptyLocationIcon: {
+    fontSize: 36,
+    marginBottom: 10,
+  },
+  emptyLocationTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  emptyLocationSub: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 18,
+  },
+  emptyLocationBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  emptyChangeCityBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  emptyChangeCityBtnText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  emptyBrowseAllBtn: {
+    backgroundColor: colors.background,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  emptyBrowseAllBtnText: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

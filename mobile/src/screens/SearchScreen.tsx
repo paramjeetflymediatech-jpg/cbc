@@ -14,6 +14,8 @@ import { colors } from '../theme/colors';
 import { SearchBar } from '../components/SearchBar';
 import { HospitalCard } from '../components/HospitalCard';
 import { useAuth } from '../context/AuthContext';
+import { isHospitalInLocation } from '../utils/locationHelper';
+import { LocationModal } from '../components/LocationModal';
 
 interface SearchScreenProps {
   navigation: any;
@@ -21,11 +23,13 @@ interface SearchScreenProps {
 }
 
 export const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, route }) => {
-  const { savedHospitalIds, toggleSaveHospital } = useAuth();
+  const { savedHospitalIds, toggleSaveHospital, location } = useAuth();
   const initialQuery = route.params?.initialQuery || '';
   const [query, setQuery] = useState<string>(initialQuery);
   const [allHospitals, setAllHospitals] = useState<Hospital[]>([]);
   const [allServices, setAllServices] = useState<Service[]>([]);
+  const [filterByLocation, setFilterByLocation] = useState<boolean>(true);
+  const [locationModalVisible, setLocationModalVisible] = useState<boolean>(false);
 
   useEffect(() => {
     fetchSearchData();
@@ -62,10 +66,10 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, route })
     }
   };
 
-  const recentSearches = ['IVF Fertility', 'Orthopaedics', 'Chandigarh Hospitals', 'Knee Replacement'];
-  const popularSearches = ['Best IVF Hospitals', 'Top Joint Replacement', 'Dental Implants', 'Max Hospital Mohali'];
+  const recentSearches = ['IVF Fertility', 'Orthopaedics', `${location || 'Chandigarh'} Hospitals`, 'Knee Replacement'];
+  const popularSearches = ['Best IVF Hospitals', 'Top Joint Replacement', 'Dental Implants', `Hospitals in ${location || 'Punjab'}`];
 
-  const matchedHospitals = query.trim()
+  const matchedQueryHospitals = query.trim()
     ? allHospitals.filter(
         (h) =>
           (h.name && h.name.toLowerCase().includes(query.toLowerCase())) ||
@@ -74,6 +78,9 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, route })
           (Array.isArray(h.specialties) && h.specialties.some((s) => s.toLowerCase().includes(query.toLowerCase())))
       )
     : [];
+
+  const matchedHospitalsInLocation = matchedQueryHospitals.filter((h) => isHospitalInLocation(h, location));
+  const otherMatchedHospitals = matchedQueryHospitals.filter((h) => !isHospitalInLocation(h, location));
 
   const matchedServices = query.trim()
     ? allServices.filter(
@@ -98,10 +105,49 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, route })
           <SearchBar
             value={query}
             onChangeText={setQuery}
-            placeholder="Search hospitals, treatments, doctors..."
+            placeholder={`Search in ${location || 'your city'}...`}
           />
         </View>
       </View>
+
+      {/* Location Filter & Selector Strip */}
+      <View style={styles.locationBar}>
+        <View style={styles.locationChipsRow}>
+          <TouchableOpacity
+            style={[styles.locationChip, filterByLocation && styles.locationChipActive]}
+            onPress={() => setFilterByLocation(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.locationChipText, filterByLocation && styles.locationChipTextActive]}>
+              📍 In {location}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.locationChip, !filterByLocation && styles.locationChipActive]}
+            onPress={() => setFilterByLocation(false)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.locationChipText, !filterByLocation && styles.locationChipTextActive]}>
+              🌐 All India
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={styles.changeLocBtn}
+          onPress={() => setLocationModalVisible(true)}
+          activeOpacity={0.75}
+        >
+          <Text style={styles.changeLocBtnText}>Change City ▾</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Location Picker Modal */}
+      <LocationModal
+        visible={locationModalVisible}
+        onClose={() => setLocationModalVisible(false)}
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {!query.trim() ? (
@@ -169,9 +215,10 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, route })
               Search Results for "{query}"
             </Text>
 
+            {/* Specialties & Services matching query */}
             {matchedServices.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.subHeading}>Specialties & Services</Text>
+                <Text style={styles.subHeading}>Specialties & Services ({matchedServices.length})</Text>
                 {matchedServices.map((s) => (
                   <TouchableOpacity
                     key={s.id}
@@ -189,34 +236,123 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, route })
               </View>
             )}
 
-            {matchedHospitals.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.subHeading}>Hospitals ({matchedHospitals.length})</Text>
-                {matchedHospitals.map((hosp) => {
-                  const hId = String(hosp.id || (hosp as any)._id || (hosp as any).slug);
-                  const isSaved =
-                    savedHospitalIds.includes(hId) ||
-                    (hosp.id ? savedHospitalIds.includes(String(hosp.id)) : false) ||
-                    ((hosp as any).slug ? savedHospitalIds.includes(String((hosp as any).slug)) : false);
+            {/* If Filter by Selected Location is Enabled */}
+            {filterByLocation ? (
+              <>
+                {/* 1. Hospitals in Selected Location */}
+                {matchedHospitalsInLocation.length > 0 && (
+                  <View style={styles.section}>
+                    <View style={styles.locationSectionHeader}>
+                      <Text style={styles.subHeading}>
+                        Hospitals in {location} ({matchedHospitalsInLocation.length})
+                      </Text>
+                      <View style={styles.activeLocationBadge}>
+                        <Text style={styles.activeLocationBadgeText}>📍 {location}</Text>
+                      </View>
+                    </View>
 
-                  return (
-                    <HospitalCard
-                      key={hId}
-                      hospital={hosp}
-                      onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
-                      onEnquirePress={() => navigation.navigate('Enquiry', { preferredHospital: hosp.name, hospitalId: hosp.id })}
-                      onBookmarkPress={() => toggleSaveHospital(hId)}
-                      isSaved={isSaved}
-                    />
-                  );
-                })}
-              </View>
+                    {matchedHospitalsInLocation.map((hosp) => {
+                      const hId = String(hosp.id || (hosp as any)._id || (hosp as any).slug);
+                      const isSaved =
+                        savedHospitalIds.includes(hId) ||
+                        (hosp.id ? savedHospitalIds.includes(String(hosp.id)) : false) ||
+                        ((hosp as any).slug ? savedHospitalIds.includes(String((hosp as any).slug)) : false);
+
+                      return (
+                        <HospitalCard
+                          key={hId}
+                          hospital={hosp}
+                          onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
+                          onEnquirePress={() => navigation.navigate('Enquiry', { preferredHospital: hosp.name, hospitalId: hosp.id })}
+                          onBookmarkPress={() => toggleSaveHospital(hId)}
+                          isSaved={isSaved}
+                        />
+                      );
+                    })}
+                  </View>
+                )}
+
+                {/* 2. When no local hospitals match, but other cities have matches */}
+                {matchedHospitalsInLocation.length === 0 && otherMatchedHospitals.length > 0 && (
+                  <View style={styles.locationNoticeBox}>
+                    <Text style={styles.locationNoticeTitle}>
+                      📍 No matching hospitals found in {location}
+                    </Text>
+                    <Text style={styles.locationNoticeSub}>
+                      Showing {otherMatchedHospitals.length} result(s) from other cities across India:
+                    </Text>
+                  </View>
+                )}
+
+                {/* 3. Other Cities Hospitals */}
+                {otherMatchedHospitals.length > 0 && (
+                  <View style={styles.section}>
+                    {matchedHospitalsInLocation.length > 0 && (
+                      <Text style={[styles.subHeading, { marginTop: 12 }]}>
+                        Other Hospitals Across India ({otherMatchedHospitals.length})
+                      </Text>
+                    )}
+                    {otherMatchedHospitals.map((hosp) => {
+                      const hId = String(hosp.id || (hosp as any)._id || (hosp as any).slug);
+                      const isSaved =
+                        savedHospitalIds.includes(hId) ||
+                        (hosp.id ? savedHospitalIds.includes(String(hosp.id)) : false) ||
+                        ((hosp as any).slug ? savedHospitalIds.includes(String((hosp as any).slug)) : false);
+
+                      return (
+                        <HospitalCard
+                          key={hId}
+                          hospital={hosp}
+                          onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
+                          onEnquirePress={() => navigation.navigate('Enquiry', { preferredHospital: hosp.name, hospitalId: hosp.id })}
+                          onBookmarkPress={() => toggleSaveHospital(hId)}
+                          isSaved={isSaved}
+                        />
+                      );
+                    })}
+                  </View>
+                )}
+              </>
+            ) : (
+              /* All India Search Results */
+              matchedQueryHospitals.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.subHeading}>All Matching Hospitals ({matchedQueryHospitals.length})</Text>
+                  {matchedQueryHospitals.map((hosp) => {
+                    const hId = String(hosp.id || (hosp as any)._id || (hosp as any).slug);
+                    const isSaved =
+                      savedHospitalIds.includes(hId) ||
+                      (hosp.id ? savedHospitalIds.includes(String(hosp.id)) : false) ||
+                      ((hosp as any).slug ? savedHospitalIds.includes(String((hosp as any).slug)) : false);
+
+                    return (
+                      <HospitalCard
+                        key={hId}
+                        hospital={hosp}
+                        onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
+                        onEnquirePress={() => navigation.navigate('Enquiry', { preferredHospital: hosp.name, hospitalId: hosp.id })}
+                        onBookmarkPress={() => toggleSaveHospital(hId)}
+                        isSaved={isSaved}
+                      />
+                    );
+                  })}
+                </View>
+              )
             )}
 
-            {matchedHospitals.length === 0 && matchedServices.length === 0 && (
+            {matchedQueryHospitals.length === 0 && matchedServices.length === 0 && (
               <View style={styles.noResultsBox}>
                 <Text style={styles.noResultsTitle}>No results found for "{query}"</Text>
-                <Text style={styles.noResultsSub}>Try searching for Orthopaedics, IVF, Max Hospital, or Chandigarh.</Text>
+                <Text style={styles.noResultsSub}>
+                  Try searching for Orthopaedics, IVF, Cardiology, or check your spelling.
+                </Text>
+                <TouchableOpacity
+                  style={styles.noResultsBtn}
+                  onPress={() => setLocationModalVisible(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.noResultsBtnText}>Change City ({location})</Text>
+                </TouchableOpacity>
               </View>
             )}
           </>
@@ -235,10 +371,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingTop: 10,
+    paddingBottom: 6,
     backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderColor: colors.borderLight,
   },
   backBtn: {
     paddingRight: 10,
@@ -252,12 +387,57 @@ const styles = StyleSheet.create({
   searchWrap: {
     flex: 1,
   },
+  locationBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  locationChipsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  locationChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  locationChipActive: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+  },
+  locationChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  locationChipTextActive: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  changeLocBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  changeLocBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+  },
   scrollContent: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 32,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 16,
@@ -333,16 +513,33 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   resultsTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
     color: colors.textPrimary,
-    marginBottom: 16,
+    marginBottom: 14,
+  },
+  locationSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  activeLocationBadge: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  activeLocationBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.primary,
   },
   subHeading: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.textMuted,
-    marginBottom: 10,
+    color: colors.textPrimary,
+    marginBottom: 8,
   },
   serviceRow: {
     flexDirection: 'row',
@@ -372,6 +569,24 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.primary,
   },
+  locationNoticeBox: {
+    backgroundColor: '#FFFBEB',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    marginBottom: 16,
+  },
+  locationNoticeTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  locationNoticeSub: {
+    fontSize: 12,
+    color: '#78350F',
+  },
   noResultsBox: {
     padding: 32,
     alignItems: 'center',
@@ -386,5 +601,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textMuted,
     textAlign: 'center',
+    marginBottom: 16,
+  },
+  noResultsBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  noResultsBtnText: {
+    color: '#FFF',
+    fontWeight: '800',
+    fontSize: 13,
   },
 });
+

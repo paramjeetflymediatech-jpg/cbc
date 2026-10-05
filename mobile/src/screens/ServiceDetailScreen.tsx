@@ -14,6 +14,9 @@ import { Service, Hospital } from '../types';
 import { colors } from '../theme/colors';
 import { HospitalCard } from '../components/HospitalCard';
 import { useAuth } from '../context/AuthContext';
+import { isHospitalInLocation } from '../utils/locationHelper';
+import { LocationModal } from '../components/LocationModal';
+import { getServiceImageUrl } from '../utils/serviceImageHelper';
 
 /**
  * Converts HTML from the rich-text editor to clean plain text.
@@ -46,8 +49,9 @@ interface ServiceDetailScreenProps {
 }
 
 export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ navigation, route }) => {
-  const { savedHospitalIds, toggleSaveHospital } = useAuth();
+  const { savedHospitalIds, toggleSaveHospital, location } = useAuth();
   const [allHospitals, setAllHospitals] = useState<Hospital[]>([]);
+  const [locationModalVisible, setLocationModalVisible] = useState<boolean>(false);
 
   const service: Service = route.params?.service || {
     id: 's1',
@@ -80,11 +84,53 @@ export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ naviga
     }
   };
 
-  const recommendedHospitals = allHospitals.filter((h) =>
-    Array.isArray(h.specialties) && h.specialties.some((s) => s.toLowerCase().includes(service.name.toLowerCase()))
-  );
+  const matchingServiceHospitals = allHospitals.filter((h) => {
+    const sName = (service.name || '').toLowerCase().trim();
+    const sSlug = (service.slug || '').toLowerCase().trim();
 
-  const displayHospitals = recommendedHospitals.length > 0 ? recommendedHospitals : allHospitals.slice(0, 2);
+    // 1. Match in hospital specialties
+    const inSpecialties =
+      Array.isArray(h.specialties) &&
+      h.specialties.some((s) => {
+        const item = s.toLowerCase().trim();
+        return item.includes(sName) || sName.includes(item) || (sSlug && item.includes(sSlug));
+      });
+
+    // 2. Match in hospitalServices relation
+    const inHospitalServices =
+      Array.isArray((h as any).hospitalServices) &&
+      (h as any).hospitalServices.some((hs: any) => {
+        const hsName = (hs.service?.name || '').toLowerCase().trim();
+        const hsSlug = (hs.service?.slug || '').toLowerCase().trim();
+        const hsId = hs.serviceId || hs.service?.id;
+        return (
+          (service.id && hsId && String(hsId) === String(service.id)) ||
+          (hsSlug && sSlug && hsSlug === sSlug) ||
+          (hsName && sName && (hsName.includes(sName) || sName.includes(hsName)))
+        );
+      });
+
+    // 3. Match in treatments
+    const inTreatments =
+      Array.isArray(h.treatments) &&
+      h.treatments.some((t: any) => {
+        const tName = (typeof t === 'string' ? t : t.name || '').toLowerCase();
+        return tName.includes(sName) || (sSlug && tName.includes(sSlug));
+      });
+
+    // 4. Match in name or description
+    const inNameOrDesc =
+      (h.name && h.name.toLowerCase().includes(sName)) ||
+      (h.description && h.description.toLowerCase().includes(sName));
+
+    return inSpecialties || inHospitalServices || inTreatments || inNameOrDesc;
+  });
+
+  const localServiceHospitals = matchingServiceHospitals.filter((h) => isHospitalInLocation(h, location));
+  const otherServiceHospitals = matchingServiceHospitals.filter((h) => !isHospitalInLocation(h, location));
+
+  const hasLocal = localServiceHospitals.length > 0;
+  const bannerImageUrl = getServiceImageUrl(service);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -96,7 +142,7 @@ export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ naviga
           <Text style={styles.backBtnText}>← Back</Text>
         </TouchableOpacity>
 
-        <Image source={{ uri: service.image }} style={styles.heroImage} />
+        <Image source={{ uri: bannerImageUrl }} style={styles.heroImage} resizeMode="cover" />
         <View style={styles.heroOverlay} />
 
         <View style={styles.heroContent}>
@@ -152,44 +198,172 @@ export const ServiceDetailScreen: React.FC<ServiceDetailScreenProps> = ({ naviga
         {/* Recommended Hospitals Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionHeading}>Recommended Hospitals</Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Main', { screen: 'Hospitals', params: { initialSpecialty: service.name } })}
-            >
-              <Text style={styles.seeAllText}>View All →</Text>
-            </TouchableOpacity>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={styles.sectionHeading}>
+                {hasLocal ? `Recommended in ${location}` : `Recommended ${service.name} Hospitals`}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity
+                style={styles.locationPillBtn}
+                onPress={() => setLocationModalVisible(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.locationPillBtnText}>📍 {location} ▾</Text>
+              </TouchableOpacity>
+              {matchingServiceHospitals.length > 0 && (
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate('Main', {
+                      screen: 'Hospitals',
+                      params: { initialSpecialty: service.name },
+                    })
+                  }
+                >
+               
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
-          {displayHospitals.map((hosp) => {
-            const hId = String(hosp.id || (hosp as any)._id || (hosp as any).slug);
-            const isSaved =
-              savedHospitalIds.includes(hId) ||
-              (hosp.id ? savedHospitalIds.includes(String(hosp.id)) : false) ||
-              ((hosp as any).slug ? savedHospitalIds.includes(String((hosp as any).slug)) : false);
+          {/* Location Selector Modal */}
+          <LocationModal
+            visible={locationModalVisible}
+            onClose={() => setLocationModalVisible(false)}
+          />
 
-            return (
-              <HospitalCard
-                key={hId}
-                hospital={hosp}
-                onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
-                onEnquirePress={() =>
+          {/* Local Hospitals offering this service */}
+          {hasLocal && (
+            <View>
+              {localServiceHospitals.map((hosp) => {
+                const hId = String(hosp.id || (hosp as any)._id || (hosp as any).slug);
+                const isSaved =
+                  savedHospitalIds.includes(hId) ||
+                  (hosp.id ? savedHospitalIds.includes(String(hosp.id)) : false) ||
+                  ((hosp as any).slug ? savedHospitalIds.includes(String((hosp as any).slug)) : false);
+
+                return (
+                  <HospitalCard
+                    key={hId}
+                    hospital={hosp}
+                    onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
+                    onEnquirePress={() =>
+                      navigation.navigate('Enquiry', {
+                        serviceName: service.name,
+                        serviceId: service.id,
+                        preferredHospital: hosp.name,
+                        hospitalId: hosp.id,
+                      })
+                    }
+                    onBookmarkPress={() => toggleSaveHospital(hId)}
+                    isSaved={isSaved}
+                  />
+                );
+              })}
+
+              {/* Other Cities Hospitals offering this service */}
+              {otherServiceHospitals.length > 0 && (
+                <View style={{ marginTop: 14 }}>
+                  <Text style={[styles.subHeadingText, { marginBottom: 10, fontWeight: '800' }]}>
+                    Other {service.name} Centers in India ({otherServiceHospitals.length})
+                  </Text>
+                  {otherServiceHospitals.map((hosp) => {
+                    const hId = String(hosp.id || (hosp as any)._id || (hosp as any).slug);
+                    const isSaved =
+                      savedHospitalIds.includes(hId) ||
+                      (hosp.id ? savedHospitalIds.includes(String(hosp.id)) : false) ||
+                      ((hosp as any).slug ? savedHospitalIds.includes(String((hosp as any).slug)) : false);
+
+                    return (
+                      <HospitalCard
+                        key={hId}
+                        hospital={hosp}
+                        onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
+                        onEnquirePress={() =>
+                          navigation.navigate('Enquiry', {
+                            serviceName: service.name,
+                            serviceId: service.id,
+                            preferredHospital: hosp.name,
+                            hospitalId: hosp.id,
+                          })
+                        }
+                        onBookmarkPress={() => toggleSaveHospital(hId)}
+                        isSaved={isSaved}
+                      />
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* When no local hospitals, but other cities have matching hospitals */}
+          {!hasLocal && otherServiceHospitals.length > 0 && (
+            <View>
+              <View style={styles.serviceNoticeBox}>
+                <Text style={styles.serviceNoticeTitle}>
+                  📍 No {service.name} hospitals found directly in {location}
+                </Text>
+                <Text style={styles.serviceNoticeSub}>
+                  Showing {otherServiceHospitals.length} verified {service.name} provider(s) across India:
+                </Text>
+              </View>
+
+              {otherServiceHospitals.map((hosp) => {
+                const hId = String(hosp.id || (hosp as any)._id || (hosp as any).slug);
+                const isSaved =
+                  savedHospitalIds.includes(hId) ||
+                  (hosp.id ? savedHospitalIds.includes(String(hosp.id)) : false) ||
+                  ((hosp as any).slug ? savedHospitalIds.includes(String((hosp as any).slug)) : false);
+
+                return (
+                  <HospitalCard
+                    key={hId}
+                    hospital={hosp}
+                    onPress={() => navigation.navigate('HospitalDetail', { hospital: hosp })}
+                    onEnquirePress={() =>
+                      navigation.navigate('Enquiry', {
+                        serviceName: service.name,
+                        serviceId: service.id,
+                        preferredHospital: hosp.name,
+                        hospitalId: hosp.id,
+                      })
+                    }
+                    onBookmarkPress={() => toggleSaveHospital(hId)}
+                    isSaved={isSaved}
+                  />
+                );
+              })}
+            </View>
+          )}
+
+          {/* When NO hospitals anywhere provide this service */}
+          {matchingServiceHospitals.length === 0 && (
+            <View style={styles.noHospitalsForServiceBox}>
+              <Text style={styles.noHospIcon}>🩺</Text>
+              <Text style={styles.noHospTitle}>Looking for {service.name} Care?</Text>
+              <Text style={styles.noHospSubtitle}>
+                We can connect you with certified {service.name} specialists and treatment packages across our partner network.
+              </Text>
+              <TouchableOpacity
+                style={styles.bookConsultBtn}
+                onPress={() =>
                   navigation.navigate('Enquiry', {
                     serviceName: service.name,
                     serviceId: service.id,
-                    preferredHospital: hosp.name,
-                    hospitalId: hosp.id,
                   })
                 }
-                onBookmarkPress={() => toggleSaveHospital(hId)}
-                isSaved={isSaved}
-              />
-            );
-          })}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.bookConsultBtnText}>Request {service.name} Consultation →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
 
       {/* Floating CTA Footer */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { display: 'none' }]}>
         <TouchableOpacity
           style={styles.ctaButton}
           onPress={() =>
@@ -371,5 +545,74 @@ const styles = StyleSheet.create({
     color: colors.textWhite,
     fontSize: 16,
     fontWeight: '800',
+  },
+  serviceNoticeBox: {
+    backgroundColor: '#FFFBEB',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    marginBottom: 16,
+  },
+  serviceNoticeTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  serviceNoticeSub: {
+    fontSize: 12,
+    color: '#78350F',
+  },
+  noHospitalsForServiceBox: {
+    backgroundColor: colors.surface,
+    padding: 24,
+    borderRadius: 18,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginTop: 6,
+  },
+  noHospIcon: {
+    fontSize: 36,
+    marginBottom: 10,
+  },
+  noHospTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  noHospSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  bookConsultBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+  },
+  bookConsultBtnText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  locationPillBtn: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(253, 29, 116, 0.2)',
+  },
+  locationPillBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.primary,
   },
 });

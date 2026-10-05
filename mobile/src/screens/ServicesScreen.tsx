@@ -19,10 +19,12 @@ import api from '../services/api';
 
 interface ServicesScreenProps {
   navigation: any;
+  route?: any;
 }
 
-export const ServicesScreen: React.FC<ServicesScreenProps> = ({ navigation }) => {
-  const [searchQuery, setSearchQuery] = useState<string>('');
+export const ServicesScreen: React.FC<ServicesScreenProps> = ({ navigation, route }) => {
+  const initialSearch = route?.params?.initialSearch || '';
+  const [searchQuery, setSearchQuery] = useState<string>(initialSearch);
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('All');
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -30,6 +32,12 @@ export const ServicesScreen: React.FC<ServicesScreenProps> = ({ navigation }) =>
   useEffect(() => {
     fetchServices();
   }, []);
+
+  useEffect(() => {
+    if (route?.params?.initialSearch !== undefined) {
+      setSearchQuery(route.params.initialSearch);
+    }
+  }, [route?.params?.initialSearch]);
 
   const fetchServices = async () => {
     try {

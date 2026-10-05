@@ -19,6 +19,7 @@ import { EmptyState } from '../components/EmptyState';
 
 import { useAuth } from '../context/AuthContext';
 import { LocationModal } from '../components/LocationModal';
+import { isHospitalInLocation } from '../utils/locationHelper';
 
 interface HospitalsScreenProps {
   navigation: any;
@@ -60,6 +61,15 @@ export const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ navigation, ro
   }, []);
 
   useEffect(() => {
+    if (route.params?.initialSpecialty) {
+      setAppliedFilters((prev) => ({ ...prev, specialty: route.params.initialSpecialty }));
+    }
+    if (route.params?.initialSearch !== undefined) {
+      setSearchQuery(route.params.initialSearch);
+    }
+  }, [route.params?.initialSpecialty, route.params?.initialSearch]);
+
+  useEffect(() => {
     applyFilterLogic();
   }, [searchQuery, activeChip, sortOption, appliedFilters, hospitals, location]);
 
@@ -86,31 +96,8 @@ export const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ navigation, ro
     let result = [...hospitals];
 
     // Global Selected Location Filter (e.g. Ludhiana, Chandigarh, Amritsar, Delhi NCR)
-    const locClean = (location || '').toLowerCase().trim();
-    if (locClean && locClean !== 'all' && locClean !== 'all locations') {
-      result = result.filter((h) => {
-        const city = (h.city || '').toLowerCase();
-        const area = (h.location || '').toLowerCase();
-        const address = (h.address || '').toLowerCase();
-        const state = (h.state || '').toLowerCase();
-
-        if (locClean.includes('ludhiana')) {
-          return city.includes('ludhiana') || area.includes('ludhiana') || address.includes('ludhiana');
-        }
-        if (locClean.includes('chandigarh') || locClean.includes('tricity')) {
-          return city.includes('chandigarh') || area.includes('mohali') || area.includes('panchkula') || city.includes('mohali');
-        }
-        if (locClean.includes('amritsar')) {
-          return city.includes('amritsar') || area.includes('amritsar');
-        }
-        if (locClean.includes('jalandhar')) {
-          return city.includes('jalandhar') || area.includes('jalandhar');
-        }
-        if (locClean.includes('delhi') || locClean.includes('ncr') || locClean.includes('gurugram')) {
-          return city.includes('delhi') || city.includes('ncr') || area.includes('gurugram') || area.includes('noida');
-        }
-        return city.includes(locClean) || area.includes(locClean) || address.includes(locClean) || state.includes(locClean);
-      });
+    if (location && location.toLowerCase() !== 'all' && location.toLowerCase() !== 'all locations' && location.toLowerCase() !== 'all india') {
+      result = result.filter((h) => isHospitalInLocation(h, location));
     }
 
     // Text search query
@@ -144,9 +131,23 @@ export const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ navigation, ro
     }
 
     if (appliedFilters.specialty !== 'All Specialties') {
-      result = result.filter((h) =>
-        Array.isArray(h.specialties) && h.specialties.some((s) => s.toLowerCase().includes(appliedFilters.specialty.toLowerCase()))
-      );
+      const spec = appliedFilters.specialty.toLowerCase().trim();
+      result = result.filter((h) => {
+        const inSpecialties =
+          Array.isArray(h.specialties) &&
+          h.specialties.some((s) => s.toLowerCase().trim().includes(spec) || spec.includes(s.toLowerCase().trim()));
+
+        const inHospitalServices =
+          Array.isArray((h as any).hospitalServices) &&
+          (h as any).hospitalServices.some((hs: any) =>
+            (hs.service?.name &&
+              (hs.service.name.toLowerCase().trim().includes(spec) ||
+                spec.includes(hs.service.name.toLowerCase().trim()))) ||
+            (hs.service?.slug && hs.service.slug.toLowerCase().trim() === spec)
+          );
+
+        return inSpecialties || inHospitalServices;
+      });
     }
 
     if (appliedFilters.minRating > 0) {
@@ -206,7 +207,7 @@ export const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ navigation, ro
       {/* Horizontal Quick Filter Chips */}
       <View style={styles.chipBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-          {(['All', 'Near Me', 'Verified', '4+ Rating'] as const).map((chip) => (
+          {([] as const).map((chip) => (
             <TouchableOpacity
               key={chip}
               style={[styles.chip, activeChip === chip && styles.activeChip]}
@@ -224,7 +225,7 @@ export const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ navigation, ro
         <Text style={styles.resultCountText}>{filteredHospitals.length} Hospitals found</Text>
         
         <View style={styles.sortTabs}>
-          {(['Recommended', 'Highest Rated'] as const).map((opt) => (
+          {([] as const).map((opt) => (
             <TouchableOpacity
               key={opt}
               onPress={() => setSortOption(opt)}
