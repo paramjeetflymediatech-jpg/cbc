@@ -541,6 +541,19 @@ export const HospitalDetailScreen: React.FC<HospitalDetailScreenProps> = ({ navi
               <Text style={styles.infoLine}>📍 {hospital.address || hospital.location}</Text>
               {hospital.phone && <Text style={styles.infoLine}>📞 {hospital.phone}</Text>}
               {hospital.email && <Text style={styles.infoLine}>✉️ {hospital.email}</Text>}
+              {hospital.website && (
+                <TouchableOpacity
+                  onPress={() => {
+                    const url = hospital.website ? (hospital.website.startsWith('http') ? hospital.website : `https://${hospital.website}`) : '';
+                    if (url) Linking.openURL(url).catch(() => {});
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.infoLine, { color: colors.primary, fontWeight: '700' }]}>
+                    🌐 {hospital.website}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         )}

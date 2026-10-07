@@ -64,6 +64,7 @@ export interface Hospital {
   phone?: string;
   email?: string;
   website?: string;
+  isDoFollow?: boolean;
   rating: number;
   reviewCount?: number;
   isVerified?: boolean;

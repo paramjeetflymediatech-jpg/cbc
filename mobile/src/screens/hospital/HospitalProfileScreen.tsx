@@ -31,6 +31,7 @@ export const HospitalProfileScreen: React.FC<HospitalProfileScreenProps> = ({ na
   const [name, setName] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
   const [website, setWebsite] = useState<string>('');
+  const [isDoFollow, setIsDoFollow] = useState<boolean>(false);
   const [address, setAddress] = useState<string>('');
   const [city, setCity] = useState<string>('');
   const [stateVal, setStateVal] = useState<string>('');
@@ -49,6 +50,7 @@ export const HospitalProfileScreen: React.FC<HospitalProfileScreenProps> = ({ na
         setName(h.name || '');
         setPhone(h.phone || '');
         setWebsite(h.website || '');
+        setIsDoFollow(Boolean(h.isDoFollow));
         setAddress(h.address || '');
         setCity(h.city || '');
         setStateVal(h.state || '');
@@ -86,6 +88,7 @@ export const HospitalProfileScreen: React.FC<HospitalProfileScreenProps> = ({ na
         name: name.trim(),
         phone: phone.trim(),
         website: website.trim() || null,
+        isDoFollow,
         address: address.trim(),
         city: city.trim(),
         state: stateVal.trim() || 'Maharashtra',
@@ -201,6 +204,24 @@ export const HospitalProfileScreen: React.FC<HospitalProfileScreenProps> = ({ na
               placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
             />
+
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setIsDoFollow(!isDoFollow)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkboxBox, isDoFollow && styles.checkboxBoxChecked]}>
+                {isDoFollow && <Text style={styles.checkboxCheckmark}>✓</Text>}
+              </View>
+              <View style={styles.checkboxTextContainer}>
+                <Text style={styles.checkboxLabel}>Do-Follow Website Link</Text>
+                <Text style={styles.checkboxSub}>
+                  {isDoFollow
+                    ? 'Checked: Follow link (<a href="...">)'
+                    : 'Unchecked: No-Follow link (<a href="..." rel="nofollow">)'}
+                </Text>
+              </View>
+            </TouchableOpacity>
 
             <Text style={styles.label}>Full Street Address *</Text>
             <TextInput
@@ -508,5 +529,49 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     color: colors.primary,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FDF2F8',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FCE7F3',
+    marginBottom: 14,
+  },
+  checkboxBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxBoxChecked: {
+    backgroundColor: colors.primary,
+  },
+  checkboxCheckmark: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
+    lineHeight: 14,
+  },
+  checkboxTextContainer: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  checkboxLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.textDark,
+  },
+  checkboxSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textMuted,
+    marginTop: 2,
   },
 });

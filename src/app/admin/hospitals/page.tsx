@@ -132,6 +132,7 @@ interface HospitalData {
   faqs?: { question: string; answer: string }[];
   isNabhAccredited?: boolean;
   isVerifiedPartner?: boolean;
+  isDoFollow?: boolean | null;
   googleRating?: number;
   googleReviewsCount?: number | null;
   googlePlaceId?: string | null;
@@ -177,6 +178,7 @@ export default function AdminHospitalsPage() {
   const [addDistrict, setAddDistrict] = useState('');
   const [addAddress, setAddAddress] = useState('');
   const [addWebsite, setAddWebsite] = useState('');
+  const [addIsDoFollow, setAddIsDoFollow] = useState(false);
   const [addDescription, setAddDescription] = useState('');
   const [addLeads, setAddLeads] = useState('50');
   const [addStatus, setAddStatus] = useState('APPROVED');
@@ -205,6 +207,7 @@ export default function AdminHospitalsPage() {
   const [editPassword, setEditPassword] = useState('');
   const [showEditPassword, setShowEditPassword] = useState(false);
   const [editWebsite, setEditWebsite] = useState('');
+  const [editIsDoFollow, setEditIsDoFollow] = useState(false);
   const [editAddress, setEditAddress] = useState('');
   const [editCity, setEditCity] = useState('');
   const [editDistrict, setEditDistrict] = useState('');
@@ -812,6 +815,7 @@ export default function AdminHospitalsPage() {
     setEditContactPersonEmail(h.contactPersonEmail || '');
     setEditIsNabhAccredited(Boolean(h.isNabhAccredited));
     setEditIsVerifiedPartner(Boolean(h.isVerifiedPartner));
+    setEditIsDoFollow(Boolean(h.isDoFollow));
     setEditGoogleRating(h.googleRating || h.rating || 4.8);
     setEditGoogleReviewsCount(h.googleReviewsCount || '');
     setEditGooglePlaceId(h.googlePlaceId || '');
@@ -895,6 +899,7 @@ export default function AdminHospitalsPage() {
           contactPersonEmail: editContactPersonEmail,
           isNabhAccredited: editIsNabhAccredited,
           isVerifiedPartner: editIsVerifiedPartner,
+          isDoFollow: editIsDoFollow,
           googleRating: Number(editGoogleRating),
           googleReviewsCount: editGoogleReviewsCount ? Number(editGoogleReviewsCount) : null,
           googlePlaceId: editGooglePlaceId ? editGooglePlaceId.trim() : null,
@@ -1049,6 +1054,7 @@ export default function AdminHospitalsPage() {
           state: addState,
           address: addAddress,
           website: addWebsite,
+          isDoFollow: addIsDoFollow,
           description: addDescription,
           leadsRemaining: Number(addLeads),
           status: addStatus,
@@ -1071,6 +1077,7 @@ export default function AdminHospitalsPage() {
         setAddState('Maharashtra');
         setAddAddress('');
         setAddWebsite('');
+        setAddIsDoFollow(false);
         setAddDescription('');
         setAddFacilities([]);
         setNewAddFacility('');
@@ -1544,6 +1551,17 @@ export default function AdminHospitalsPage() {
                     placeholder="https://..."
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#fd1d74]"
                   />
+                  <label className="flex items-center space-x-2 mt-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={addIsDoFollow}
+                      onChange={(e) => setAddIsDoFollow(e.target.checked)}
+                      className="w-4 h-4 text-[#b02151] rounded border-gray-300 focus:ring-[#fd1d74]"
+                    />
+                    <span className="text-[11px] font-bold text-gray-700">
+                      Do-Follow Website Link ({addIsDoFollow ? 'Follow: <a href="..."> / no rel' : 'No-Follow: rel="nofollow"'})
+                    </span>
+                  </label>
                 </div>
               </div>
 
@@ -1753,6 +1771,17 @@ export default function AdminHospitalsPage() {
                       placeholder="https://..."
                       className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-600"
                     />
+                    <label className="flex items-center space-x-2 mt-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editIsDoFollow}
+                        onChange={(e) => setEditIsDoFollow(e.target.checked)}
+                        className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                      />
+                      <span className="text-[11px] font-bold text-gray-700">
+                        Do-Follow Link ({editIsDoFollow ? 'Follow: <a href="..."> / no rel' : 'No-Follow: rel="nofollow"'})
+                      </span>
+                    </label>
                   </div>
 
                   <div>

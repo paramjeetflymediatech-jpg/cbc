@@ -80,6 +80,9 @@ export async function connectDB(): Promise<Sequelize | null> {
         if (!table.isVerifiedPartner) {
           await instance.query('ALTER TABLE hospitals ADD COLUMN isVerifiedPartner TINYINT(1) NOT NULL DEFAULT 1;');
         }
+        if (!table.isDoFollow) {
+          await instance.query('ALTER TABLE hospitals ADD COLUMN isDoFollow TINYINT(1) NOT NULL DEFAULT 0;');
+        }
         if (!table.googleRating) {
           await instance.query('ALTER TABLE hospitals ADD COLUMN googleRating FLOAT NOT NULL DEFAULT 4.8;');
         }

@@ -32,6 +32,7 @@ interface HospitalProfileData {
   contactPersonPhone?: string;
   isNabhAccredited?: boolean;
   isVerifiedPartner?: boolean;
+  isDoFollow?: boolean;
   googleRating?: number;
   googleReviewsCount?: number | null;
   rating?: number;
@@ -51,6 +52,7 @@ export default function HospitalProfilePage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [website, setWebsite] = useState('');
+  const [isDoFollow, setIsDoFollow] = useState(false);
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [district, setDistrict] = useState('');
@@ -118,6 +120,7 @@ export default function HospitalProfilePage() {
           setContactPersonPhone(h.contactPersonPhone || '');
           setIsNabhAccredited(Boolean(h.isNabhAccredited));
           setIsVerifiedPartner(Boolean(h.isVerifiedPartner));
+          setIsDoFollow(Boolean(h.isDoFollow));
           setGoogleRating(h.googleRating || h.rating || 4.8);
           setGoogleReviewsCount(h.googleReviewsCount || null);
           setGooglePlaceId(h.googlePlaceId || '');
@@ -301,6 +304,7 @@ export default function HospitalProfilePage() {
           name,
           phone,
           website,
+          isDoFollow,
           address,
           city,
           district,
@@ -533,6 +537,37 @@ export default function HospitalProfilePage() {
                 onChange={(e) => setPhone(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#fd1d74]"
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Official Website URL</label>
+              <input
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://yourhospital.com"
+                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#fd1d74]"
+              />
+            </div>
+            <div className="flex flex-col justify-end">
+              <label className="flex items-start space-x-3 p-3 bg-pink-50/50 border border-pink-100 rounded-2xl cursor-pointer hover:bg-pink-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={isDoFollow}
+                  onChange={(e) => setIsDoFollow(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 text-[#b02151] rounded border-gray-300 focus:ring-[#fd1d74]"
+                />
+                <div className="text-xs">
+                  <span className="font-extrabold text-gray-900 block">Do-Follow Website Link</span>
+                  <span className="text-gray-500 font-medium text-[11px] block">
+                    {isDoFollow
+                      ? 'Checked: Follow link (<a href="...">'
+                      : 'Unchecked: No-Follow link (<a href="..." rel="nofollow">)'}
+                  </span>
+                </div>
+              </label>
             </div>
           </div>
 

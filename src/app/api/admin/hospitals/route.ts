@@ -74,6 +74,7 @@ export async function POST(req: Request) {
       state,
       address,
       website,
+      isDoFollow,
       description,
       leadsRemaining,
       status,
@@ -128,6 +129,7 @@ export async function POST(req: Request) {
       faqs: [],
       rating: 4.9,
       isFeatured: true,
+      isDoFollow: Boolean(isDoFollow),
     });
 
     const passHash = await hashPassword(password);

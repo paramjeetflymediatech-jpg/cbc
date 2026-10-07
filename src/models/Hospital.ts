@@ -64,6 +64,7 @@ export interface HospitalAttributes {
   isFeatured: boolean;
   isNabhAccredited?: boolean | null;
   isVerifiedPartner?: boolean | null;
+  isDoFollow?: boolean | null;
   googleRating: number;
   googlePlaceId?: string | null;
   googleReviewsCount?: number | null;
@@ -84,6 +85,7 @@ export type HospitalCreationAttributes = Optional<
   | 'isFeatured'
   | 'isNabhAccredited'
   | 'isVerifiedPartner'
+  | 'isDoFollow'
   | 'googleRating'
   | 'googlePlaceId'
   | 'googleReviewsCount'
@@ -126,6 +128,7 @@ export class Hospital extends Model<HospitalAttributes, HospitalCreationAttribut
   declare isFeatured: boolean;
   declare isNabhAccredited: boolean | null;
   declare isVerifiedPartner: boolean | null;
+  declare isDoFollow: boolean | null;
   declare googleRating: number;
   declare googlePlaceId: string | null;
   declare googleReviewsCount: number | null;
@@ -269,6 +272,11 @@ Hospital.init(
       defaultValue: false,
     },
     isVerifiedPartner: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    isDoFollow: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,

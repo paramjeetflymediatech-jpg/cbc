@@ -323,6 +323,7 @@ export default function GetListedPage() {
             <span className="flex items-center"><ShieldCheck className="w-5 h-5 text-yellow-300 mr-1.5" /> Verified Healthcare Marketplace</span>
             <span className="flex items-center"><Globe className="w-5 h-5 text-yellow-300 mr-1.5" /> Global Medical Tourism Reach</span>
             <span className="flex items-center"><Award className="w-5 h-5 text-yellow-300 mr-1.5" /> Dedicated Hospital Dashboard</span>
+            <span className="flex items-center"><Award className="w-5 h-5 text-yellow-300 mr-1.5" /> Get a Backlink</span>
           </div>
         </div>
       </section>

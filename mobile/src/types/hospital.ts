@@ -23,6 +23,7 @@ export interface HospitalProfileData {
   status: string;
   isNabhAccredited?: boolean;
   isVerifiedPartner?: boolean;
+  isDoFollow?: boolean;
   rating?: number;
   googleRating?: number;
   googleReviewsCount?: number;

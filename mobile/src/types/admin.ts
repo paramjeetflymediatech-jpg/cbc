@@ -72,6 +72,7 @@ export interface AdminHospitalItem {
   googleReviewsCount?: number;
   isVerifiedPartner?: boolean;
   isNabhAccredited?: boolean;
+  isDoFollow?: boolean;
   doctors?: AdminDoctorItem[];
   createdAt?: string;
 }

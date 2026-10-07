@@ -341,11 +341,16 @@ export default function HospitalDetailClient({ hospital, initialServiceId }: Hos
 
                 <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600 pt-1 font-medium">
                   <span className="flex items-center"><Phone className="w-3.5 h-3.5 text-[#be185d] mr-1" /> {hospital.phone}</span>
-                  {/* {hospital.website && (
-                    <a href={hospital.website} target="_blank" rel="noreferrer" className="text-pink-600 hover:underline flex items-center">
+                  {hospital.website && (
+                    <a
+                      href={hospital.website.startsWith('http') ? hospital.website : `https://${hospital.website}`}
+                      target="_blank"
+                      rel={hospital.isDoFollow ? undefined : 'nofollow'}
+                      className="text-pink-600 hover:underline flex items-center font-medium transition-colors"
+                    >
                       <Globe className="w-3.5 h-3.5 mr-1" /> Official Website
                     </a>
-                  )} */}
+                  )}
                 </div>
               </div>
             </div>

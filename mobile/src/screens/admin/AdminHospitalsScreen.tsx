@@ -97,6 +97,7 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
   const [state, setState] = useState<string>('');
   const [address, setAddress] = useState<string>('');
   const [website, setWebsite] = useState<string>('');
+  const [isDoFollow, setIsDoFollow] = useState<boolean>(false);
   const [initialLeads, setInitialLeads] = useState<string>('50');
 
   // Edit Hospital Modal
@@ -107,6 +108,7 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
   const [editEmail, setEditEmail] = useState<string>('');
   const [editPhone, setEditPhone] = useState<string>('');
   const [editWebsite, setEditWebsite] = useState<string>('');
+  const [editIsDoFollow, setEditIsDoFollow] = useState<boolean>(false);
   const [editAddress, setEditAddress] = useState<string>('');
   const [editCity, setEditCity] = useState<string>('');
   const [editState, setEditState] = useState<string>('');
@@ -305,6 +307,7 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
     setEditEmail(h.email || '');
     setEditPhone(h.phone || '');
     setEditWebsite(h.website || '');
+    setEditIsDoFollow(Boolean(h.isDoFollow));
     setEditAddress(h.address || '');
     setEditCity(h.city || '');
     setEditState(h.state || '');
@@ -334,6 +337,7 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
         email: editEmail.toLowerCase().trim(),
         phone: editPhone.trim(),
         website: editWebsite.trim() || undefined,
+        isDoFollow: editIsDoFollow,
         address: editAddress.trim(),
         city: editCity.trim(),
         state: editState.trim() || undefined,
@@ -795,6 +799,7 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
         state: state.trim() || undefined,
         address: address.trim(),
         website: website.trim() || undefined,
+        isDoFollow,
         leadsRemaining: Number(initialLeads) || 50,
         status: 'APPROVED',
       });
@@ -809,6 +814,7 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
         setState('');
         setAddress('');
         setWebsite('');
+        setIsDoFollow(false);
         Alert.alert('Success', `Hospital "${name}" onboarded successfully.`);
         fetchHospitals();
       }
@@ -1244,6 +1250,24 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
               autoCapitalize="none"
             />
 
+            <TouchableOpacity
+              style={styles.formCheckboxRow}
+              onPress={() => setEditIsDoFollow(!editIsDoFollow)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.formCheckboxBox, editIsDoFollow && styles.formCheckboxBoxChecked]}>
+                {editIsDoFollow && <Text style={styles.formCheckboxCheckmark}>✓</Text>}
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.formCheckboxLabel}>Do-Follow Website Link</Text>
+                <Text style={styles.formCheckboxSub}>
+                  {editIsDoFollow
+                    ? 'Checked: Follow link (<a href="...">)'
+                    : 'Unchecked: No-Follow link (<a href="..." rel="nofollow">)'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
             {/* City & State Grid */}
             <View style={styles.formGridRow}>
               <View style={styles.formGridCol}>
@@ -1508,6 +1532,24 @@ export const AdminHospitalsScreen: React.FC<AdminHospitalsScreenProps> = ({ navi
               onChangeText={setWebsite}
               autoCapitalize="none"
             />
+
+            <TouchableOpacity
+              style={styles.formCheckboxRow}
+              onPress={() => setIsDoFollow(!isDoFollow)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.formCheckboxBox, isDoFollow && styles.formCheckboxBoxChecked]}>
+                {isDoFollow && <Text style={styles.formCheckboxCheckmark}>✓</Text>}
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.formCheckboxLabel}>Do-Follow Website Link</Text>
+                <Text style={styles.formCheckboxSub}>
+                  {isDoFollow
+                    ? 'Checked: Follow link (<a href="...">)'
+                    : 'Unchecked: No-Follow link (<a href="..." rel="nofollow">)'}
+                </Text>
+              </View>
+            </TouchableOpacity>
 
             <Text style={styles.formLabel}>Initial Lead Balance Credits</Text>
             <TextInput
@@ -3443,6 +3485,47 @@ const styles = StyleSheet.create({
   docMetaItem: {
     fontSize: 11,
     color: colors.textSecondary,
+  },
+  formCheckboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  formCheckboxBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  formCheckboxBoxChecked: {
+    backgroundColor: colors.primary,
+  },
+  formCheckboxCheckmark: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '900',
+    lineHeight: 13,
+  },
+  formCheckboxLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.textDark,
+  },
+  formCheckboxSub: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.textMuted,
+    marginTop: 1,
   },
 });
 
